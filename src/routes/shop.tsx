@@ -24,7 +24,7 @@ const searchSchema = z.object({
 export const Route = createFileRoute("/shop")({
   head: () => ({
     meta: [
-      { title: "সকল বই ও সাজেশন — পলিটেকনিক এডু" },
+      { title: "সকল বই ও সাজেশন — Polytechnic Tutorial Home" },
       {
         name: "description",
         content:

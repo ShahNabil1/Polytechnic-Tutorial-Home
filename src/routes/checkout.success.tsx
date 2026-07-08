@@ -10,7 +10,7 @@ const searchSchema = z.object({
 export const Route = createFileRoute("/checkout/success")({
   head: () => ({
     meta: [
-      { title: "অর্ডার সফল — পলিটেকনিক এডু" },
+      { title: "অর্ডার সফল — Polytechnic Tutorial Home" },
       { name: "robots", content: "noindex" },
     ],
   }),

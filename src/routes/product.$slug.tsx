@@ -15,18 +15,18 @@ export const Route = createFileRoute("/product/$slug")({
     if (!loaderData) {
       return {
         meta: [
-          { title: "প্রোডাক্ট পাওয়া যায়নি — পলিটেকনিক এডু" },
+          { title: "প্রোডাক্ট পাওয়া যায়নি — Polytechnic Tutorial Home" },
           { name: "robots", content: "noindex" },
         ],
       };
     }
     return {
       meta: [
-        { title: `${loaderData.product.title} — পলিটেকনিক এডু` },
+        { title: `${loaderData.product.title} — Polytechnic Tutorial Home` },
         { name: "description", content: loaderData.product.description },
         {
           property: "og:title",
-          content: `${loaderData.product.title} — পলিটেকনিক এডু`,
+          content: `${loaderData.product.title} — Polytechnic Tutorial Home`,
         },
         { property: "og:description", content: loaderData.product.description },
       ],
