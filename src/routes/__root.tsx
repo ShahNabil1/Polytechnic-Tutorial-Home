@@ -74,9 +74,9 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
-const SITE_TITLE = "পলিটেকনিক এডু — বই, ই-বুক ও সুপার সাজেশন";
+const SITE_TITLE = "Polytechnic Tutorial Home — ডিপ্লোমা প্রস্তুতির সম্পূর্ণ প্ল্যাটফর্ম";
 const SITE_DESC =
-  "বাংলাদেশের ডিপ্লোমা ইন ইঞ্জিনিয়ারিং ছাত্র-ছাত্রীদের জন্য পাঠ্যবই, ই-বুক এবং পরীক্ষার সুপার সাজেশন। কোনো অ্যাকাউন্ট ছাড়াই সরাসরি অর্ডার করুন।";
+  "ডিপ্লোমা ইন ইঞ্জিনিয়ারিং শিক্ষার্থীদের জন্য ভিডিও কোর্স, লাইভ ক্লাস, বই ও সুপার সাজেশন — এক প্ল্যাটফর্মে।";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
@@ -85,7 +85,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: SITE_TITLE },
       { name: "description", content: SITE_DESC },
-      { name: "author", content: "Polytechnic Edu" },
+      { name: "author", content: "Polytechnic Tutorial Home" },
       { property: "og:title", content: SITE_TITLE },
       { property: "og:description", content: SITE_DESC },
       { property: "og:type", content: "website" },
@@ -94,6 +94,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "preconnect", href: "https://cdn.jsdelivr.net", crossOrigin: "anonymous" },
+      {
+        rel: "stylesheet",
+        href: "https://cdn.jsdelivr.net/gh/maateen/bangla-web-fonts/fonts/SolaimanLipi/solaimanlipi.css",
+      },
     ],
   }),
   shellComponent: RootShell,

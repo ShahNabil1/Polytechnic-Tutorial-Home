@@ -5,12 +5,50 @@ import { useCart } from "@/lib/cart-store";
 import { toBanglaNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-const NAV = [
+type NavItem = { to: string; label: string; hash?: boolean };
+
+const NAV: NavItem[] = [
   { to: "/", label: "হোম" },
-  { to: "/shop", label: "বইসমূহ" },
-  { to: "/shop?type=suggestion", label: "সুপার সাজেশন" },
+  { to: "/#courses", label: "কোর্স", hash: true },
+  { to: "/#pricing", label: "প্রাইসিং", hash: true },
+  { to: "/#testimonials", label: "রিভিউ", hash: true },
+  { to: "/#faq", label: "FAQ", hash: true },
+  { to: "/shop", label: "শপ" },
   { to: "/about", label: "আমাদের সম্পর্কে" },
 ];
+
+function NavAnchor({
+  item,
+  active,
+  className,
+  onClick,
+}: {
+  item: NavItem;
+  active: boolean;
+  className: string;
+  onClick?: () => void;
+}) {
+  if (item.hash) {
+    return (
+      <a
+        href={item.to}
+        onClick={onClick}
+        className={cn(className, active && "text-foreground")}
+      >
+        {item.label}
+      </a>
+    );
+  }
+  return (
+    <Link
+      to={item.to}
+      onClick={onClick}
+      className={cn(className, active && "text-foreground")}
+    >
+      {item.label}
+    </Link>
+  );
+}
 
 export function SiteHeader() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -22,36 +60,31 @@ export function SiteHeader() {
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/85 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-4 py-3 md:px-6 md:py-4">
         <Link to="/" className="flex items-center gap-2.5">
-          <div className="grid size-9 place-items-center rounded-lg bg-brand text-brand-foreground shadow-sm">
-            <span className="font-inter text-sm font-bold">PE</span>
+          <div className="grid size-9 place-items-center rounded-md bg-foreground text-background">
+            <span className="font-inter text-[11px] font-bold tracking-tight">
+              PTH
+            </span>
           </div>
-          <span className="text-lg font-semibold tracking-tight md:text-xl">
-            পলিটেকনিক এডু
-          </span>
+          <div className="flex flex-col leading-tight">
+            <span className="text-[15px] font-semibold tracking-tight md:text-base">
+              Polytechnic Tutorial Home
+            </span>
+            <span className="hidden text-[11px] text-muted-foreground md:block">
+              ডিপ্লোমার জন্য এক প্ল্যাটফর্ম
+            </span>
+          </div>
         </Link>
 
-        <nav className="hidden gap-7 text-sm font-medium md:flex">
+        <nav className="hidden gap-6 text-sm md:flex">
           {NAV.map((item) => {
-            const active =
-              item.to === "/"
-                ? pathname === "/"
-                : pathname.startsWith(item.to.split("?")[0]);
+            const active = item.to === "/" ? pathname === "/" : pathname === item.to;
             return (
-              <Link
+              <NavAnchor
                 key={item.to}
-                to={item.to.split("?")[0]}
-                search={
-                  item.to.includes("?type=suggestion")
-                    ? { type: "suggestion" }
-                    : undefined
-                }
-                className={cn(
-                  "text-muted-foreground transition-colors hover:text-foreground",
-                  active && "text-foreground",
-                )}
-              >
-                {item.label}
-              </Link>
+                item={item}
+                active={active}
+                className="text-muted-foreground transition-colors hover:text-foreground"
+              />
             );
           })}
         </nav>
@@ -59,15 +92,15 @@ export function SiteHeader() {
         <div className="flex items-center gap-2">
           <Link
             to="/cart"
-            className="relative flex items-center gap-2 rounded-full bg-secondary px-3.5 py-2 text-sm font-medium transition-colors hover:bg-secondary/70"
+            className="relative flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-secondary"
           >
             <ShoppingCart className="size-4" />
-            <span className="font-inter tabular-nums">
+            <span className="font-inter tabular-nums text-xs">
               {toBanglaNumber(count)}
             </span>
           </Link>
           <button
-            className="grid size-10 place-items-center rounded-lg hover:bg-secondary md:hidden"
+            className="grid size-9 place-items-center rounded-md hover:bg-secondary md:hidden"
             onClick={() => setOpen((o) => !o)}
             aria-label="Toggle menu"
           >
@@ -78,21 +111,15 @@ export function SiteHeader() {
 
       {open && (
         <div className="border-t border-border/60 md:hidden">
-          <nav className="mx-auto flex max-w-7xl flex-col px-4 py-3">
+          <nav className="mx-auto flex max-w-7xl flex-col px-4 py-2">
             {NAV.map((item) => (
-              <Link
+              <NavAnchor
                 key={item.to}
-                to={item.to.split("?")[0]}
-                search={
-                  item.to.includes("?type=suggestion")
-                    ? { type: "suggestion" }
-                    : undefined
-                }
+                item={item}
+                active={false}
                 onClick={() => setOpen(false)}
-                className="py-3 text-sm font-medium text-muted-foreground hover:text-foreground"
-              >
-                {item.label}
-              </Link>
+                className="py-3 text-sm text-muted-foreground hover:text-foreground"
+              />
             ))}
           </nav>
         </div>
