@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { useCart, cartSubtotal } from "@/lib/cart-store";
 import { formatBDT, toBanglaNumber } from "@/lib/format";
-import { PRODUCT_TYPE_LABEL } from "@/lib/products";
+import { productTypeLabel } from "@/lib/products";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/cart")({
@@ -76,7 +76,7 @@ function CartPage() {
                   <div className="flex flex-1 flex-col justify-between">
                     <div>
                       <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        {PRODUCT_TYPE_LABEL[item.type]}
+                        {productTypeLabel(item.type)}
                       </p>
                       <Link
                         to="/product/$slug"

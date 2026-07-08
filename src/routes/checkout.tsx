@@ -9,7 +9,7 @@ import {
   hasPhysical,
 } from "@/lib/cart-store";
 import { formatBDT, toBanglaNumber } from "@/lib/format";
-import { PRODUCT_TYPE_LABEL } from "@/lib/products";
+import { productTypeLabel } from "@/lib/products";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/checkout")({
@@ -265,7 +265,7 @@ function CheckoutPage() {
                     <div className="flex flex-1 flex-col text-sm">
                       <p className="line-clamp-1 font-medium">{i.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        {PRODUCT_TYPE_LABEL[i.type]} ×{" "}
+                        {productTypeLabel(i.type)} ×{" "}
                         <span className="font-inter tabular-nums">
                           {toBanglaNumber(i.quantity)}
                         </span>

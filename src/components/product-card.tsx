@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { Plus } from "lucide-react";
 import type { Product } from "@/lib/products";
-import { PRODUCT_TYPE_LABEL } from "@/lib/products";
+import { productTypeLabel } from "@/lib/products";
 import { useCart } from "@/lib/cart-store";
 import { formatBDT } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -44,7 +44,7 @@ export function ProductCard({ product }: { product: Product }) {
             TYPE_BADGE[product.type],
           )}
         >
-          {PRODUCT_TYPE_LABEL[product.type]}
+          {productTypeLabel(product.type)}
         </span>
       </Link>
       <div className="flex flex-1 flex-col">
