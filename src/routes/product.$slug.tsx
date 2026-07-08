@@ -1,5 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, Check, ShoppingCart } from "lucide-react";
+import { productTypeLabel, getProductBySlug } from "@/lib/products";
 import { PRODUCT_TYPE_LABEL, getProductBySlug } from "@/lib/products";
 import { useCart } from "@/lib/cart-store";
 import { formatBDT } from "@/lib/format";
