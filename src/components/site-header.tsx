@@ -7,8 +7,10 @@ import { cn } from "@/lib/utils";
 
 const NAV = [
   { to: "/", label: "হোম" },
-  { to: "/shop", label: "বইসমূহ" },
-  { to: "/shop?type=suggestion", label: "সুপার সাজেশন" },
+  { to: "/#courses", label: "কোর্স" },
+  { to: "/#pricing", label: "প্রাইসিং" },
+  { to: "/#faq", label: "FAQ" },
+  { to: "/shop", label: "শপ" },
   { to: "/about", label: "আমাদের সম্পর্কে" },
 ];
 
