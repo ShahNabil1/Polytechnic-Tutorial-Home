@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import logoAsset from "@/assets/pth-logo.jpg.asset.json";
 
 export function SiteFooter() {
   return (
