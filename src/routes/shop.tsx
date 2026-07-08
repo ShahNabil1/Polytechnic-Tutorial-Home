@@ -4,9 +4,9 @@ import { z } from "zod";
 import { ProductCard } from "@/components/product-card";
 import {
   DEPARTMENTS,
-  PRODUCT_TYPE_LABEL,
   PRODUCTS,
   SEMESTERS,
+  productTypeLabel,
   type Department,
   type ProductType,
   type Semester,
@@ -65,7 +65,7 @@ function ShopPage() {
           </h1>
           <p className="mt-2 text-muted-foreground">
             {type
-              ? PRODUCT_TYPE_LABEL[type as ProductType]
+              ? productTypeLabel(type as ProductType)
               : "ফিজিক্যাল বই, ই-বুক এবং সুপার সাজেশন"}
             — আপনার প্রয়োজন অনুযায়ী ফিল্টার করুন।
           </p>
