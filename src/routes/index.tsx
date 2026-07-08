@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Polytechnic Tutorial Home — ডিপ্লোমা প্রস্তুতির সম্পূর্ণ প্ল্যাটফর্ম" },
+      { title: "Polytechnic Tutorial Home" },
       {
         name: "description",
         content:
