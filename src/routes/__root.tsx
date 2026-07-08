@@ -96,8 +96,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "ডিপ্লোমা ইন ইঞ্জিনিয়ারিং শিক্ষার্থীদের জন্য ভিডিও কোর্স, লাইভ ক্লাস, নোটস, বই ও সুপার সাজেশন — এক জায়গায়।" },
       { property: "og:description", content: "ডিপ্লোমা ইন ইঞ্জিনিয়ারিং শিক্ষার্থীদের জন্য ভিডিও কোর্স, লাইভ ক্লাস, নোটস, বই ও সুপার সাজেশন — এক জায়গায়।" },
       { name: "twitter:description", content: "ডিপ্লোমা ইন ইঞ্জিনিয়ারিং শিক্ষার্থীদের জন্য ভিডিও কোর্স, লাইভ ক্লাস, নোটস, বই ও সুপার সাজেশন — এক জায়গায়।" },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/fd82129d-c71a-4026-b06c-6759233f0626/id-preview-e82b820d--d887e7d6-d4c8-4d44-833a-fbefe3aba6ef.lovable.app-1783507036541.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/fd82129d-c71a-4026-b06c-6759233f0626/id-preview-e82b820d--d887e7d6-d4c8-4d44-833a-fbefe3aba6ef.lovable.app-1783507036541.png" },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/VWFSLSNllWZ0zMNEwHCP3VGh25x2/social-images/social-1783508986579-d168f6cd-d4f9-40de-9f8d-2a664b397285.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/VWFSLSNllWZ0zMNEwHCP3VGh25x2/social-images/social-1783508986579-d168f6cd-d4f9-40de-9f8d-2a664b397285.webp" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
