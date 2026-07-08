@@ -6,14 +6,14 @@ export function SiteFooter() {
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 md:grid-cols-4 md:px-6">
         <div className="md:col-span-2">
           <div className="flex items-center gap-2.5">
-            <div className="grid size-9 place-items-center rounded-lg bg-brand text-brand-foreground">
-              <span className="font-inter text-sm font-bold">PE</span>
+            <div className="grid size-9 place-items-center rounded-md bg-foreground text-background">
+              <span className="font-inter text-[11px] font-bold">PTH</span>
             </div>
-            <span className="text-lg font-semibold">পলিটেকনিক এডু</span>
+            <span className="text-base font-semibold">Polytechnic Tutorial Home</span>
           </div>
           <p className="mt-4 max-w-md text-sm leading-relaxed text-muted-foreground">
-            বাংলাদেশের ডিপ্লোমা ইন ইঞ্জিনিয়ারিং ছাত্র-ছাত্রীদের জন্য পাঠ্যবই,
-            ই-বুক এবং পরীক্ষার সুপার সাজেশনের একটি নির্ভরযোগ্য প্ল্যাটফর্ম।
+            ডিপ্লোমা ইন ইঞ্জিনিয়ারিং শিক্ষার্থীদের জন্য ভিডিও কোর্স, লাইভ ক্লাস,
+            বই এবং সুপার সাজেশন — এক প্ল্যাটফর্মে।
           </p>
         </div>
         <div>
