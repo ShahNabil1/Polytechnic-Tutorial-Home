@@ -60,17 +60,17 @@ export function SiteHeader() {
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/85 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-4 py-3 md:px-6 md:py-4">
         <Link to="/" className="flex items-center gap-2.5">
-          <div className="grid size-9 place-items-center rounded-md bg-foreground text-background">
-            <span className="font-inter text-[11px] font-bold tracking-tight">
-              PTH
-            </span>
-          </div>
+          <img
+            src={logoAsset.url}
+            alt="Polytechnic Tutorial Home"
+            className="size-10 rounded-full ring-1 ring-border"
+          />
           <div className="flex flex-col leading-tight">
             <span className="text-[15px] font-semibold tracking-tight md:text-base">
               Polytechnic Tutorial Home
             </span>
             <span className="hidden text-[11px] text-muted-foreground md:block">
-              ডিপ্লোমার জন্য এক প্ল্যাটফর্ম
+              Knowledge · Wisdom · Humanity — Bogura
             </span>
           </div>
         </Link>
