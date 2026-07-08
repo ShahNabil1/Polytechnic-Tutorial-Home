@@ -67,7 +67,7 @@ export function SiteFooter() {
       </div>
       <div className="border-t border-border/60">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-5 text-xs text-muted-foreground md:flex-row md:px-6">
-          <p>© ২০২৬ পলিটেকনিক এডু। সর্বস্বত্ব সংরক্ষিত।</p>
+          <p>© ২০২৬ Polytechnic Tutorial Home। সর্বস্বত্ব সংরক্ষিত।</p>
           <p className="font-inter">Made with care in Bangladesh 🇧🇩</p>
         </div>
       </div>
