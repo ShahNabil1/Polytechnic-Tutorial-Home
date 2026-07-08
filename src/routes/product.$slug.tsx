@@ -62,7 +62,7 @@ function ProductPage() {
           >
             <span className="drop-shadow-2xl">{product.coverEmoji}</span>
             <span className="absolute right-4 top-4 rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-foreground ring-1 ring-black/5">
-              {PRODUCT_TYPE_LABEL[product.type]}
+              {PRODUCT_TYPE_LABEL[product.type as ProductType]}
             </span>
           </div>
 

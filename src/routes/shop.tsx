@@ -65,7 +65,7 @@ function ShopPage() {
           </h1>
           <p className="mt-2 text-muted-foreground">
             {type
-              ? PRODUCT_TYPE_LABEL[type]
+              ? PRODUCT_TYPE_LABEL[type as ProductType]
               : "ফিজিক্যাল বই, ই-বুক এবং সুপার সাজেশন"}
             — আপনার প্রয়োজন অনুযায়ী ফিল্টার করুন।
           </p>
