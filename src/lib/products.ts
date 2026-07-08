@@ -51,6 +51,10 @@ export const PRODUCT_TYPE_LABEL: Record<ProductType, string> = {
   suggestion: "সুপার সাজেশন",
 };
 
+export function productTypeLabel(type: ProductType): string {
+  return PRODUCT_TYPE_LABEL[type];
+}
+
 export const PRODUCTS: Product[] = [
   {
     id: "p1",
