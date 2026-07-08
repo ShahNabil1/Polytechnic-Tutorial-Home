@@ -4,13 +4,13 @@ import { BookOpen, Target, Users } from "lucide-react";
 export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
-      { title: "আমাদের সম্পর্কে — পলিটেকনিক এডু" },
+      { title: "আমাদের সম্পর্কে — Polytechnic Tutorial Home" },
       {
         name: "description",
         content:
-          "পলিটেকনিক এডু বাংলাদেশের ডিপ্লোমা ছাত্র-ছাত্রীদের জন্য একটি ভরসাযোগ্য শিক্ষা প্ল্যাটফর্ম।",
+          "Polytechnic Tutorial Home বাংলাদেশের ডিপ্লোমা ছাত্র-ছাত্রীদের জন্য একটি ভরসাযোগ্য শিক্ষা প্ল্যাটফর্ম।",
       },
-      { property: "og:title", content: "আমাদের সম্পর্কে — পলিটেকনিক এডু" },
+      { property: "og:title", content: "আমাদের সম্পর্কে — Polytechnic Tutorial Home" },
     ],
   }),
   component: AboutPage,
@@ -24,7 +24,7 @@ function AboutPage() {
           আমাদের সম্পর্কে
         </h1>
         <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
-          পলিটেকনিক এডু বাংলাদেশের ডিপ্লোমা ইন ইঞ্জিনিয়ারিং ছাত্র-ছাত্রীদের
+          Polytechnic Tutorial Home বাংলাদেশের ডিপ্লোমা ইন ইঞ্জিনিয়ারিং ছাত্র-ছাত্রীদের
           জন্য তৈরি একটি নির্ভরযোগ্য অনলাইন শিক্ষা ও ই-কমার্স প্ল্যাটফর্ম।
           আমাদের লক্ষ্য হলো — মানসম্মত পাঠ্যবই, ই-বুক এবং পরীক্ষার সুপার
           সাজেশন সহজেই ছাত্র-ছাত্রীদের হাতে পৌঁছে দেওয়া।

@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/checkout")({
   head: () => ({
     meta: [
-      { title: "চেকআউট — পলিটেকনিক এডু" },
+      { title: "চেকআউট — Polytechnic Tutorial Home" },
       { name: "description", content: "গেস্ট চেকআউট — সাইন আপ ছাড়াই অর্ডার।" },
       { name: "robots", content: "noindex" },
     ],

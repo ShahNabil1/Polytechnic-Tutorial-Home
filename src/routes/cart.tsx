@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/cart")({
   head: () => ({
     meta: [
-      { title: "কার্ট — পলিটেকনিক এডু" },
+      { title: "কার্ট — Polytechnic Tutorial Home" },
       { name: "description", content: "আপনার নির্বাচিত বই ও সাজেশন দেখুন।" },
       { name: "robots", content: "noindex" },
     ],
