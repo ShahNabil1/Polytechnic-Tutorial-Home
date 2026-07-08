@@ -7,9 +7,7 @@ export function SiteFooter() {
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 md:grid-cols-4 md:px-6">
         <div className="md:col-span-2">
           <div className="flex items-center gap-2.5">
-            <div className="grid size-9 place-items-center rounded-md bg-foreground text-background">
-              <span className="font-inter text-[11px] font-bold">PTH</span>
-            </div>
+            <img src={logoAsset.url} alt="Polytechnic Tutorial Home" className="size-10 rounded-full ring-1 ring-border" />
             <span className="text-base font-semibold">Polytechnic Tutorial Home</span>
           </div>
           <p className="mt-4 max-w-md text-sm leading-relaxed text-muted-foreground">
