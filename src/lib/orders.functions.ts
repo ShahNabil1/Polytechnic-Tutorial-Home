@@ -65,7 +65,15 @@ const CreateOrderInput = z.object({
 export const createOrder = createServerFn({ method: "POST" })
   .inputValidator((d) => CreateOrderInput.parse(d))
   .handler(async ({ data }) => {
-    const sb = serverPublic();
+    // Use the admin client for the create flow: this is a public server fn
+    // (guest checkout) so it runs as anon; anon has no SELECT policy on
+    // `orders` / `blocked_identifiers`, which would make the blocklist check,
+    // idempotency lookup, and `.select()` after insert all silently return
+    // nothing. Zod input validation + fingerprint/IP/phone blocklist checks
+    // above provide the safety layer instead of RLS here.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const sb = supabaseAdmin;
+
     let ip = "";
     let ua = "";
     try {
