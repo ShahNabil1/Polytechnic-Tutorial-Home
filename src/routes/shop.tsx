@@ -1,23 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { ProductCard } from "@/components/product-card";
-import {
-  DEPARTMENTS,
-  PRODUCTS,
-  SEMESTERS,
-  productTypeLabel,
-  type Department,
-  type ProductType,
-  type Semester,
-} from "@/lib/products";
+import type { CategoryRow } from "@/lib/products.functions";
+import { listPublicCategories, listPublicProducts } from "@/lib/products.functions";
+import type { Product, ProductType } from "@/lib/products";
+import { productTypeLabel } from "@/lib/products";
 import { cn } from "@/lib/utils";
 
 const searchSchema = z.object({
-  department: z
-    .enum(["computer", "civil", "electrical", "mechanical", "electronics"])
-    .optional(),
-  semester: z.coerce.number().int().min(1).max(8).optional(),
+  department: z.string().optional(),
+  semester: z.coerce.number().int().min(1).max(50).optional(),
   type: z.enum(["physical", "ebook", "suggestion"]).optional(),
 });
 
@@ -36,70 +30,83 @@ export const Route = createFileRoute("/shop")({
   component: ShopPage,
 });
 
-const TYPE_OPTIONS: { id: ProductType | undefined; label: string }[] = [
-  { id: undefined, label: "সব ধরনের" },
-  { id: "physical", label: "ফিজিক্যাল বই" },
-  { id: "ebook", label: "ই-বুক" },
-  { id: "suggestion", label: "সুপার সাজেশন" },
-];
-
 function ShopPage() {
   const { department, semester, type } = Route.useSearch();
+  const fetchProducts = useServerFn(listPublicProducts);
+  const fetchCategories = useServerFn(listPublicCategories);
+
+  const [products, setProducts] = useState<Product[]>([]);
+  const [cats, setCats] = useState<CategoryRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    Promise.all([
+      fetchProducts({ data: undefined as never }),
+      fetchCategories({ data: undefined as never }),
+    ])
+      .then(([p, c]) => {
+        if (!mounted) return;
+        setProducts(p ?? []);
+        setCats(c ?? []);
+      })
+      .finally(() => mounted && setLoading(false));
+    return () => {
+      mounted = false;
+    };
+  }, [fetchProducts, fetchCategories]);
+
+  const typeCats = cats.filter((c) => c.kind === "product_type");
+  const deptCats = cats.filter((c) => c.kind === "department");
+  const semCats = cats.filter((c) => c.kind === "semester");
 
   const filtered = useMemo(() => {
-    return PRODUCTS.filter((p) => {
-      if (department && !p.departments.includes(department as Department))
-        return false;
-      if (semester && !p.semesters.includes(semester as Semester)) return false;
+    return products.filter((p) => {
+      if (department && !p.departments.includes(department)) return false;
+      if (semester && !p.semesters.includes(semester)) return false;
       if (type && p.type !== type) return false;
       return true;
     });
-  }, [department, semester, type]);
+  }, [products, department, semester, type]);
 
   return (
     <div className="px-4 py-10 md:px-6 md:py-14">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
-            সকল বইসমূহ
-          </h1>
+          <h1 className="text-3xl font-bold tracking-tight md:text-4xl">সকল বইসমূহ</h1>
           <p className="mt-2 text-muted-foreground">
-            {type
-              ? productTypeLabel(type as ProductType)
-              : "ফিজিক্যাল বই, ই-বুক এবং সুপার সাজেশন"}
-            — আপনার প্রয়োজন অনুযায়ী ফিল্টার করুন।
+            {type ? productTypeLabel(type as ProductType) : "ফিজিক্যাল বই, ই-বুক এবং সুপার সাজেশন"} —
+            আপনার প্রয়োজন অনুযায়ী ফিল্টার করুন।
           </p>
         </div>
 
-        {/* Filters */}
         <div className="mb-8 space-y-5 rounded-2xl border border-border bg-card p-5">
           <FilterRow label="প্রোডাক্ট টাইপ">
-            {TYPE_OPTIONS.map((opt) => (
+            <FilterChip active={!type} to="/shop" search={{ department, semester }}>
+              সব ধরনের
+            </FilterChip>
+            {typeCats.map((c) => (
               <FilterChip
-                key={opt.label}
-                active={type === opt.id}
+                key={c.id}
+                active={type === c.slug}
                 to="/shop"
-                search={{ department, semester, type: opt.id }}
+                search={{ department, semester, type: c.slug as ProductType }}
               >
-                {opt.label}
+                {c.name}
               </FilterChip>
             ))}
           </FilterRow>
 
           <FilterRow label="ডিপার্টমেন্ট">
-            <FilterChip
-              active={!department}
-              to="/shop"
-              search={{ semester, type }}
-            >
+            <FilterChip active={!department} to="/shop" search={{ semester, type }}>
               সব বিভাগ
             </FilterChip>
-            {DEPARTMENTS.map((d) => (
+            {deptCats.map((d) => (
               <FilterChip
                 key={d.id}
-                active={department === d.id}
+                active={department === d.slug}
                 to="/shop"
-                search={{ department: d.id, semester, type }}
+                search={{ department: d.slug, semester, type }}
               >
                 {d.name}
               </FilterChip>
@@ -107,19 +114,15 @@ function ShopPage() {
           </FilterRow>
 
           <FilterRow label="সেমিস্টার">
-            <FilterChip
-              active={!semester}
-              to="/shop"
-              search={{ department, type }}
-            >
+            <FilterChip active={!semester} to="/shop" search={{ department, type }}>
               সব
             </FilterChip>
-            {SEMESTERS.map((s) => (
+            {semCats.map((s) => (
               <FilterChip
                 key={s.id}
-                active={semester === s.id}
+                active={semester === Number(s.slug)}
                 to="/shop"
-                search={{ department, semester: s.id, type }}
+                search={{ department, semester: Number(s.slug), type }}
               >
                 {s.name}
               </FilterChip>
@@ -127,8 +130,17 @@ function ShopPage() {
           </FilterRow>
         </div>
 
-        {/* Results */}
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="mb-4 aspect-[3/4] w-full rounded-xl bg-slate-200" />
+                <div className="h-4 w-3/4 rounded bg-slate-200" />
+                <div className="mt-2 h-4 w-1/2 rounded bg-slate-200" />
+              </div>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-surface p-16 text-center">
             <p className="text-lg font-semibold">কোনো ফলাফল পাওয়া যায়নি</p>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -154,13 +166,7 @@ function ShopPage() {
   );
 }
 
-function FilterRow({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function FilterRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
       <p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">

@@ -10,9 +10,11 @@ import {
   Plus,
   Minus,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { ProductCard } from "@/components/product-card";
-import { getFeaturedProducts } from "@/lib/products";
+import type { Product } from "@/lib/products";
+import { listFeaturedProducts } from "@/lib/products.functions";
 import { toBanglaNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -140,7 +142,14 @@ const FAQS = [
 /* ---------- Page ---------- */
 
 function HomePage() {
-  const featured = getFeaturedProducts().slice(0, 4);
+  const fetchFeatured = useServerFn(listFeaturedProducts);
+  const [featured, setFeatured] = useState<Product[]>([]);
+
+  useEffect(() => {
+    fetchFeatured({ data: undefined as never })
+      .then((rows) => setFeatured((rows ?? []).slice(0, 4)))
+      .catch(() => setFeatured([]));
+  }, [fetchFeatured]);
 
   return (
     <div>
@@ -279,7 +288,7 @@ function Courses() {
   );
 }
 
-function ShopStrip({ products }: { products: ReturnType<typeof getFeaturedProducts> }) {
+function ShopStrip({ products }: { products: Product[] }) {
   return (
     <section className="border-y border-border/60 bg-surface px-4 py-16 md:px-6">
       <div className="mx-auto max-w-6xl">

@@ -1,17 +1,21 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ArrowLeft, Check, ShoppingCart } from "lucide-react";
-import { productTypeLabel, getProductBySlug } from "@/lib/products";
+import { useState } from "react";
+import { ArrowLeft, Check, ShoppingCart, ChevronLeft, ChevronRight, ImageIcon } from "lucide-react";
+import { productTypeLabel } from "@/lib/products";
+import { getPublicProductBySlug } from "@/lib/products.functions";
 import { useCart } from "@/lib/cart-store";
 import { formatBDT } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
+const SITE_URL = "https://polytechnictutorial.com";
+
 export const Route = createFileRoute("/product/$slug")({
-  loader: ({ params }) => {
-    const product = getProductBySlug(params.slug);
+  loader: async ({ params }) => {
+    const product = await getPublicProductBySlug({ data: { slug: params.slug } });
     if (!product) throw notFound();
     return { product };
   },
-  head: ({ loaderData }) => {
+  head: ({ params, loaderData }) => {
     if (!loaderData) {
       return {
         meta: [
@@ -20,15 +24,55 @@ export const Route = createFileRoute("/product/$slug")({
         ],
       };
     }
+    const p = loaderData.product;
+    const url = `${SITE_URL}/product/${params.slug}`;
+    const title = p.metaTitle || `${p.title} — Polytechnic Tutorial Home`;
+    const description = p.metaDescription || p.description.slice(0, 300);
+    const image = p.ogImage || p.images?.[0]?.url;
+
+    const jsonLd: Record<string, unknown> = {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name: p.title,
+      description: p.description,
+      sku: p.id,
+      url,
+      category: productTypeLabel(p.type),
+      brand: { "@type": "Brand", name: "Polytechnic Tutorial Home" },
+      offers: {
+        "@type": "Offer",
+        priceCurrency: "BDT",
+        price: p.price,
+        availability:
+          p.stock === 0
+            ? "https://schema.org/OutOfStock"
+            : "https://schema.org/InStock",
+        url,
+      },
+    };
+    if (image) (jsonLd as any).image = p.images.map((i) => i.url);
+
+    const meta: Array<Record<string, string>> = [
+      { title },
+      { name: "description", content: description },
+      { property: "og:title", content: title },
+      { property: "og:description", content: description },
+      { property: "og:type", content: "product" },
+      { property: "og:url", content: url },
+      { property: "product:price:amount", content: String(p.price) },
+      { property: "product:price:currency", content: "BDT" },
+      { name: "twitter:card", content: image ? "summary_large_image" : "summary" },
+    ];
+    if (image) {
+      meta.push({ property: "og:image", content: image });
+      meta.push({ name: "twitter:image", content: image });
+    }
+
     return {
-      meta: [
-        { title: `${loaderData.product.title} — Polytechnic Tutorial Home` },
-        { name: "description", content: loaderData.product.description },
-        {
-          property: "og:title",
-          content: `${loaderData.product.title} — Polytechnic Tutorial Home`,
-        },
-        { property: "og:description", content: loaderData.product.description },
+      meta,
+      links: [{ rel: "canonical", href: url }],
+      scripts: [
+        { type: "application/ld+json", children: JSON.stringify(jsonLd) },
       ],
     };
   },
@@ -39,8 +83,12 @@ function ProductPage() {
   const { product } = Route.useLoaderData();
   const add = useCart((s) => s.add);
   const inCart = useCart((s) => s.items.some((i) => i.productId === product.id));
+  const [idx, setIdx] = useState(0);
 
   const isDigital = product.type !== "physical";
+  const images = product.images ?? [];
+  const hasImages = images.length > 0;
+  const current = hasImages ? images[Math.min(idx, images.length - 1)] : null;
 
   return (
     <div className="px-4 py-10 md:px-6 md:py-14">
@@ -54,32 +102,81 @@ function ProductPage() {
         </Link>
 
         <div className="grid gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-          <div
-            className={cn(
-              "relative flex aspect-[3/4] items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-br text-[10rem] shadow-xl ring-1 ring-border",
-              product.coverColor,
+          <div>
+            <div className="relative overflow-hidden rounded-3xl bg-slate-100 shadow-xl ring-1 ring-border">
+              <div className="relative aspect-[3/4] w-full">
+                {current ? (
+                  <img
+                    src={current.url}
+                    alt={product.title}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div
+                    className={cn(
+                      "flex h-full w-full items-center justify-center bg-gradient-to-br text-[10rem]",
+                      product.coverColor ?? "from-slate-200 to-slate-400",
+                    )}
+                  >
+                    {product.coverEmoji ?? <ImageIcon className="size-24 text-white/70" />}
+                  </div>
+                )}
+                <span className="absolute right-4 top-4 rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-foreground ring-1 ring-black/5">
+                  {productTypeLabel(product.type)}
+                </span>
+
+                {images.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setIdx((i) => (i - 1 + images.length) % images.length)}
+                      className="absolute left-3 top-1/2 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-slate-800 shadow ring-1 ring-black/5 hover:bg-white"
+                      aria-label="Previous image"
+                    >
+                      <ChevronLeft className="size-5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIdx((i) => (i + 1) % images.length)}
+                      className="absolute right-3 top-1/2 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-slate-800 shadow ring-1 ring-black/5 hover:bg-white"
+                      aria-label="Next image"
+                    >
+                      <ChevronRight className="size-5" />
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+            {images.length > 1 && (
+              <div className="mt-3 flex gap-2 overflow-x-auto">
+                {images.map((img: { url: string }, i: number) => (
+                  <button
+                    key={img.url}
+                    type="button"
+                    onClick={() => setIdx(i)}
+                    className={cn(
+                      "size-16 shrink-0 overflow-hidden rounded-lg border-2 transition-all",
+                      i === idx ? "border-brand" : "border-transparent opacity-70 hover:opacity-100",
+                    )}
+                    aria-label={`Show image ${i + 1}`}
+                  >
+                    <img src={img.url} alt="" className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
             )}
-          >
-            <span className="drop-shadow-2xl">{product.coverEmoji}</span>
-            <span className="absolute right-4 top-4 rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-foreground ring-1 ring-black/5">
-              {productTypeLabel(product.type)}
-            </span>
           </div>
 
           <div className="flex flex-col">
             {product.subtitle && (
-              <p className="text-sm font-medium text-muted-foreground">
-                {product.subtitle}
-              </p>
+              <p className="text-sm font-medium text-muted-foreground">{product.subtitle}</p>
             )}
             <h1 className="mt-2 text-3xl font-bold tracking-tight md:text-4xl">
               {product.title}
             </h1>
 
             <div className="mt-5 flex items-baseline gap-3">
-              <span className="text-3xl font-bold tabular-nums">
-                {formatBDT(product.price)}
-              </span>
+              <span className="text-3xl font-bold tabular-nums">{formatBDT(product.price)}</span>
               {product.originalPrice && (
                 <span className="text-lg text-muted-foreground line-through tabular-nums">
                   {formatBDT(product.originalPrice)}
@@ -87,7 +184,7 @@ function ProductPage() {
               )}
             </div>
 
-            {product.stock !== undefined && (
+            {product.stock !== undefined && product.stock !== null && product.stock > 0 && (
               <p className="mt-2 text-sm text-brand">
                 <Check className="mr-1 inline size-4" />
                 স্টকে আছে ({product.stock}+ কপি)
@@ -98,7 +195,7 @@ function ProductPage() {
               <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                 বিবরণ
               </h3>
-              <p className="text-base leading-relaxed text-foreground/90">
+              <p className="whitespace-pre-line text-base leading-relaxed text-foreground/90">
                 {product.description}
               </p>
             </div>
@@ -123,8 +220,7 @@ function ProductPage() {
               <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
                 <p className="font-semibold">📥 ইনস্ট্যান্ট ডাউনলোড</p>
                 <p className="mt-1">
-                  পেমেন্ট সম্পন্ন হওয়ার পরপরই সিকিউর ডাউনলোড লিংক আপনার
-                  ইমেইলে পাঠানো হবে।
+                  পেমেন্ট সম্পন্ন হওয়ার পরপরই সিকিউর ডাউনলোড লিংক আপনার ইমেইলে পাঠানো হবে।
                 </p>
               </div>
             )}
