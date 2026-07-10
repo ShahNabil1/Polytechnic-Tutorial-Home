@@ -148,10 +148,18 @@ function CheckoutPage() {
   return (
     <div className="px-4 py-8 md:px-6 md:py-12">
       <div className="mx-auto max-w-5xl">
-        <h1 className="text-2xl font-extrabold tracking-tight md:text-3xl">গেস্ট চেকআউট</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          কোনো অ্যাকাউন্ট খোলার প্রয়োজন নেই — নিচের তথ্য দিয়ে সরাসরি অর্ডার করুন।
-        </p>
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-brand">
+            Secure Checkout
+          </p>
+          <h1 className="mt-2 text-2xl font-extrabold tracking-tight md:text-3xl">
+            You're one step away from your books
+          </h1>
+          <p className="mt-2 text-sm font-semibold text-muted-foreground">
+            Fill in your details below — no account needed. Pay securely with bKash, Nagad, Rocket or card, and we'll take it from there.
+          </p>
+        </div>
+
 
         <form
           onSubmit={onSubmit}
