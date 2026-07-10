@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { AlertCircle, CheckCircle2, Eye, EyeOff, KeyRound } from "lucide-react";
 import { checkPhoneAvailability } from "@/lib/auth.functions";
+import { toEnglishText, toEnglishPassword, friendlyPasswordError } from "@/lib/input-filter";
 
 type Tab = "login" | "signup";
 type Stage = "form" | "otp" | "reset";
@@ -115,7 +116,7 @@ function PasswordFieldEl({
           placeholder="••••••••"
           value={value}
           onChange={(e) => {
-            onChange(e.target.value);
+            onChange(toEnglishPassword(e.target.value));
             onClearError();
           }}
           required
@@ -445,7 +446,7 @@ export function AuthDrawer({
       const { error } = await supabase.auth.updateUser({ password });
       if (error) {
         setLoading(false);
-        setFormError(errMsg(error));
+        setFormError(friendlyPasswordError(error));
         return;
       }
       await supabase.auth.signOut();
@@ -456,7 +457,7 @@ export function AuthDrawer({
       setTab("login");
     } catch (err) {
       setLoading(false);
-      setFormError(errMsg(err));
+      setFormError(friendlyPasswordError(err));
     }
   }
 
@@ -720,7 +721,7 @@ export function AuthDrawer({
                         placeholder="আপনার নাম"
                         value={fullName}
                         onChange={(e) => {
-                          setFullName(e.target.value);
+                          setFullName(toEnglishText(e.target.value));
                           if (formError) setFormError(null);
                         }}
                         autoComplete="name"

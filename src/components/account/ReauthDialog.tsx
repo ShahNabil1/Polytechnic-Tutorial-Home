@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { verifyPasswordReauth } from "@/lib/reauth.functions";
 import { getPasskeyAuthOptions, verifyPasskeyAuthentication, listMyPasskeys } from "@/lib/passkey.functions";
 import { markReauthed, registerReauthDialog, setReauthMethodsAvailable } from "@/lib/reauth";
+import { toEnglishPassword } from "@/lib/input-filter";
 
 /**
  * Modal host for step-up reauth. Mount once inside the profile page.
@@ -162,7 +163,7 @@ export function ReauthDialogHost() {
                     autoFocus
                     type="password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => setPassword(toEnglishPassword(e.target.value))}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") tryPassword();
                     }}

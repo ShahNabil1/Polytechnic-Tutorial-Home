@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Monitor, Smartphone, Tablet, LogOut, Shield, Pencil, Check, X, ShieldOff, MapPin, Globe } from "lucide-react";
 import { ensureReauth } from "@/lib/reauth";
+import { toEnglishText } from "@/lib/input-filter";
 import { SESSION_LABEL_MAX, validateSessionLabel } from "@/lib/session-label";
 import {
   listTrackedSessions,
@@ -187,7 +188,7 @@ export function SessionsCard() {
                             autoFocus
                             type="text"
                             value={draft}
-                            onChange={(e) => setDraft(e.target.value)}
+                            onChange={(e) => setDraft(toEnglishText(e.target.value))}
                             onKeyDown={(e) => {
                               if (e.key === "Enter" && !draftError) saveEdit(s.id);
                               if (e.key === "Escape") cancelEdit();
