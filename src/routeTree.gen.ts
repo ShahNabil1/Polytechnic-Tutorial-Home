@@ -35,6 +35,10 @@ import { Route as AuthenticatedInternalWorkspaceInstructorsRouteImport } from '.
 import { Route as AuthenticatedInternalWorkspaceEmployeesRouteImport } from './routes/_authenticated/_internal.workspace.employees'
 import { Route as AuthenticatedInternalInstructorProfileRouteImport } from './routes/_authenticated/_internal.instructor.profile'
 import { Route as AuthenticatedInternalWorkspaceEcommerceIndexRouteImport } from './routes/_authenticated/_internal.workspace.ecommerce.index'
+import { Route as AuthenticatedInternalWorkspaceEcommerceProductsRouteImport } from './routes/_authenticated/_internal.workspace.ecommerce.products'
+import { Route as AuthenticatedInternalWorkspaceEcommerceOrdersRouteImport } from './routes/_authenticated/_internal.workspace.ecommerce.orders'
+import { Route as AuthenticatedInternalWorkspaceEcommerceCouponsRouteImport } from './routes/_authenticated/_internal.workspace.ecommerce.coupons'
+import { Route as AuthenticatedInternalWorkspaceEcommerceCategoriesRouteImport } from './routes/_authenticated/_internal.workspace.ecommerce.categories'
 
 const TermsOfServiceRoute = TermsOfServiceRouteImport.update({
   id: '/terms-of-service',
@@ -175,6 +179,30 @@ const AuthenticatedInternalWorkspaceEcommerceIndexRoute =
     path: '/ecommerce/',
     getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
   } as any)
+const AuthenticatedInternalWorkspaceEcommerceProductsRoute =
+  AuthenticatedInternalWorkspaceEcommerceProductsRouteImport.update({
+    id: '/ecommerce/products',
+    path: '/ecommerce/products',
+    getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
+  } as any)
+const AuthenticatedInternalWorkspaceEcommerceOrdersRoute =
+  AuthenticatedInternalWorkspaceEcommerceOrdersRouteImport.update({
+    id: '/ecommerce/orders',
+    path: '/ecommerce/orders',
+    getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
+  } as any)
+const AuthenticatedInternalWorkspaceEcommerceCouponsRoute =
+  AuthenticatedInternalWorkspaceEcommerceCouponsRouteImport.update({
+    id: '/ecommerce/coupons',
+    path: '/ecommerce/coupons',
+    getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
+  } as any)
+const AuthenticatedInternalWorkspaceEcommerceCategoriesRoute =
+  AuthenticatedInternalWorkspaceEcommerceCategoriesRouteImport.update({
+    id: '/ecommerce/categories',
+    path: '/ecommerce/categories',
+    getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -200,6 +228,10 @@ export interface FileRoutesByFullPath {
   '/api/public/sessions/$action': typeof ApiPublicSessionsActionRoute
   '/instructor/': typeof AuthenticatedInternalInstructorIndexRoute
   '/workspace/': typeof AuthenticatedInternalWorkspaceIndexRoute
+  '/workspace/ecommerce/categories': typeof AuthenticatedInternalWorkspaceEcommerceCategoriesRoute
+  '/workspace/ecommerce/coupons': typeof AuthenticatedInternalWorkspaceEcommerceCouponsRoute
+  '/workspace/ecommerce/orders': typeof AuthenticatedInternalWorkspaceEcommerceOrdersRoute
+  '/workspace/ecommerce/products': typeof AuthenticatedInternalWorkspaceEcommerceProductsRoute
   '/workspace/ecommerce/': typeof AuthenticatedInternalWorkspaceEcommerceIndexRoute
 }
 export interface FileRoutesByTo {
@@ -223,6 +255,10 @@ export interface FileRoutesByTo {
   '/api/public/sessions/$action': typeof ApiPublicSessionsActionRoute
   '/instructor': typeof AuthenticatedInternalInstructorIndexRoute
   '/workspace': typeof AuthenticatedInternalWorkspaceIndexRoute
+  '/workspace/ecommerce/categories': typeof AuthenticatedInternalWorkspaceEcommerceCategoriesRoute
+  '/workspace/ecommerce/coupons': typeof AuthenticatedInternalWorkspaceEcommerceCouponsRoute
+  '/workspace/ecommerce/orders': typeof AuthenticatedInternalWorkspaceEcommerceOrdersRoute
+  '/workspace/ecommerce/products': typeof AuthenticatedInternalWorkspaceEcommerceProductsRoute
   '/workspace/ecommerce': typeof AuthenticatedInternalWorkspaceEcommerceIndexRoute
 }
 export interface FileRoutesById {
@@ -252,6 +288,10 @@ export interface FileRoutesById {
   '/api/public/sessions/$action': typeof ApiPublicSessionsActionRoute
   '/_authenticated/_internal/instructor/': typeof AuthenticatedInternalInstructorIndexRoute
   '/_authenticated/_internal/workspace/': typeof AuthenticatedInternalWorkspaceIndexRoute
+  '/_authenticated/_internal/workspace/ecommerce/categories': typeof AuthenticatedInternalWorkspaceEcommerceCategoriesRoute
+  '/_authenticated/_internal/workspace/ecommerce/coupons': typeof AuthenticatedInternalWorkspaceEcommerceCouponsRoute
+  '/_authenticated/_internal/workspace/ecommerce/orders': typeof AuthenticatedInternalWorkspaceEcommerceOrdersRoute
+  '/_authenticated/_internal/workspace/ecommerce/products': typeof AuthenticatedInternalWorkspaceEcommerceProductsRoute
   '/_authenticated/_internal/workspace/ecommerce/': typeof AuthenticatedInternalWorkspaceEcommerceIndexRoute
 }
 export interface FileRouteTypes {
@@ -280,6 +320,10 @@ export interface FileRouteTypes {
     | '/api/public/sessions/$action'
     | '/instructor/'
     | '/workspace/'
+    | '/workspace/ecommerce/categories'
+    | '/workspace/ecommerce/coupons'
+    | '/workspace/ecommerce/orders'
+    | '/workspace/ecommerce/products'
     | '/workspace/ecommerce/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -303,6 +347,10 @@ export interface FileRouteTypes {
     | '/api/public/sessions/$action'
     | '/instructor'
     | '/workspace'
+    | '/workspace/ecommerce/categories'
+    | '/workspace/ecommerce/coupons'
+    | '/workspace/ecommerce/orders'
+    | '/workspace/ecommerce/products'
     | '/workspace/ecommerce'
   id:
     | '__root__'
@@ -331,6 +379,10 @@ export interface FileRouteTypes {
     | '/api/public/sessions/$action'
     | '/_authenticated/_internal/instructor/'
     | '/_authenticated/_internal/workspace/'
+    | '/_authenticated/_internal/workspace/ecommerce/categories'
+    | '/_authenticated/_internal/workspace/ecommerce/coupons'
+    | '/_authenticated/_internal/workspace/ecommerce/orders'
+    | '/_authenticated/_internal/workspace/ecommerce/products'
     | '/_authenticated/_internal/workspace/ecommerce/'
   fileRoutesById: FileRoutesById
 }
@@ -531,6 +583,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInternalWorkspaceEcommerceIndexRouteImport
       parentRoute: typeof AuthenticatedInternalWorkspaceRoute
     }
+    '/_authenticated/_internal/workspace/ecommerce/products': {
+      id: '/_authenticated/_internal/workspace/ecommerce/products'
+      path: '/ecommerce/products'
+      fullPath: '/workspace/ecommerce/products'
+      preLoaderRoute: typeof AuthenticatedInternalWorkspaceEcommerceProductsRouteImport
+      parentRoute: typeof AuthenticatedInternalWorkspaceRoute
+    }
+    '/_authenticated/_internal/workspace/ecommerce/orders': {
+      id: '/_authenticated/_internal/workspace/ecommerce/orders'
+      path: '/ecommerce/orders'
+      fullPath: '/workspace/ecommerce/orders'
+      preLoaderRoute: typeof AuthenticatedInternalWorkspaceEcommerceOrdersRouteImport
+      parentRoute: typeof AuthenticatedInternalWorkspaceRoute
+    }
+    '/_authenticated/_internal/workspace/ecommerce/coupons': {
+      id: '/_authenticated/_internal/workspace/ecommerce/coupons'
+      path: '/ecommerce/coupons'
+      fullPath: '/workspace/ecommerce/coupons'
+      preLoaderRoute: typeof AuthenticatedInternalWorkspaceEcommerceCouponsRouteImport
+      parentRoute: typeof AuthenticatedInternalWorkspaceRoute
+    }
+    '/_authenticated/_internal/workspace/ecommerce/categories': {
+      id: '/_authenticated/_internal/workspace/ecommerce/categories'
+      path: '/ecommerce/categories'
+      fullPath: '/workspace/ecommerce/categories'
+      preLoaderRoute: typeof AuthenticatedInternalWorkspaceEcommerceCategoriesRouteImport
+      parentRoute: typeof AuthenticatedInternalWorkspaceRoute
+    }
   }
 }
 
@@ -557,6 +637,10 @@ interface AuthenticatedInternalWorkspaceRouteChildren {
   AuthenticatedInternalWorkspaceInstructorsRoute: typeof AuthenticatedInternalWorkspaceInstructorsRoute
   AuthenticatedInternalWorkspaceProfileRoute: typeof AuthenticatedInternalWorkspaceProfileRoute
   AuthenticatedInternalWorkspaceIndexRoute: typeof AuthenticatedInternalWorkspaceIndexRoute
+  AuthenticatedInternalWorkspaceEcommerceCategoriesRoute: typeof AuthenticatedInternalWorkspaceEcommerceCategoriesRoute
+  AuthenticatedInternalWorkspaceEcommerceCouponsRoute: typeof AuthenticatedInternalWorkspaceEcommerceCouponsRoute
+  AuthenticatedInternalWorkspaceEcommerceOrdersRoute: typeof AuthenticatedInternalWorkspaceEcommerceOrdersRoute
+  AuthenticatedInternalWorkspaceEcommerceProductsRoute: typeof AuthenticatedInternalWorkspaceEcommerceProductsRoute
   AuthenticatedInternalWorkspaceEcommerceIndexRoute: typeof AuthenticatedInternalWorkspaceEcommerceIndexRoute
 }
 
@@ -570,6 +654,14 @@ const AuthenticatedInternalWorkspaceRouteChildren: AuthenticatedInternalWorkspac
       AuthenticatedInternalWorkspaceProfileRoute,
     AuthenticatedInternalWorkspaceIndexRoute:
       AuthenticatedInternalWorkspaceIndexRoute,
+    AuthenticatedInternalWorkspaceEcommerceCategoriesRoute:
+      AuthenticatedInternalWorkspaceEcommerceCategoriesRoute,
+    AuthenticatedInternalWorkspaceEcommerceCouponsRoute:
+      AuthenticatedInternalWorkspaceEcommerceCouponsRoute,
+    AuthenticatedInternalWorkspaceEcommerceOrdersRoute:
+      AuthenticatedInternalWorkspaceEcommerceOrdersRoute,
+    AuthenticatedInternalWorkspaceEcommerceProductsRoute:
+      AuthenticatedInternalWorkspaceEcommerceProductsRoute,
     AuthenticatedInternalWorkspaceEcommerceIndexRoute:
       AuthenticatedInternalWorkspaceEcommerceIndexRoute,
   }
