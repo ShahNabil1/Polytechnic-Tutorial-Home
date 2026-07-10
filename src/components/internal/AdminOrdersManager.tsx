@@ -15,9 +15,12 @@ export function AdminOrdersManager() {
   const [openId, setOpenId] = useState<string | null>(null);
 
   const fetchOrders = useServerFn(listAdminOrders);
+  const isIncomplete = tab === "incomplete";
+
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["admin-orders", tab, search],
     queryFn: () => fetchOrders({ data: { status: tab, search: search || undefined, limit: 200 } }),
+    enabled: !isIncomplete,
   });
 
   const orders = data?.orders ?? [];
