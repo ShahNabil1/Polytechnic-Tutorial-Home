@@ -1,8 +1,16 @@
 // Small client-side capture helper used by the checkout page.
-// Debounces server calls while the user is typing, and also fires on beforeunload.
+// Debounces server calls while the user is typing, also fires on beforeunload,
+// and supports explicit payment-gateway outcomes (cancelled/failed/timeout).
 
 import { captureIncompleteCheckout } from "@/lib/orders.functions";
 import { computeFingerprint } from "@/lib/fingerprint";
+
+export type CheckoutOutcome =
+  | "abandoned"
+  | "pending"
+  | "cancelled"
+  | "failed"
+  | "timeout";
 
 export type IncompleteSnapshot = {
   customer: {
@@ -23,6 +31,8 @@ export type IncompleteSnapshot = {
   }>;
   totals: { subtotal: number; shipping: number; total: number };
   userId?: string | null;
+  outcome?: CheckoutOutcome;
+  gatewayRef?: string;
 };
 
 let debounceHandle: ReturnType<typeof setTimeout> | null = null;
@@ -61,11 +71,30 @@ export function flushIncompleteCaptureNow() {
     clearTimeout(debounceHandle);
     debounceHandle = null;
   }
-  // Best-effort fire-and-forget during unload.
   try {
     captureIncompleteCheckout({ data: { ...payload, fingerprint: cachedFingerprint ?? "" } });
   } catch {
     /* ignore */
+  }
+}
+
+/**
+ * Record an explicit payment-gateway outcome (cancelled / failed / timeout / pending).
+ * Awaited so the return page can show a definite state before redirecting.
+ */
+export async function recordCheckoutOutcome(
+  snapshot: IncompleteSnapshot,
+  outcome: CheckoutOutcome,
+  gatewayRef?: string,
+) {
+  try {
+    const fingerprint = await fpOnce();
+    await captureIncompleteCheckout({
+      data: { ...snapshot, fingerprint, outcome, gatewayRef },
+    });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
   }
 }
 
@@ -76,3 +105,26 @@ export function resetIncompleteCapture() {
     debounceHandle = null;
   }
 }
+
+/** Stash last snapshot to sessionStorage so gateway-return pages can find it. */
+export function stashSnapshotForReturn(snapshot: IncompleteSnapshot) {
+  try {
+    sessionStorage.setItem("pth_checkout_snapshot", JSON.stringify(snapshot));
+  } catch {}
+}
+
+export function readStashedSnapshot(): IncompleteSnapshot | null {
+  try {
+    const raw = sessionStorage.getItem("pth_checkout_snapshot");
+    return raw ? (JSON.parse(raw) as IncompleteSnapshot) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearStashedSnapshot() {
+  try {
+    sessionStorage.removeItem("pth_checkout_snapshot");
+  } catch {}
+}
+
