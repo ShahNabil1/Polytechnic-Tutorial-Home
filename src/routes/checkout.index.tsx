@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { nextOrderId } from "@/lib/order-id";
 import { AlertTriangle, Lock, ShoppingBag } from "lucide-react";
 import {
   useCart,
@@ -14,6 +14,8 @@ import { formatBDT, toBanglaNumber } from "@/lib/format";
 import { productTypeLabel } from "@/lib/products";
 import { BD_LOCATIONS, normalizeBanglaPhone } from "@/lib/bd-locations";
 import { cn } from "@/lib/utils";
+import { createOrder } from "@/lib/orders.functions";
+import { computeFingerprint } from "@/lib/fingerprint";
 
 export const Route = createFileRoute("/checkout/")({
   head: () => ({
