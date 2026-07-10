@@ -26,7 +26,7 @@ import { checkPhoneAvailability } from "@/lib/auth.functions";
 import { toEnglishText, toEnglishPassword, friendlyPasswordError } from "@/lib/input-filter";
 
 type Tab = "login" | "signup";
-type Stage = "form" | "otp" | "reset";
+type Stage = "form" | "otp" | "mfa" | "reset";
 type OtpFlow = "signup" | "forgot";
 
 const RESEND_COOLDOWN_SECONDS = 60;
