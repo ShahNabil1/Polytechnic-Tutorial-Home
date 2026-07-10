@@ -7,8 +7,6 @@ import { ensureReauth, clearReauth } from "@/lib/reauth";
 export function PasswordCard() {
   const [hasPassword, setHasPassword] = useState<boolean | null>(null);
   const [phone, setPhone] = useState<string | null>(null);
-  const [email, setEmail] = useState<string | null>(null);
-  const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
   const [show, setShow] = useState(false);
@@ -18,15 +16,13 @@ export function PasswordCard() {
     (async () => {
       const { data } = await supabase.auth.getUser();
       const idents = data.user?.identities ?? [];
-      // "password" identity is stored under email or phone provider with a password
-      // Supabase exposes providers list in user.app_metadata.providers
       const providers = (data.user?.app_metadata?.providers as string[] | undefined) ?? [];
       const passwordSet = providers.includes("email") || providers.includes("phone");
       setHasPassword(passwordSet && idents.some((i) => i.provider === "phone" || i.provider === "email"));
       setPhone(data.user?.phone ?? null);
-      setEmail(data.user?.email ?? null);
     })();
   }, []);
+
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
