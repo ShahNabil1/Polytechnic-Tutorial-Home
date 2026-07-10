@@ -13,7 +13,7 @@ export const Route = createFileRoute("/_authenticated/_internal/instructor")({
 
 function InstructorLayout() {
   return (
-    <InternalShell brand="Instructor" subtitle="Teaching Console" nav={INSTRUCTOR_NAV}>
+    <InternalShell brand="Instructor" subtitle="Teaching Console" nav={INSTRUCTOR_NAV} profileTo="/instructor/profile">
       <Outlet />
     </InternalShell>
   );
