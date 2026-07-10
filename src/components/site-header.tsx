@@ -107,6 +107,13 @@ export function SiteHeader() {
   const items = useCart((s) => s.items);
   const count = items.reduce((s, i) => s + i.quantity, 0);
   const [open, setOpen] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const items = useCart((s) => s.items);
+  const count = items.reduce((s, i) => s + i.quantity, 0);
+  const [open, setOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/85 backdrop-blur-md">
