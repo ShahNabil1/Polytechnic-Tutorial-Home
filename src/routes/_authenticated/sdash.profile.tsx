@@ -358,7 +358,7 @@ function ProfilePage() {
           <Field label="রেজিস্ট্রেশন নম্বর *">
             <input
               type="text" value={form.registration_no}
-              onChange={(e) => updateField("registration_no", e.target.value)}
+              onChange={(e) => updateField("registration_no", toEnglishText(e.target.value))}
               className={inputClass} placeholder="যেমনঃ 1234567890"
               required disabled={locked}
             />
