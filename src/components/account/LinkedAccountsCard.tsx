@@ -1,9 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Mail, Phone, Link2, Unlink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { UserIdentity } from "@supabase/supabase-js";
 import { ensureReauth } from "@/lib/reauth";
+
+const RESEND_COOLDOWN_SECONDS = 60;
+const MAX_RESENDS = 3;
+const LOCKOUT_MINUTES = 5;
 
 function bnToEnDigits(s: string): string {
   const map: Record<string, string> = {
@@ -30,6 +34,42 @@ export function LinkedAccountsCard() {
   const [phoneRaw, setPhoneRaw] = useState("");
   const [otp, setOtp] = useState("");
   const [phoneLoading, setPhoneLoading] = useState(false);
+
+  // Resend / cooldown / lockout — mirrors auth-drawer.
+  const [cooldown, setCooldown] = useState(0);
+  const [resendCount, setResendCount] = useState(0);
+  const [lockedUntil, setLockedUntil] = useState<number | null>(null);
+  const [lockRemaining, setLockRemaining] = useState(0);
+  const tickRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (cooldown <= 0 && lockedUntil === null) return;
+    tickRef.current = window.setInterval(() => {
+      setCooldown((c) => (c > 0 ? c - 1 : 0));
+      if (lockedUntil) {
+        const rem = Math.max(0, Math.ceil((lockedUntil - Date.now()) / 1000));
+        setLockRemaining(rem);
+        if (rem === 0) {
+          setLockedUntil(null);
+          setResendCount(0);
+        }
+      }
+    }, 1000);
+    return () => {
+      if (tickRef.current) window.clearInterval(tickRef.current);
+    };
+  }, [cooldown, lockedUntil]);
+
+  function startCooldown() {
+    setCooldown(RESEND_COOLDOWN_SECONDS);
+  }
+  function resetOtpControls() {
+    setCooldown(0);
+    setResendCount(0);
+    setLockedUntil(null);
+    setLockRemaining(0);
+  }
+
 
   async function refresh() {
     const { data } = await supabase.auth.getUserIdentities();
@@ -87,8 +127,37 @@ export function LinkedAccountsCard() {
       if (error) throw error;
       setPhoneStage("otp");
       toast.success("OTP পাঠানো হয়েছে");
+      resetOtpControls();
+      startCooldown();
     } catch (e) {
       toast.error("OTP পাঠানো যায়নি: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setPhoneLoading(false);
+    }
+  }
+
+  async function handleResendPhoneOtp() {
+    if (cooldown > 0 || lockedUntil) return;
+    if (resendCount >= MAX_RESENDS) {
+      const until = Date.now() + LOCKOUT_MINUTES * 60 * 1000;
+      setLockedUntil(until);
+      setLockRemaining(LOCKOUT_MINUTES * 60);
+      toast.error(`অনেক বার রিসেন্ড হয়েছে। ${LOCKOUT_MINUTES} মিনিট পর আবার চেষ্টা করুন।`);
+      return;
+    }
+    setPhoneLoading(true);
+    try {
+      // For phone-change flow the correct resend type is "phone_change".
+      const { error } = await supabase.auth.resend({
+        type: "phone_change",
+        phone: normalizePhone(phoneRaw),
+      });
+      if (error) throw error;
+      setResendCount((n) => n + 1);
+      startCooldown();
+      toast.success(`OTP আবার পাঠানো হয়েছে (${resendCount + 1}/${MAX_RESENDS})`);
+    } catch (e) {
+      toast.error("রিসেন্ড ব্যর্থ: " + (e instanceof Error ? e.message : String(e)));
     } finally {
       setPhoneLoading(false);
     }
@@ -111,6 +180,7 @@ export function LinkedAccountsCard() {
       setPhoneStage("idle");
       setPhoneRaw("");
       setOtp("");
+      resetOtpControls();
       await refresh();
     } catch (e) {
       toast.error("OTP ভুল বা মেয়াদ শেষ: " + (e instanceof Error ? e.message : String(e)));
@@ -233,17 +303,49 @@ export function LinkedAccountsCard() {
                   ভেরিফাই
                 </button>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setPhoneStage("idle");
-                  setPhoneRaw("");
-                  setOtp("");
-                }}
-                className="text-xs text-muted-foreground hover:text-foreground"
-              >
-                বাতিল
-              </button>
+              <div className="flex items-center justify-between gap-2 pt-1 text-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPhoneStage("idle");
+                    setPhoneRaw("");
+                    setOtp("");
+                    resetOtpControls();
+                  }}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  বাতিল
+                </button>
+                {cooldown > 0 || resendCount > 0 || lockedUntil ? (
+                  lockedUntil ? (
+                    <span className="text-destructive">
+                      {LOCKOUT_MINUTES} মিনিটের জন্য লকড ({Math.floor(lockRemaining / 60)}:
+                      {String(lockRemaining % 60).padStart(2, "0")})
+                    </span>
+                  ) : cooldown > 0 ? (
+                    <span className="text-muted-foreground">
+                      আবার পাঠান ({cooldown}s)
+                    </span>
+                  ) : resendCount >= MAX_RESENDS ? (
+                    <button
+                      type="button"
+                      onClick={handleResendPhoneOtp}
+                      className="text-destructive hover:underline"
+                    >
+                      লিমিট পৌঁছেছে
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleResendPhoneOtp}
+                      disabled={phoneLoading}
+                      className="text-brand hover:underline disabled:opacity-60"
+                    >
+                      কোড আবার পাঠান ({MAX_RESENDS - resendCount} বার বাকি)
+                    </button>
+                  )
+                ) : null}
+              </div>
             </div>
           )}
         </div>
