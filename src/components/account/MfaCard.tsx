@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Loader2, ShieldCheck, ShieldOff, KeyRound, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
-import { updateMyInternalProfile } from "@/lib/internal-profile.functions";
+import { syncMyPrimaryAuthEmail, updateMyInternalProfile } from "@/lib/internal-profile.functions";
 import { toEnglishDigits } from "@/lib/input-filter";
 
 type Factor = { id: string; friendly_name?: string | null; status: string; factor_type: string };
@@ -24,6 +24,7 @@ export function MfaCard() {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const updateProfile = useServerFn(updateMyInternalProfile);
+  const syncPrimaryEmail = useServerFn(syncMyPrimaryAuthEmail);
 
   async function loadFactors() {
     setLoading(true);
@@ -47,14 +48,14 @@ export function MfaCard() {
   async function startEnroll() {
     setBusy(true);
     try {
+      const syncResult = await syncPrimaryEmail({ data: undefined as never });
+      if (!syncResult.ok) {
+        throw new Error("এই অ্যাকাউন্টে কোনো linked email পাওয়া যায়নি। আগে Google/email account লিংক করুন।");
+      }
       // Clean up any lingering unverified factors first
       for (const f of factors.filter((f) => f.status !== "verified")) {
         await supabase.auth.mfa.unenroll({ factorId: f.id });
       }
-      const { data: userRes } = await supabase.auth.getUser();
-      const acct =
-        userRes.user?.email ||
-        (userRes.user?.phone ? `+${userRes.user.phone}` : userRes.user?.id ?? "user");
       const { data, error } = await supabase.auth.mfa.enroll({
         factorType: "totp",
         friendlyName: `TOTP-${Date.now()}`,
@@ -67,8 +68,6 @@ export function MfaCard() {
         secret: data.totp.secret,
       });
       setCode("");
-      // acct is only used to help debug label problems in dev
-      void acct;
     } catch (e) {
       const err = e as { message?: string; code?: string; status?: number };
       const raw = err?.message || String(e);
@@ -76,7 +75,7 @@ export function MfaCard() {
       if (raw.toLowerCase().includes("qr")) {
         friendly =
           "Supabase Auth এই মুহূর্তে QR তৈরি করতে পারছে না। সাধারণত অ্যাকাউন্টে ইমেইল সেট না থাকলে এটা হয়। " +
-          "উপরের 'Linked accounts' থেকে একটা ইমেইল লিংক করে আবার চেষ্টা করুন।";
+          "সিস্টেম primary email auto-sync করার চেষ্টা করেছে; তবুও না হলে Google/email account আবার লিংক করুন।";
       } else if (raw.toLowerCase().includes("mfa") && raw.toLowerCase().includes("disabled")) {
         friendly = "Supabase প্রোজেক্টে TOTP MFA চালু নেই। Dashboard → Auth → MFA থেকে TOTP অন করুন।";
       }
