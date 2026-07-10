@@ -2,10 +2,12 @@ import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-ro
 import { useState } from "react";
 import { ArrowLeft, Check, ShoppingCart, Zap, ChevronLeft, ChevronRight, ImageIcon } from "lucide-react";
 import { productTypeLabel } from "@/lib/products";
-import { getPublicProductBySlug } from "@/lib/products.functions";
+import { getPublicProductBySlug, listPublicProducts } from "@/lib/products.functions";
 import { useCart } from "@/lib/cart-store";
 import { formatBDT } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { ProductCard } from "@/components/product-card";
+
 
 const WHATSAPP_NUMBER = "8801790736863";
 
