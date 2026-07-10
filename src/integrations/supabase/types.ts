@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      internal_profiles: {
+        Row: {
+          address: string | null
+          bank_details: Json | null
+          created_at: string
+          cv_r2_key: string | null
+          departments: string[]
+          display_id: string
+          first_login_completed: boolean
+          is_active: boolean
+          job_role: string | null
+          mfa_enrolled: boolean
+          nid_number: string | null
+          subjects: string[]
+          updated_at: string
+          user_id: string
+          workplace: string | null
+        }
+        Insert: {
+          address?: string | null
+          bank_details?: Json | null
+          created_at?: string
+          cv_r2_key?: string | null
+          departments?: string[]
+          display_id: string
+          first_login_completed?: boolean
+          is_active?: boolean
+          job_role?: string | null
+          mfa_enrolled?: boolean
+          nid_number?: string | null
+          subjects?: string[]
+          updated_at?: string
+          user_id: string
+          workplace?: string | null
+        }
+        Update: {
+          address?: string | null
+          bank_details?: Json | null
+          created_at?: string
+          cv_r2_key?: string | null
+          departments?: string[]
+          display_id?: string
+          first_login_completed?: boolean
+          is_active?: boolean
+          job_role?: string | null
+          mfa_enrolled?: boolean
+          nid_number?: string | null
+          subjects?: string[]
+          updated_at?: string
+          user_id?: string
+          workplace?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -66,6 +120,54 @@ export type Database = {
           registration_no?: string | null
           student_id?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      user_permissions: {
+        Row: {
+          granted_at: string
+          granted_by: string | null
+          id: string
+          permission: string
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          permission: string
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          permission?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
         }
         Relationships: []
       }
@@ -213,8 +315,28 @@ export type Database = {
         }
         Returns: string
       }
+      generate_internal_display_id: {
+        Args: { _role: Database["public"]["Enums"]["app_role"] }
+        Returns: string
+      }
+      get_primary_role: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_permission: {
+        Args: { _permission: string; _user_id: string }
+        Returns: boolean
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
+      app_role: "student" | "employee" | "instructor" | "super_admin"
       semester_level:
         | "1st"
         | "2nd"
@@ -353,6 +475,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["student", "employee", "instructor", "super_admin"],
       semester_level: [
         "1st",
         "2nd",
