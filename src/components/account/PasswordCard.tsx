@@ -42,7 +42,6 @@ export function PasswordCard() {
       const { error } = await supabase.auth.updateUser({ password: next });
       if (error) throw error;
       toast.success(hasPassword ? "পাসওয়ার্ড আপডেট হয়েছে" : "পাসওয়ার্ড সেট হয়েছে");
-      setCurrent("");
       setNext("");
       setConfirm("");
       setHasPassword(true);
