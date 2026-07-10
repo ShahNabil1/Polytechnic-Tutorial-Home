@@ -85,6 +85,7 @@ export type Database = {
           device_name: string | null
           id: string
           last_used_at: string | null
+          phone: string | null
           public_key: string
           transports: string[]
           user_id: string
@@ -96,6 +97,7 @@ export type Database = {
           device_name?: string | null
           id?: string
           last_used_at?: string | null
+          phone?: string | null
           public_key: string
           transports?: string[]
           user_id: string
@@ -107,6 +109,7 @@ export type Database = {
           device_name?: string | null
           id?: string
           last_used_at?: string | null
+          phone?: string | null
           public_key?: string
           transports?: string[]
           user_id?: string
