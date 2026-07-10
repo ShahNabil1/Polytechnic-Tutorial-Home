@@ -45,3 +45,23 @@ export async function createPresignedPutUrl(options: {
     publicUrl: `${publicBaseUrl}/${options.key}`,
   };
 }
+
+/**
+ * Create a short-lived presigned GET URL for reading a private object.
+ */
+export async function createPresignedGetUrl(options: {
+  key: string;
+  expiresInSeconds?: number;
+}) {
+  const { accountId, bucket } = getR2Config();
+  const client = getR2Client();
+  const endpoint = new URL(
+    `https://${accountId}.r2.cloudflarestorage.com/${bucket}/${encodeURI(options.key)}`,
+  );
+  endpoint.searchParams.set("X-Amz-Expires", String(options.expiresInSeconds ?? 300));
+  const signed = await client.sign(
+    new Request(endpoint, { method: "GET" }),
+    { aws: { signQuery: true } },
+  );
+  return { url: signed.url };
+}
