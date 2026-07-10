@@ -421,6 +421,12 @@ function CheckoutPage() {
                 {submitting ? "প্রসেস হচ্ছে..." : (<><Lock className="size-4" />অর্ডার কনফার্ম করুন</>)}
               </button>
 
+              {errors._global && (
+                <p className="mt-2 rounded-lg border border-destructive/30 bg-destructive/10 p-2 text-center text-[11.5px] font-bold text-destructive">
+                  {errors._global}
+                </p>
+              )}
+
               <p className="mt-2.5 text-center text-[10.5px] text-muted-foreground">
                 অর্ডার কনফার্ম করে আপনি আমাদের <a href="#" className="underline">শর্তাবলী</a> মেনে নিচ্ছেন।
               </p>
