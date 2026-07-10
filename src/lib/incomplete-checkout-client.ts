@@ -4,7 +4,26 @@
 import { captureIncompleteCheckout } from "@/lib/orders.functions";
 import { computeFingerprint } from "@/lib/fingerprint";
 
-export type IncompleteSnapshot = Parameters<typeof captureIncompleteCheckout>[0]["data"];
+export type IncompleteSnapshot = {
+  customer: {
+    name?: string;
+    phone: string;
+    email?: string;
+    division?: string;
+    district?: string;
+    upazila?: string;
+    address?: string;
+  };
+  items: Array<{
+    productId: string;
+    title: string;
+    unitPrice: number;
+    quantity: number;
+    image?: string;
+  }>;
+  totals: { subtotal: number; shipping: number; total: number };
+  userId?: string | null;
+};
 
 let debounceHandle: ReturnType<typeof setTimeout> | null = null;
 let latest: IncompleteSnapshot | null = null;
