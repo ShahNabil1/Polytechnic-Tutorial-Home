@@ -134,3 +134,21 @@ export const getInternalDocSignedUrl = createServerFn({ method: "POST" })
     const { createPresignedGetUrl } = await import("@/lib/r2.server");
     return createPresignedGetUrl({ key: data.key, expiresInSeconds: 300 });
   });
+
+export const completeInternalFirstLogin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: primaryRole, error: roleError } = await context.supabase.rpc("get_primary_role", {
+      _user_id: context.userId,
+    });
+    if (roleError) throw new Error(roleError.message);
+    if (!["employee", "instructor", "super_admin"].includes(String(primaryRole))) {
+      throw new Error("Forbidden");
+    }
+    const { error } = await context.supabase
+      .from("internal_profiles")
+      .update({ first_login_completed: true } as never)
+      .eq("user_id", context.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });

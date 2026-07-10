@@ -308,7 +308,7 @@ export function InternalProfilePage({ role }: { role: AppRole }) {
       <LinkedAccountsCard />
       <PasswordCard />
       <PasskeysCard />
-      <MfaCardEN />
+      {role !== "instructor" && <MfaCardEN />}
       <SessionsCard />
       <ReauthDialogHost />
 
