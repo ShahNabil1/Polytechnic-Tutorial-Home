@@ -78,9 +78,8 @@ export function CartDrawer() {
                       transition={{ type: "spring", stiffness: 240, damping: 22 }}
                       className="mb-2.5 flex gap-3 rounded-2xl border border-border/70 bg-card p-2.5 last:mb-0 md:p-3"
                     >
-                      <Link
-                        to="/product/$slug"
-                        params={{ slug: item.slug }}
+                      <a
+                        href={item.isBundle ? `/bundle/${item.slug}` : `/product/${item.slug}`}
                         onClick={() => setOpen(false)}
                         className={cn(
                           "grid size-16 shrink-0 place-items-center overflow-hidden rounded-xl bg-gradient-to-br text-2xl shadow-sm md:size-20 md:text-3xl",
@@ -95,22 +94,21 @@ export function CartDrawer() {
                             className="h-full w-full object-cover"
                           />
                         ) : (
-                          <span>{item.coverEmoji ?? "📦"}</span>
+                          <span>{item.coverEmoji ?? (item.isBundle ? "🎁" : "📦")}</span>
                         )}
-                      </Link>
+                      </a>
                       <div className="flex min-w-0 flex-1 flex-col justify-between">
                         <div className="min-w-0">
                           <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                            {productTypeLabel(item.type)}
+                            {item.isBundle ? "BUNDLE" : productTypeLabel(item.type)}
                           </p>
-                          <Link
-                            to="/product/$slug"
-                            params={{ slug: item.slug }}
+                          <a
+                            href={item.isBundle ? `/bundle/${item.slug}` : `/product/${item.slug}`}
                             onClick={() => setOpen(false)}
                             className="mt-0.5 line-clamp-2 text-[13px] font-extrabold leading-snug hover:text-brand md:text-sm"
                           >
                             {item.title}
-                          </Link>
+                          </a>
                         </div>
                         <div className="mt-1.5 flex items-center justify-between gap-2">
                           {isDigital ? (
