@@ -33,6 +33,17 @@ function normalizePhone(raw: string): string {
   return "+88" + digits;
 }
 
+function errMsg(e: unknown, fallback = "কিছু ভুল হয়েছে, আবার চেষ্টা করুন"): string {
+  if (!e) return fallback;
+  if (typeof e === "string") return e;
+  if (typeof e === "object") {
+    const anyE = e as { message?: string; error_description?: string; msg?: string };
+    return anyE.message || anyE.error_description || anyE.msg || fallback;
+  }
+  return fallback;
+}
+
+
 export function AuthDrawer({
   open,
   onOpenChange,
