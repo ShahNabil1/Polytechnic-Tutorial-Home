@@ -116,7 +116,7 @@ function PasswordFieldEl({
           placeholder="••••••••"
           value={value}
           onChange={(e) => {
-            onChange(e.target.value);
+            onChange(toEnglishPassword(e.target.value));
             onClearError();
           }}
           required
