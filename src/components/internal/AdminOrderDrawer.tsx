@@ -357,47 +357,123 @@ export function AdminOrderDrawer({
             )}
 
             {/* Customer editable */}
-            <Section title="Customer & Delivery" icon={MapPin} action={
-              <button onClick={saveCustomer} className="btn-sm-primary"><Save className="size-3.5" /> Save</button>
-            }>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <TextField label="Name" value={customer.customer_name} onChange={(v) => setCustomer({ ...customer, customer_name: v })} />
-                <TextField
-                  label="Phone"
-                  value={customer.customer_phone}
-                  onChange={(v) => setCustomer({ ...customer, customer_phone: v.replace(/\D/g, "").slice(0, 11) })}
-                  addonRight={
-                    <a href={`tel:${customer.customer_phone}`} className="text-brand hover:opacity-80" title="Call">
-                      <Phone className="size-4" />
-                    </a>
-                  }
-                />
-                <TextField
-                  label="Alternative Phone"
-                  value={customer.alternative_phone}
-                  onChange={(v) => setCustomer({ ...customer, alternative_phone: v.replace(/\D/g, "").slice(0, 15) })}
-                  addonRight={
-                    customer.alternative_phone ? (
-                      <a href={`tel:${customer.alternative_phone}`} className="text-brand hover:opacity-80"><Phone className="size-4" /></a>
-                    ) : undefined
-                  }
-                />
-                <TextField
-                  label="Email"
-                  value={customer.customer_email}
-                  onChange={(v) => setCustomer({ ...customer, customer_email: v })}
-                  addonRight={<Mail className="size-4 text-slate-400" />}
-                />
-                {!isEbookOnly && (
+            <Section
+              title="Customer & Delivery"
+              icon={MapPin}
+              action={
+                isEditingCustomer ? (
                   <>
-                    <TextField label="Division" value={customer.division} onChange={(v) => setCustomer({ ...customer, division: v })} />
-                    <TextField label="District" value={customer.district} onChange={(v) => setCustomer({ ...customer, district: v })} />
-                    <TextField label="Thana / Upazila" value={customer.thana} onChange={(v) => setCustomer({ ...customer, thana: v })} />
-                    <TextField className="sm:col-span-2" label="Address (village / area / house / road)" value={customer.address_line} onChange={(v) => setCustomer({ ...customer, address_line: v })} />
+                    <button onClick={cancelCustomerEdit} className="btn-sm">Cancel</button>
+                    <button onClick={saveCustomer} className="btn-sm-primary">
+                      <Save className="size-3.5" /> Save
+                    </button>
                   </>
-                )}
-                <TextField className="sm:col-span-2" label="Delivery Note (for Steadfast)" value={customer.note} onChange={(v) => setCustomer({ ...customer, note: v })} placeholder="e.g. Deliver by 3 PM" />
-              </div>
+                ) : (
+                  <button
+                    onClick={() => setIsEditingCustomer(true)}
+                    className="btn-sm"
+                    title="Edit customer details"
+                  >
+                    <Pencil className="size-3.5" /> Edit
+                  </button>
+                )
+              }
+            >
+              {isEditingCustomer ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <TextField label="Name" value={customer.customer_name} onChange={(v) => setCustomer({ ...customer, customer_name: v })} />
+                  <TextField
+                    label="Phone"
+                    value={customer.customer_phone}
+                    onChange={(v) => setCustomer({ ...customer, customer_phone: v.replace(/\D/g, "").slice(0, 11) })}
+                    addonRight={
+                      <a href={`tel:${customer.customer_phone}`} className="text-brand hover:opacity-80" title="Call">
+                        <Phone className="size-4" />
+                      </a>
+                    }
+                  />
+                  <TextField
+                    label="Alternative Phone"
+                    value={customer.alternative_phone}
+                    onChange={(v) => setCustomer({ ...customer, alternative_phone: v.replace(/\D/g, "").slice(0, 15) })}
+                    addonRight={
+                      customer.alternative_phone ? (
+                        <a href={`tel:${customer.alternative_phone}`} className="text-brand hover:opacity-80"><Phone className="size-4" /></a>
+                      ) : undefined
+                    }
+                  />
+                  <TextField
+                    label="Email"
+                    value={customer.customer_email}
+                    onChange={(v) => setCustomer({ ...customer, customer_email: v })}
+                    addonRight={<Mail className="size-4 text-slate-400" />}
+                  />
+                  {!isEbookOnly && (
+                    <>
+                      <TextField label="Division" value={customer.division} onChange={(v) => setCustomer({ ...customer, division: v })} />
+                      <TextField label="District" value={customer.district} onChange={(v) => setCustomer({ ...customer, district: v })} />
+                      <TextField label="Thana / Upazila" value={customer.thana} onChange={(v) => setCustomer({ ...customer, thana: v })} />
+                      <TextField className="sm:col-span-2" label="Address (village / area / house / road)" value={customer.address_line} onChange={(v) => setCustomer({ ...customer, address_line: v })} />
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                  <ReadField label="Name" value={customer.customer_name} />
+                  <ReadField
+                    label="Phone"
+                    value={customer.customer_phone}
+                    href={customer.customer_phone ? `tel:${customer.customer_phone}` : undefined}
+                    icon={<Phone className="size-3.5 text-brand" />}
+                  />
+                  <ReadField
+                    label="Alternative Phone"
+                    value={customer.alternative_phone || "—"}
+                    href={customer.alternative_phone ? `tel:${customer.alternative_phone}` : undefined}
+                    icon={customer.alternative_phone ? <Phone className="size-3.5 text-brand" /> : undefined}
+                  />
+                  <ReadField
+                    label="Email"
+                    value={customer.customer_email || "—"}
+                    href={customer.customer_email ? `mailto:${customer.customer_email}` : undefined}
+                    icon={customer.customer_email ? <Mail className="size-3.5 text-slate-400" /> : undefined}
+                  />
+                  {!isEbookOnly && (
+                    <>
+                      <ReadField label="Division" value={customer.division || "—"} />
+                      <ReadField label="District" value={customer.district || "—"} />
+                      <ReadField label="Thana / Upazila" value={customer.thana || "—"} />
+                      <ReadField className="sm:col-span-2" label="Address (village / area / house / road)" value={customer.address_line || "—"} />
+                    </>
+                  )}
+                </div>
+              )}
+            </Section>
+
+            {/* Delivery Note (separate save) */}
+            <Section
+              title="Delivery Note (for Steadfast)"
+              icon={Truck}
+              action={
+                <button
+                  onClick={saveDeliveryNote}
+                  className="btn-sm-primary"
+                  disabled={deliveryNote === (customer.note ?? "")}
+                >
+                  <Save className="size-3.5" /> Save Note
+                </button>
+              }
+            >
+              <textarea
+                value={deliveryNote}
+                onChange={(e) => setDeliveryNote(e.target.value)}
+                placeholder="e.g. Deliver by 3 PM, call before arrival, leave with security…"
+                rows={6}
+                className="min-h-[180px] w-full resize-y rounded-lg border border-slate-200 bg-white p-3 text-sm outline-none focus:border-slate-400"
+              />
+              <p className="mt-1 text-[11px] text-slate-500">
+                {deliveryNote.length}/500 characters
+              </p>
             </Section>
 
             {/* Items */}
