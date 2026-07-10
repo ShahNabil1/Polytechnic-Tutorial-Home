@@ -40,6 +40,7 @@ function mapProduct(row: any, subs: { slug: string; kind: string }[]): Product {
   return {
     id: row.id,
     slug: row.slug,
+    sku: row.sku ?? null,
     title: row.title,
     subtitle: row.subtitle,
     description: row.description ?? "",
@@ -57,6 +58,11 @@ function mapProduct(row: any, subs: { slug: string; kind: string }[]): Product {
     isActive: row.is_active,
     isOnlineBook: row.is_online_book ?? false,
   };
+}
+
+function randomSku(prefix = "PTH") {
+  const s = Math.random().toString(36).slice(2, 10).toUpperCase();
+  return `${prefix}-${s}`;
 }
 
 async function fetchProductsWithSubs(client: ReturnType<typeof serverPublic>, filter?: (q: any) => any) {
