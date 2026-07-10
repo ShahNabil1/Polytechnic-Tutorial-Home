@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { AlertTriangle, Lock, ShoppingBag } from "lucide-react";
@@ -16,6 +16,11 @@ import { BD_LOCATIONS, normalizeBanglaPhone } from "@/lib/bd-locations";
 import { cn } from "@/lib/utils";
 import { createOrder } from "@/lib/orders.functions";
 import { computeFingerprint } from "@/lib/fingerprint";
+import {
+  queueIncompleteCapture,
+  flushIncompleteCaptureNow,
+  resetIncompleteCapture,
+} from "@/lib/incomplete-checkout-client";
 
 export const Route = createFileRoute("/checkout/")({
   head: () => ({
