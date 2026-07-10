@@ -28,6 +28,7 @@ function isValidBdMobile(raw: string): boolean {
 
 export function LinkedAccountsCard() {
   const [identities, setIdentities] = useState<UserIdentity[]>([]);
+  const [currentPhone, setCurrentPhone] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [linkingGoogle, setLinkingGoogle] = useState(false);
   const [phoneStage, setPhoneStage] = useState<"idle" | "otp">("idle");
@@ -72,8 +73,12 @@ export function LinkedAccountsCard() {
 
 
   async function refresh() {
-    const { data } = await supabase.auth.getUserIdentities();
-    setIdentities(data?.identities ?? []);
+    const [{ data: identityData }, { data: userData }] = await Promise.all([
+      supabase.auth.getUserIdentities(),
+      supabase.auth.getUser(),
+    ]);
+    setIdentities(identityData?.identities ?? []);
+    setCurrentPhone(userData.user?.phone ?? null);
     setLoading(false);
   }
   useEffect(() => {
@@ -83,6 +88,7 @@ export function LinkedAccountsCard() {
   const googleIdentity = identities.find((i) => i.provider === "google");
   const phoneIdentity = identities.find((i) => i.provider === "phone");
   const emailIdentity = identities.find((i) => i.provider === "email");
+  const linkedPhone = phoneIdentity?.identity_data?.phone || currentPhone;
 
   async function handleLinkGoogle() {
     if (!(await ensureReauth())) return;
@@ -261,11 +267,11 @@ export function LinkedAccountsCard() {
               <div className="min-w-0">
                 <div className="text-sm font-medium">Phone</div>
                 <div className="truncate text-xs text-muted-foreground">
-                  {phoneIdentity?.identity_data?.phone || "কোনো ফোন নাম্বার লিংক করা নেই"}
+                  {linkedPhone || "কোনো ফোন নাম্বার লিংক করা নেই"}
                 </div>
               </div>
             </div>
-            {!phoneIdentity && phoneStage === "idle" && (
+            {!linkedPhone && phoneStage === "idle" && (
               <button
                 type="button"
                 onClick={() => setPhoneStage("otp")}
@@ -276,7 +282,7 @@ export function LinkedAccountsCard() {
             )}
           </div>
 
-          {!phoneIdentity && phoneStage === "otp" && (
+          {!linkedPhone && phoneStage === "otp" && (
             <div className="mt-3 space-y-2">
               <div className="flex gap-2">
                 <input
