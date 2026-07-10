@@ -900,6 +900,52 @@ export function AuthDrawer({
                   </form>
                 )}
 
+                {/* MFA (2FA) — forgot-password gate for staff/admin */}
+                {stage === "mfa" && (
+                  <form className="space-y-4" onSubmit={handleVerifyMfaOtp}>
+                    <div className="rounded-lg bg-muted/60 p-3 text-sm">
+                      আপনার একাউন্টে টু-ফ্যাক্টর অথেন্টিকেশন চালু আছে। পাসওয়ার্ড রিসেট করার
+                      আগে Authenticator অ্যাপ থেকে ৬-ডিজিট কোড দিন।
+                    </div>
+                    {InfoBox}
+                    <div className="space-y-2">
+                      <Label htmlFor="auth-mfa">২FA কোড</Label>
+                      <Input
+                        id="auth-mfa"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        maxLength={6}
+                        value={mfaCode}
+                        onChange={(e) =>
+                          setMfaCode(bnToEnDigits(e.target.value).replace(/\D/g, "").slice(0, 6))
+                        }
+                        required
+                        autoFocus
+                      />
+                    </div>
+                    {ErrorBox}
+                    <Button
+                      type="submit"
+                      className="w-full bg-amber-500 text-amber-950 hover:bg-amber-600"
+                      disabled={loading || mfaCode.length !== 6}
+                    >
+                      {loading ? "যাচাই করা হচ্ছে..." : "ভেরিফাই করুন"}
+                    </Button>
+                    <div className="text-center text-xs">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await supabase.auth.signOut();
+                          resetAll();
+                        }}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        ← বাতিল করে সাইন আউট
+                      </button>
+                    </div>
+                  </form>
+                )}
+
                 {/* RESET PASSWORD */}
                 {stage === "reset" && (
                   <form className="space-y-4" onSubmit={handleResetPassword}>
