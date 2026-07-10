@@ -11,8 +11,11 @@ const searchSchema = z.object({
   digital: z.coerce.number().optional(),
 });
 
+type OrderStatus = "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+
 type OrderSnapshot = {
   orderNo: string;
+  status?: OrderStatus;
   createdAt: number;
   customer: {
     name: string;
@@ -38,6 +41,22 @@ type OrderSnapshot = {
   shipping: number;
   total: number;
   isPhysical: boolean;
+};
+
+const STATUS_LABEL: Record<OrderStatus, string> = {
+  pending: "পেন্ডিং",
+  processing: "প্রসেসিং",
+  shipped: "শিপড",
+  delivered: "ডেলিভার্ড",
+  cancelled: "ক্যানসেলড",
+};
+
+const STATUS_STYLE: Record<OrderStatus, string> = {
+  pending: "bg-amber-100 text-amber-800 ring-amber-300",
+  processing: "bg-blue-100 text-blue-800 ring-blue-300",
+  shipped: "bg-indigo-100 text-indigo-800 ring-indigo-300",
+  delivered: "bg-emerald-100 text-emerald-800 ring-emerald-300",
+  cancelled: "bg-rose-100 text-rose-800 ring-rose-300",
 };
 
 export const Route = createFileRoute("/checkout/success")({
@@ -75,11 +94,32 @@ function SuccessPage() {
             অর্ডার সফল হয়েছে!
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            আপনার অর্ডারের জন্য ধন্যবাদ। অর্ডার নম্বর:
+            আপনার অর্ডারের জন্য ধন্যবাদ।
           </p>
-          <p className="mt-1 font-inter text-lg font-bold tracking-wider text-brand">
-            {order}
-          </p>
+
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+            <div className="rounded-xl border border-border bg-surface px-4 py-2 text-left">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Order ID
+              </p>
+              <p className="font-inter text-lg font-extrabold tracking-wider text-brand">
+                {order}
+              </p>
+            </div>
+            <div className="rounded-xl border border-border bg-surface px-4 py-2 text-left">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Status
+              </p>
+              <span
+                className={cn(
+                  "mt-0.5 inline-flex items-center rounded-full px-2.5 py-1 text-xs font-extrabold ring-1",
+                  STATUS_STYLE[(snap?.status ?? "pending") as OrderStatus],
+                )}
+              >
+                {STATUS_LABEL[(snap?.status ?? "pending") as OrderStatus]}
+              </span>
+            </div>
+          </div>
 
           <div className="mt-6 rounded-xl bg-surface p-4 text-left text-sm">
             {isDigital ? (

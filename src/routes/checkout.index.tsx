@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { z } from "zod";
+import { nextOrderId } from "@/lib/order-id";
 import { AlertTriangle, Lock, ShoppingBag } from "lucide-react";
 import {
   useCart,
@@ -45,6 +46,7 @@ function CheckoutPage() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const submittedRef = useRef(false);
 
   const isPhysical = hasPhysical(items);
   const isOnline = hasOnlineBook(items);
@@ -135,12 +137,15 @@ function CheckoutPage() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submittedRef.current || submitting) return;
     if (!validate()) return;
+    submittedRef.current = true;
     setSubmitting(true);
     await new Promise((r) => setTimeout(r, 900));
-    const orderNo = `PE-${Date.now().toString().slice(-8)}`;
+    const orderNo = nextOrderId();
     const snapshot = {
       orderNo,
+      status: "pending" as const,
       createdAt: Date.now(),
       customer: { ...form },
       items: items.map((i) => ({
