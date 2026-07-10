@@ -45,6 +45,7 @@ export type ProductImage = { url: string; key?: string };
 export interface Product {
   id: string;
   slug: string;
+  sku?: string | null;
   title: string;
   subtitle?: string | null;
   description: string;

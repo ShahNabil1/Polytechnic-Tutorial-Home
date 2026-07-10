@@ -40,6 +40,7 @@ function mapProduct(row: any, subs: { slug: string; kind: string }[]): Product {
   return {
     id: row.id,
     slug: row.slug,
+    sku: row.sku ?? null,
     title: row.title,
     subtitle: row.subtitle,
     description: row.description ?? "",
@@ -57,6 +58,11 @@ function mapProduct(row: any, subs: { slug: string; kind: string }[]): Product {
     isActive: row.is_active,
     isOnlineBook: row.is_online_book ?? false,
   };
+}
+
+function randomSku(prefix = "PTH") {
+  const s = Math.random().toString(36).slice(2, 10).toUpperCase();
+  return `${prefix}-${s}`;
 }
 
 async function fetchProductsWithSubs(client: ReturnType<typeof serverPublic>, filter?: (q: any) => any) {
@@ -224,6 +230,7 @@ const ProductUpsertInput = z.object({
     .min(1)
     .max(200)
     .regex(/^[a-z0-9-]+$/i, "slug: lowercase letters, numbers or -"),
+  sku: z.string().trim().max(60).optional().nullable(),
   title: z.string().trim().min(1).max(250),
   subtitle: z.string().trim().max(250).optional().nullable(),
   description: z.string().max(20000).default(""),
@@ -246,9 +253,11 @@ export const upsertProduct = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => ProductUpsertInput.parse(i))
   .handler(async ({ data, context }) => {
     await ensureCanManage(context);
-    const { subcategory_ids, id, ...rest } = data;
+    const { subcategory_ids, id, sku, ...rest } = data;
+    const finalSku = (sku ?? "").trim() || randomSku();
     const payload = {
       ...rest,
+      sku: finalSku,
       images: rest.images as never,
       created_by: id ? undefined : context.userId,
     };

@@ -68,6 +68,102 @@ export type Database = {
         }
         Relationships: []
       }
+      product_bundle_items: {
+        Row: {
+          bundle_id: string
+          product_id: string
+          quantity: number
+          sort_order: number
+        }
+        Insert: {
+          bundle_id: string
+          product_id: string
+          quantity?: number
+          sort_order?: number
+        }
+        Update: {
+          bundle_id?: string
+          product_id?: string
+          quantity?: number
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_bundle_items_bundle_id_fkey"
+            columns: ["bundle_id"]
+            isOneToOne: false
+            referencedRelation: "product_bundles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_bundle_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_bundles: {
+        Row: {
+          compare_price: number | null
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          images: Json
+          is_active: boolean
+          is_featured: boolean
+          meta_description: string | null
+          meta_title: string | null
+          og_image_url: string | null
+          price: number
+          sku: string
+          slug: string
+          subtitle: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          compare_price?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          images?: Json
+          is_active?: boolean
+          is_featured?: boolean
+          meta_description?: string | null
+          meta_title?: string | null
+          og_image_url?: string | null
+          price?: number
+          sku: string
+          slug: string
+          subtitle?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          compare_price?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          images?: Json
+          is_active?: boolean
+          is_featured?: boolean
+          meta_description?: string | null
+          meta_title?: string | null
+          og_image_url?: string | null
+          price?: number
+          sku?: string
+          slug?: string
+          subtitle?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       product_categories: {
         Row: {
           created_at: string
@@ -147,6 +243,7 @@ export type Database = {
           og_image_url: string | null
           price: number
           product_type_id: string
+          sku: string | null
           slug: string
           stock: number | null
           subtitle: string | null
@@ -168,6 +265,7 @@ export type Database = {
           og_image_url?: string | null
           price?: number
           product_type_id: string
+          sku?: string | null
           slug: string
           stock?: number | null
           subtitle?: string | null
@@ -189,6 +287,7 @@ export type Database = {
           og_image_url?: string | null
           price?: number
           product_type_id?: string
+          sku?: string | null
           slug?: string
           stock?: number | null
           subtitle?: string | null

@@ -24,10 +24,12 @@ import {
 } from "@/lib/products.functions";
 import type { Product, ProductImage } from "@/lib/products";
 import { formatBDT } from "@/lib/format";
+import { AdminBundlesManager } from "@/components/internal/AdminBundlesManager";
 
 type Draft = {
   id?: string;
   slug: string;
+  sku: string;
   title: string;
   subtitle: string;
   description: string;
@@ -47,6 +49,7 @@ type Draft = {
 
 const EMPTY_DRAFT: Draft = {
   slug: "",
+  sku: "",
   title: "",
   subtitle: "",
   description: "",
@@ -85,6 +88,7 @@ export function AdminProductsManager() {
   const [loading, setLoading] = useState(true);
   const [editorOpen, setEditorOpen] = useState(false);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
+  const [tab, setTab] = useState<"products" | "bundles">("products");
 
   async function refresh() {
     setLoading(true);
@@ -122,6 +126,7 @@ export function AdminProductsManager() {
     setDraft({
       id: p.id,
       slug: p.slug,
+      sku: p.sku ?? "",
       title: p.title,
       subtitle: p.subtitle ?? "",
       description: p.description,
@@ -156,6 +161,7 @@ export function AdminProductsManager() {
         data: {
           id: draft.id,
           slug: slugify(draft.slug),
+          sku: draft.sku.trim() || null,
           title: draft.title.trim(),
           subtitle: draft.subtitle.trim() || null,
           description: draft.description,
@@ -200,22 +206,48 @@ export function AdminProductsManager() {
             E-Commerce
           </p>
           <h1 className="mt-1 font-display text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
-            Products
+            {tab === "products" ? "Products" : "Bundle Products"}
           </h1>
           <p className="mt-2 max-w-xl text-sm font-medium text-slate-500">
-            Add, edit and delete every product that appears on the public shop.
+            {tab === "products"
+              ? "Add, edit and delete every product that appears on the public shop."
+              : "Combine 2 or more existing products into a special bundle with its own price and SEO metadata."}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={openCreate}
-          className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-slate-900/20 hover:bg-slate-800"
-        >
-          <Plus className="size-4" /> Add Product
-        </button>
+        {tab === "products" && (
+          <button
+            type="button"
+            onClick={openCreate}
+            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-slate-900/20 hover:bg-slate-800"
+          >
+            <Plus className="size-4" /> Add Product
+          </button>
+        )}
       </div>
 
+      <div className="flex gap-2 border-b border-slate-200">
+        {(["products", "bundles"] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            className={
+              tab === t
+                ? "border-b-2 border-slate-900 px-4 py-2 text-sm font-bold text-slate-900"
+                : "border-b-2 border-transparent px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-800"
+            }
+          >
+            {t === "products" ? "Products" : "Bundle Products"}
+          </button>
+        ))}
+      </div>
+
+      {tab === "bundles" ? (
+        <AdminBundlesManager products={products} />
+      ) : (
+        <>
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+
         {loading ? (
           <div className="flex items-center gap-2 p-6 text-sm text-slate-500">
             <Loader2 className="size-4 animate-spin" /> Loading…
@@ -314,9 +346,13 @@ export function AdminProductsManager() {
           onSave={saveDraft}
         />
       )}
+        </>
+      )}
     </div>
   );
 }
+
+
 
 function ProductEditor({
   draft,
@@ -449,6 +485,14 @@ function ProductEditor({
                 onChange={(e) => setDraft({ ...draft, slug: e.target.value })}
                 className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 font-mono text-sm text-slate-900"
                 placeholder="data-structure-algorithm"
+              />
+            </Field>
+            <Field label="SKU (unique identifier)" full>
+              <input
+                value={draft.sku}
+                onChange={(e) => setDraft({ ...draft, sku: e.target.value })}
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 font-mono text-sm text-slate-900"
+                placeholder="Leave empty to auto-generate (e.g. PTH-XXXXXXXX)"
               />
             </Field>
             <Field label="Subtitle" full>

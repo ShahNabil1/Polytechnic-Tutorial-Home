@@ -62,7 +62,7 @@ export const Route = createFileRoute("/product/$slug")({
       "@type": "Product",
       name: p.title,
       description: p.description,
-      sku: p.id,
+      sku: p.sku ?? p.id,
       url,
       category: productTypeLabel(p.type),
       brand: { "@type": "Brand", name: "Polytechnic Tutorial Home" },
