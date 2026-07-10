@@ -19,6 +19,7 @@ import { SessionsCard } from "@/components/account/SessionsCard";
 import { ReauthDialogHost } from "@/components/account/ReauthDialog";
 import { ImageCropperDialog } from "@/components/account/ImageCropperDialog";
 import { RoleProfileFields } from "@/components/account/RoleProfileFields";
+import { MfaCard } from "@/components/account/MfaCard";
 import { uploadFileToR2 } from "@/lib/upload-client";
 import { toEnglishText } from "@/lib/input-filter";
 import {
