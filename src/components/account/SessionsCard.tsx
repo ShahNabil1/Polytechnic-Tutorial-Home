@@ -55,6 +55,22 @@ export function SessionsCard() {
     }
   }
 
+  async function handleRevokeOthers() {
+    if (otherCount === 0) return;
+    if (!confirm(`অন্য ${otherCount} টা ডিভাইস থেকে সাইন আউট করবেন?`)) return;
+    if (!(await ensureReauth())) return;
+    setRevokingOthers(true);
+    try {
+      const r = await revokeOtherSessions();
+      toast.success(`${r.revoked} টি সেশন সাইন আউট করা হয়েছে`);
+      await refresh();
+    } catch (e) {
+      toast.error("রিভোক করা যায়নি: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setRevokingOthers(false);
+    }
+  }
+
   function startEdit(s: Session) {
     setEditingId(s.id);
     setDraft(s.device_label ?? "");
