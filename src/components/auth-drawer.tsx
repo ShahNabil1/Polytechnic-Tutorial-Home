@@ -152,15 +152,19 @@ export function AuthDrawer({
         >
           <SheetHeader className="border-b border-border px-5 py-4">
             <SheetTitle className="text-base font-semibold">
-              স্বাগতম 👋
+              স্বাগতম
             </SheetTitle>
           </SheetHeader>
 
           <div className="flex-1 overflow-y-auto px-6 py-6">
             <div className="mx-auto flex max-w-sm flex-col">
               <div className="mb-6 text-center">
-                <div className="mx-auto mb-3 grid size-14 place-items-center rounded-full bg-brand/10 text-2xl">
-                  {tab === "login" ? "👋" : "🎉"}
+                <div className="mx-auto mb-3 grid size-14 place-items-center rounded-full bg-brand/10 text-brand">
+                  {tab === "login" ? (
+                    <LogIn size={26} strokeWidth={1.8} />
+                  ) : (
+                    <UserPlus size={26} strokeWidth={1.8} />
+                  )}
                 </div>
                 <h2 className="text-xl font-bold">
                   {tab === "login" ? "একাউন্টে লগিন করুন" : "নতুন একাউন্ট তৈরি করুন"}
