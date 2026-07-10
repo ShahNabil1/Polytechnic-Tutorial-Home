@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { AuthDrawer } from "@/components/auth-drawer";
 import { SessionEnforcer } from "@/components/account/SessionEnforcer";
 import { InactivityLogout } from "@/components/InactivityLogout";
+import { MfaChallengeGate } from "@/components/account/MfaChallengeGate";
 import { Loader2, Lock } from "lucide-react";
 
 
