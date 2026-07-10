@@ -28,6 +28,7 @@ import { formatBDT } from "@/lib/format";
 type Draft = {
   id?: string;
   slug: string;
+  sku: string;
   title: string;
   subtitle: string;
   description: string;
@@ -47,6 +48,7 @@ type Draft = {
 
 const EMPTY_DRAFT: Draft = {
   slug: "",
+  sku: "",
   title: "",
   subtitle: "",
   description: "",
@@ -122,6 +124,7 @@ export function AdminProductsManager() {
     setDraft({
       id: p.id,
       slug: p.slug,
+      sku: p.sku ?? "",
       title: p.title,
       subtitle: p.subtitle ?? "",
       description: p.description,
