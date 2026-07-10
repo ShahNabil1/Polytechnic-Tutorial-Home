@@ -107,7 +107,8 @@ export const Route = createFileRoute("/product/$slug")({
 });
 
 function ProductPage() {
-  const { product } = Route.useLoaderData();
+  const { product, suggestions } = Route.useLoaderData();
+
   const navigate = useNavigate();
   const add = useCart((s) => s.add);
   const inCart = useCart((s) => s.items.some((i) => i.productId === product.id));
