@@ -925,3 +925,164 @@ function DeviceSecuritySection({
   );
 }
 
+function CustomerEditForm({
+  customer,
+  setCustomer,
+  errors,
+  isEbookOnly,
+}: {
+  customer: any;
+  setCustomer: (v: any) => void;
+  errors: Record<string, string>;
+  isEbookOnly: boolean;
+}) {
+  const districts = useMemo(
+    () => BD_LOCATIONS.find((d) => d.name === customer.division)?.districts ?? [],
+    [customer.division],
+  );
+  const upazilas = useMemo(
+    () => districts.find((d) => d.name === customer.district)?.upazilas ?? [],
+    [districts, customer.district],
+  );
+
+  const selectCls =
+    "w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none focus:border-slate-400";
+  const cls = (hasError: boolean) =>
+    cn(selectCls, hasError ? "border-rose-400" : "border-slate-200");
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      <TextField
+        label="Name *"
+        value={customer.customer_name}
+        onChange={(v) => setCustomer({ ...customer, customer_name: v.slice(0, 100) })}
+        error={errors.customer_name}
+      />
+      <TextField
+        label="Phone *"
+        value={customer.customer_phone}
+        onChange={(v) => setCustomer({ ...customer, customer_phone: v.replace(/\D/g, "").slice(0, 11) })}
+        placeholder="01XXXXXXXXX"
+        error={errors.customer_phone}
+        addonRight={
+          <a href={`tel:${customer.customer_phone}`} className="text-brand hover:opacity-80" title="Call">
+            <Phone className="size-4" />
+          </a>
+        }
+      />
+      <TextField
+        label="Alternative Phone"
+        value={customer.alternative_phone}
+        onChange={(v) => setCustomer({ ...customer, alternative_phone: v.replace(/\D/g, "").slice(0, 11) })}
+        placeholder="Optional"
+        error={errors.alternative_phone}
+        addonRight={
+          customer.alternative_phone ? (
+            <a href={`tel:${customer.alternative_phone}`} className="text-brand hover:opacity-80">
+              <Phone className="size-4" />
+            </a>
+          ) : undefined
+        }
+      />
+      <TextField
+        label="Email"
+        value={customer.customer_email}
+        onChange={(v) => setCustomer({ ...customer, customer_email: v.slice(0, 200) })}
+        placeholder="Optional"
+        error={errors.customer_email}
+        addonRight={<Mail className="size-4 text-slate-400" />}
+      />
+      {!isEbookOnly && (
+        <>
+          <label className="block">
+            <span className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              Division *
+            </span>
+            <select
+              value={customer.division ?? ""}
+              onChange={(e) =>
+                setCustomer({ ...customer, division: e.target.value, district: "", thana: "" })
+              }
+              className={cls(!!errors.division)}
+            >
+              <option value="">Select division…</option>
+              {BD_LOCATIONS.map((d) => (
+                <option key={d.name} value={d.name}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+            {errors.division && (
+              <span className="mt-1 block text-[11px] font-semibold text-rose-600">{errors.division}</span>
+            )}
+          </label>
+
+          <label className="block">
+            <span className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              District *
+            </span>
+            <select
+              value={customer.district ?? ""}
+              onChange={(e) => setCustomer({ ...customer, district: e.target.value, thana: "" })}
+              disabled={!customer.division}
+              className={cn(cls(!!errors.district), "disabled:opacity-50")}
+            >
+              <option value="">Select district…</option>
+              {districts.map((d) => (
+                <option key={d.name} value={d.name}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+            {errors.district && (
+              <span className="mt-1 block text-[11px] font-semibold text-rose-600">{errors.district}</span>
+            )}
+          </label>
+
+          <label className="block sm:col-span-2">
+            <span className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              Thana / Upazila *
+            </span>
+            <select
+              value={customer.thana ?? ""}
+              onChange={(e) => setCustomer({ ...customer, thana: e.target.value })}
+              disabled={!customer.district}
+              className={cn(cls(!!errors.thana), "disabled:opacity-50")}
+            >
+              <option value="">Select thana / upazila…</option>
+              {upazilas.map((u) => (
+                <option key={u} value={u}>
+                  {u}
+                </option>
+              ))}
+            </select>
+            {errors.thana && (
+              <span className="mt-1 block text-[11px] font-semibold text-rose-600">{errors.thana}</span>
+            )}
+          </label>
+
+          <label className="block sm:col-span-2">
+            <span className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              Address (village / area / house / road) *
+            </span>
+            <textarea
+              value={customer.address_line ?? ""}
+              onChange={(e) => setCustomer({ ...customer, address_line: e.target.value.slice(0, 250) })}
+              placeholder="Village, road, landmark…"
+              rows={2}
+              className={cn(
+                "w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none focus:border-slate-400",
+                errors.address_line ? "border-rose-400" : "border-slate-200",
+              )}
+            />
+            {errors.address_line && (
+              <span className="mt-1 block text-[11px] font-semibold text-rose-600">{errors.address_line}</span>
+            )}
+          </label>
+        </>
+      )}
+    </div>
+  );
+}
+
+
