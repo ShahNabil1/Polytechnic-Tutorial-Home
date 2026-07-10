@@ -1,11 +1,21 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft, Check, ShoppingCart, ChevronLeft, ChevronRight, ImageIcon } from "lucide-react";
+import { ArrowLeft, Check, ShoppingCart, Zap, ChevronLeft, ChevronRight, ImageIcon } from "lucide-react";
 import { productTypeLabel } from "@/lib/products";
 import { getPublicProductBySlug } from "@/lib/products.functions";
 import { useCart } from "@/lib/cart-store";
 import { formatBDT } from "@/lib/format";
 import { cn } from "@/lib/utils";
+
+const WHATSAPP_NUMBER = "8801790736863";
+
+function WhatsAppIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 32 32" aria-hidden="true" className={className} fill="currentColor">
+      <path d="M19.11 17.205c-.372 0-1.088 1.39-1.518 1.39a.63.63 0 0 1-.315-.1c-.802-.402-1.504-.817-2.163-1.447-.545-.516-1.146-1.29-1.46-1.963a.426.426 0 0 1-.073-.215c0-.33.99-.945.99-1.49 0-.143-.73-2.09-.832-2.335-.143-.372-.214-.487-.6-.487-.187 0-.36-.043-.53-.043-.302 0-.53.115-.746.315-.688.645-1.032 1.318-1.06 2.264v.114c-.015.99.472 1.977 1.017 2.78 1.23 1.82 2.506 3.41 4.554 4.34.616.287 2.035.834 2.7.834.5 0 1.905-.36 2.294-.945.15-.225.223-.484.223-.75 0-.223-.087-.32-.243-.42-.32-.194-.635-.36-.945-.522-.31-.16-.62-.31-.945-.42a1.05 1.05 0 0 0-.348-.1zM16.14 3.435c-6.94 0-12.54 5.6-12.54 12.54 0 2.383.68 4.7 1.94 6.7L3.36 28.58l6.14-1.99a12.5 12.5 0 0 0 6.64 1.94c6.94 0 12.54-5.6 12.54-12.54s-5.6-12.55-12.54-12.55zm0 22.94a10.39 10.39 0 0 1-5.53-1.6l-.4-.24-4.13 1.34 1.34-4.13-.24-.4a10.4 10.4 0 1 1 8.96 5.04z" />
+    </svg>
+  );
+}
 
 const SITE_URL = "https://polytechnictutorial.com";
 
