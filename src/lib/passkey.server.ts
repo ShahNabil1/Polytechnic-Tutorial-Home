@@ -169,16 +169,42 @@ async function sha256(data: Uint8Array | string): Promise<Uint8Array> {
   return new Uint8Array(await crypto.subtle.digest("SHA-256", input as BufferSource));
 }
 
-async function hmacSha256Hex(secret: string, value: string): Promise<string> {
+async function hmacSha256(keyBytes: Uint8Array, value: Uint8Array): Promise<Uint8Array> {
   const key = await crypto.subtle.importKey(
     "raw",
-    textEncoder.encode(secret),
+    keyBytes,
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"],
   );
-  const signature = new Uint8Array(await crypto.subtle.sign("HMAC", key, textEncoder.encode(value)));
-  return Array.from(signature, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return new Uint8Array(await crypto.subtle.sign("HMAC", key, value as BufferSource));
+}
+
+function uuidToBytes(uuid: string): Uint8Array {
+  const hex = uuid.replace(/-/g, "");
+  if (!/^[0-9a-f]{32}$/i.test(hex)) throw new Error("Invalid session id");
+  const out = new Uint8Array(16);
+  for (let i = 0; i < 16; i++) out[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  return out;
+}
+
+function encodeUvarint(value: number): Uint8Array {
+  const out: number[] = [];
+  let x = Math.max(0, Math.floor(value));
+  while (x >= 0x80) {
+    out.push((x & 0x7f) | 0x80);
+    x = Math.floor(x / 128);
+  }
+  out.push(x);
+  return new Uint8Array(out);
+}
+
+async function createSupabaseRefreshToken(sessionId: string, counter: number, hmacKeyBytes: Uint8Array) {
+  const unsigned = concatBytes(new Uint8Array([0]), uuidToBytes(sessionId), encodeUvarint(counter));
+  const signature = (await hmacSha256(hmacKeyBytes, unsigned)).slice(0, 16);
+  const signed = concatBytes(unsigned, signature);
+  const checksum = (await sha256(signed)).slice(0, 4);
+  return toBase64Url(concatBytes(signed, checksum));
 }
 
 function concatBytes(...chunks: Uint8Array[]): Uint8Array {
@@ -700,9 +726,10 @@ async function issueSupabaseSession(userId: string) {
     getRequestHeader("x-real-ip") ||
     getRequestHeader("x-forwarded-for")?.split(",")[0]?.trim() ||
     null;
-  const refreshToken = randomHex(64);
-  const refreshTokenHmacKey = randomHex(32);
-  const refreshTokenHash = await hmacSha256Hex(refreshTokenHmacKey, refreshToken);
+  const refreshTokenHmacKeyBytes = crypto.getRandomValues(new Uint8Array(32));
+  const refreshTokenHmacKey = toBase64Url(refreshTokenHmacKeyBytes);
+  const refreshTokenCounter = 0;
+  const refreshToken = await createSupabaseRefreshToken(sessionId, refreshTokenCounter, refreshTokenHmacKeyBytes);
 
   try {
     await db().begin(async (sql) => {
@@ -728,25 +755,14 @@ async function issueSupabaseSession(userId: string) {
           ${userAgent},
           ${clientIp}::inet,
           ${refreshTokenHmacKey},
-          0
+          ${refreshTokenCounter}
         )
       `;
       await sql`
-        insert into auth.refresh_tokens (
-          token,
-          user_id,
-          session_id,
-          revoked,
-          created_at,
-          updated_at
-        ) values (
-          ${refreshTokenHash},
-          ${userId},
-          ${sessionId}::uuid,
-          false,
-          ${nowIso}::timestamptz,
-          ${nowIso}::timestamptz
-        )
+        update auth.users
+        set last_sign_in_at = ${nowIso}::timestamptz,
+            updated_at = ${nowIso}::timestamptz
+        where id = ${userId}::uuid
       `;
     });
   } catch (error) {
