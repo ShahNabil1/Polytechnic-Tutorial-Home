@@ -60,6 +60,7 @@ function AuthenticatedLayout() {
       <Outlet />
       <SessionEnforcer />
       <InactivityLogout />
+      <MfaChallengeGate />
     </>
   );
 }
