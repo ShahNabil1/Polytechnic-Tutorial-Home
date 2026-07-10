@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { z } from "zod";
+import { nextOrderId } from "@/lib/order-id";
 import { AlertTriangle, Lock, ShoppingBag } from "lucide-react";
 import {
   useCart,
