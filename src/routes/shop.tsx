@@ -143,18 +143,19 @@ function ShopPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-surface p-16 text-center">
-            <p className="text-lg font-semibold">কোনো ফলাফল পাওয়া যায়নি</p>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="text-lg font-extrabold">কোনো ফলাফল পাওয়া যায়নি</p>
+            <p className="mt-2 text-sm font-medium text-muted-foreground">
               অন্য ফিল্টার চেষ্টা করুন অথবা সব ফিল্টার ক্লিয়ার করুন।
             </p>
             <Link
               to="/shop"
               search={{}}
-              className="mt-4 inline-block text-sm font-semibold text-brand hover:underline"
+              className="mt-4 inline-block text-sm font-bold text-brand hover:underline"
             >
               সব ফিল্টার ক্লিয়ার করুন
             </Link>
           </div>
+
         ) : (
           <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
             {filtered.map((p) => (
