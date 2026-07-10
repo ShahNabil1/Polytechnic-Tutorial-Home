@@ -141,6 +141,21 @@ export const renameSession = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+/** Revoke every session for the user EXCEPT the current one. */
+export const revokeOtherSessions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const sessionId = currentSessionId(context.claims);
+    const { data, error } = await context.supabase
+      .from("user_sessions")
+      .delete()
+      .eq("user_id", context.userId)
+      .neq("session_token_hash", sessionId)
+      .select("id");
+    if (error) throw new Error(error.message);
+    return { ok: true as const, revoked: data?.length ?? 0 };
+  });
+
 /**
  * Heartbeat. Returns { alive: true } if the current session row exists,
  * { alive: false } if it was revoked → client should signOut.
