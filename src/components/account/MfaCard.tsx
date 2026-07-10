@@ -9,7 +9,7 @@ import { Loader2, ShieldCheck, ShieldOff, KeyRound, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { updateMyInternalProfile } from "@/lib/internal-profile.functions";
-import { onlyAsciiPrintable } from "@/lib/input-filter";
+import { toEnglishDigits } from "@/lib/input-filter";
 
 type Factor = { id: string; friendly_name?: string | null; status: string; factor_type: string };
 
