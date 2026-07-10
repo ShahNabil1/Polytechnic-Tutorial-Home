@@ -15,14 +15,25 @@ const MAX_DEVICES = 2;
 type ClaimsWithSession = {
   session_id?: string;
   sid?: string;
+  sub?: string;
+  jti?: string;
 };
 
+/**
+ * Resolve a stable identifier for the current auth session. Prefers the JWT
+ * `session_id` / `sid` claim (which Supabase includes on modern tokens), and
+ * falls back to `jti` so we still register a row on older tokens.
+ */
 function currentSessionId(claims: unknown): string {
   const c = (claims ?? {}) as ClaimsWithSession;
-  const id = c.session_id ?? c.sid;
-  if (!id) throw new Error("Session claim missing (session_id)");
+  const id = c.session_id ?? c.sid ?? c.jti;
+  if (!id) {
+    console.error("[sessions] missing session_id claim; keys=", Object.keys(c));
+    throw new Error("Session claim missing (session_id)");
+  }
   return id;
 }
+
 
 /**
  * Called after every successful sign-in.
@@ -72,14 +83,22 @@ export const registerSession = createServerFn({ method: "POST" })
       };
     }
 
-    const { error } = await supabaseAdmin.from("user_sessions").insert({
-      user_id: context.userId,
-      session_token_hash: sessionId,
-      device_label: label,
-      ip,
-      user_agent: ua,
-    });
-    if (error) throw new Error(error.message);
+    const { error, data: inserted } = await supabaseAdmin
+      .from("user_sessions")
+      .insert({
+        user_id: context.userId,
+        session_token_hash: sessionId,
+        device_label: label,
+        ip,
+        user_agent: ua,
+      })
+      .select("id")
+      .single();
+    if (error) {
+      console.error("[sessions] insert failed", error);
+      throw new Error(error.message);
+    }
+    console.log("[sessions] registered", { id: inserted?.id, user_id: context.userId, label, ip });
 
     return { ok: true as const };
   });
