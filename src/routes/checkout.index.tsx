@@ -14,7 +14,7 @@ import { productTypeLabel } from "@/lib/products";
 import { BD_LOCATIONS, normalizeBanglaPhone } from "@/lib/bd-locations";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/checkout")({
+export const Route = createFileRoute("/checkout/")({
   head: () => ({
     meta: [
       { title: "চেকআউট — Polytechnic Tutorial Home" },
@@ -139,6 +139,30 @@ function CheckoutPage() {
     setSubmitting(true);
     await new Promise((r) => setTimeout(r, 900));
     const orderNo = `PE-${Date.now().toString().slice(-8)}`;
+    const snapshot = {
+      orderNo,
+      createdAt: Date.now(),
+      customer: { ...form },
+      items: items.map((i) => ({
+        productId: i.productId,
+        title: i.title,
+        type: i.type,
+        isOnlineBook: i.isOnlineBook,
+        price: i.price,
+        quantity: i.quantity,
+        image: i.image,
+        coverEmoji: i.coverEmoji,
+        coverColor: i.coverColor,
+      })),
+      subtotal,
+      shipping,
+      total,
+      isPhysical,
+    };
+    try {
+      sessionStorage.setItem(`order:${orderNo}`, JSON.stringify(snapshot));
+      sessionStorage.setItem("order:last", orderNo);
+    } catch {}
     clear();
     navigate({
       to: "/checkout/success",
