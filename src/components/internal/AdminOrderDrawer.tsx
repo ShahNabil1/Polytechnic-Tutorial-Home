@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import {
   X,
   Loader2,
@@ -22,6 +23,8 @@ import {
   Fingerprint,
   Globe,
   Package as PackageIcon,
+  Pencil,
+  Truck,
 } from "lucide-react";
 import {
   getAdminOrder,
@@ -77,6 +80,9 @@ export function AdminOrderDrawer({
   const [noteBody, setNoteBody] = useState("");
   const [productQuery, setProductQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
+  const [isEditingCustomer, setIsEditingCustomer] = useState(false);
+  const [deliveryNote, setDeliveryNote] = useState("");
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (order) {
@@ -91,6 +97,7 @@ export function AdminOrderDrawer({
         address_line: order.address_line ?? "",
         note: order.note ?? "",
       });
+      setDeliveryNote(order.note ?? "");
       setItemDraft(items);
     }
   }, [order?.id]);
@@ -105,17 +112,66 @@ export function AdminOrderDrawer({
     queryKey: ["order-product-search", productQuery],
     queryFn: () => searchProducts({ data: { q: productQuery || undefined } }),
     enabled: showSearch,
+    staleTime: 0,
   });
+
+  // Realtime: refetch product search results when any product changes
+  useEffect(() => {
+    if (!showSearch) return;
+    const channel = supabase
+      .channel(`order-drawer-products-${orderId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "products" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["order-product-search"] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [showSearch, orderId, queryClient]);
 
   async function saveCustomer() {
     try {
-      await upCustomer({ data: { id: orderId, patch: customer } });
+      const { note: _note, ...rest } = customer;
+      await upCustomer({ data: { id: orderId, patch: rest } });
       toast.success("Customer details updated");
+      setIsEditingCustomer(false);
       refetch();
       onChanged?.();
     } catch (e: any) {
       toast.error(e.message || "Failed");
     }
+  }
+
+  async function saveDeliveryNote() {
+    try {
+      await upCustomer({ data: { id: orderId, patch: { note: deliveryNote } } });
+      setCustomer((c: any) => ({ ...c, note: deliveryNote }));
+      toast.success("Delivery note saved");
+      refetch();
+      onChanged?.();
+    } catch (e: any) {
+      toast.error(e.message || "Failed");
+    }
+  }
+
+  function cancelCustomerEdit() {
+    if (!order) return;
+    setCustomer({
+      customer_name: order.customer_name,
+      customer_phone: order.customer_phone,
+      alternative_phone: order.alternative_phone ?? "",
+      customer_email: order.customer_email ?? "",
+      division: order.division ?? "",
+      district: order.district ?? "",
+      thana: order.thana ?? "",
+      address_line: order.address_line ?? "",
+      note: order.note ?? "",
+    });
+    setIsEditingCustomer(false);
   }
 
   async function saveItems() {
@@ -301,47 +357,123 @@ export function AdminOrderDrawer({
             )}
 
             {/* Customer editable */}
-            <Section title="Customer & Delivery" icon={MapPin} action={
-              <button onClick={saveCustomer} className="btn-sm-primary"><Save className="size-3.5" /> Save</button>
-            }>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <TextField label="Name" value={customer.customer_name} onChange={(v) => setCustomer({ ...customer, customer_name: v })} />
-                <TextField
-                  label="Phone"
-                  value={customer.customer_phone}
-                  onChange={(v) => setCustomer({ ...customer, customer_phone: v.replace(/\D/g, "").slice(0, 11) })}
-                  addonRight={
-                    <a href={`tel:${customer.customer_phone}`} className="text-brand hover:opacity-80" title="Call">
-                      <Phone className="size-4" />
-                    </a>
-                  }
-                />
-                <TextField
-                  label="Alternative Phone"
-                  value={customer.alternative_phone}
-                  onChange={(v) => setCustomer({ ...customer, alternative_phone: v.replace(/\D/g, "").slice(0, 15) })}
-                  addonRight={
-                    customer.alternative_phone ? (
-                      <a href={`tel:${customer.alternative_phone}`} className="text-brand hover:opacity-80"><Phone className="size-4" /></a>
-                    ) : undefined
-                  }
-                />
-                <TextField
-                  label="Email"
-                  value={customer.customer_email}
-                  onChange={(v) => setCustomer({ ...customer, customer_email: v })}
-                  addonRight={<Mail className="size-4 text-slate-400" />}
-                />
-                {!isEbookOnly && (
+            <Section
+              title="Customer & Delivery"
+              icon={MapPin}
+              action={
+                isEditingCustomer ? (
                   <>
-                    <TextField label="Division" value={customer.division} onChange={(v) => setCustomer({ ...customer, division: v })} />
-                    <TextField label="District" value={customer.district} onChange={(v) => setCustomer({ ...customer, district: v })} />
-                    <TextField label="Thana / Upazila" value={customer.thana} onChange={(v) => setCustomer({ ...customer, thana: v })} />
-                    <TextField className="sm:col-span-2" label="Address (village / area / house / road)" value={customer.address_line} onChange={(v) => setCustomer({ ...customer, address_line: v })} />
+                    <button onClick={cancelCustomerEdit} className="btn-sm">Cancel</button>
+                    <button onClick={saveCustomer} className="btn-sm-primary">
+                      <Save className="size-3.5" /> Save
+                    </button>
                   </>
-                )}
-                <TextField className="sm:col-span-2" label="Delivery Note (for Steadfast)" value={customer.note} onChange={(v) => setCustomer({ ...customer, note: v })} placeholder="e.g. Deliver by 3 PM" />
-              </div>
+                ) : (
+                  <button
+                    onClick={() => setIsEditingCustomer(true)}
+                    className="btn-sm"
+                    title="Edit customer details"
+                  >
+                    <Pencil className="size-3.5" /> Edit
+                  </button>
+                )
+              }
+            >
+              {isEditingCustomer ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <TextField label="Name" value={customer.customer_name} onChange={(v) => setCustomer({ ...customer, customer_name: v })} />
+                  <TextField
+                    label="Phone"
+                    value={customer.customer_phone}
+                    onChange={(v) => setCustomer({ ...customer, customer_phone: v.replace(/\D/g, "").slice(0, 11) })}
+                    addonRight={
+                      <a href={`tel:${customer.customer_phone}`} className="text-brand hover:opacity-80" title="Call">
+                        <Phone className="size-4" />
+                      </a>
+                    }
+                  />
+                  <TextField
+                    label="Alternative Phone"
+                    value={customer.alternative_phone}
+                    onChange={(v) => setCustomer({ ...customer, alternative_phone: v.replace(/\D/g, "").slice(0, 15) })}
+                    addonRight={
+                      customer.alternative_phone ? (
+                        <a href={`tel:${customer.alternative_phone}`} className="text-brand hover:opacity-80"><Phone className="size-4" /></a>
+                      ) : undefined
+                    }
+                  />
+                  <TextField
+                    label="Email"
+                    value={customer.customer_email}
+                    onChange={(v) => setCustomer({ ...customer, customer_email: v })}
+                    addonRight={<Mail className="size-4 text-slate-400" />}
+                  />
+                  {!isEbookOnly && (
+                    <>
+                      <TextField label="Division" value={customer.division} onChange={(v) => setCustomer({ ...customer, division: v })} />
+                      <TextField label="District" value={customer.district} onChange={(v) => setCustomer({ ...customer, district: v })} />
+                      <TextField label="Thana / Upazila" value={customer.thana} onChange={(v) => setCustomer({ ...customer, thana: v })} />
+                      <TextField className="sm:col-span-2" label="Address (village / area / house / road)" value={customer.address_line} onChange={(v) => setCustomer({ ...customer, address_line: v })} />
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                  <ReadField label="Name" value={customer.customer_name} />
+                  <ReadField
+                    label="Phone"
+                    value={customer.customer_phone}
+                    href={customer.customer_phone ? `tel:${customer.customer_phone}` : undefined}
+                    icon={<Phone className="size-3.5 text-brand" />}
+                  />
+                  <ReadField
+                    label="Alternative Phone"
+                    value={customer.alternative_phone || "—"}
+                    href={customer.alternative_phone ? `tel:${customer.alternative_phone}` : undefined}
+                    icon={customer.alternative_phone ? <Phone className="size-3.5 text-brand" /> : undefined}
+                  />
+                  <ReadField
+                    label="Email"
+                    value={customer.customer_email || "—"}
+                    href={customer.customer_email ? `mailto:${customer.customer_email}` : undefined}
+                    icon={customer.customer_email ? <Mail className="size-3.5 text-slate-400" /> : undefined}
+                  />
+                  {!isEbookOnly && (
+                    <>
+                      <ReadField label="Division" value={customer.division || "—"} />
+                      <ReadField label="District" value={customer.district || "—"} />
+                      <ReadField label="Thana / Upazila" value={customer.thana || "—"} />
+                      <ReadField className="sm:col-span-2" label="Address (village / area / house / road)" value={customer.address_line || "—"} />
+                    </>
+                  )}
+                </div>
+              )}
+            </Section>
+
+            {/* Delivery Note (separate save) */}
+            <Section
+              title="Delivery Note (for Steadfast)"
+              icon={Truck}
+              action={
+                <button
+                  onClick={saveDeliveryNote}
+                  className="btn-sm-primary"
+                  disabled={deliveryNote === (customer.note ?? "")}
+                >
+                  <Save className="size-3.5" /> Save Note
+                </button>
+              }
+            >
+              <textarea
+                value={deliveryNote}
+                onChange={(e) => setDeliveryNote(e.target.value)}
+                placeholder="e.g. Deliver by 3 PM, call before arrival, leave with security…"
+                rows={6}
+                className="min-h-[180px] w-full resize-y rounded-lg border border-slate-200 bg-white p-3 text-sm outline-none focus:border-slate-400"
+              />
+              <p className="mt-1 text-[11px] text-slate-500">
+                {deliveryNote.length}/500 characters
+              </p>
             </Section>
 
             {/* Items */}
@@ -519,6 +651,37 @@ export function AdminOrderDrawer({
     </div>
   );
 }
+
+function ReadField({
+  label,
+  value,
+  href,
+  icon,
+  className,
+}: {
+  label: string;
+  value: string;
+  href?: string;
+  icon?: React.ReactNode;
+  className?: string;
+}) {
+  const body = (
+    <span className="inline-flex items-center gap-1.5 break-all text-sm font-semibold text-slate-900">
+      {icon}
+      {href ? <span className="text-brand hover:underline">{value}</span> : value}
+    </span>
+  );
+  return (
+    <div className={cn("block", className)}>
+      <p className="mb-0.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+        {label}
+      </p>
+      {href ? <a href={href}>{body}</a> : body}
+    </div>
+  );
+}
+
+
 
 function Section({
   title,
