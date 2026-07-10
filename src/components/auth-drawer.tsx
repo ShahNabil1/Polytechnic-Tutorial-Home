@@ -463,6 +463,42 @@ export function AuthDrawer({
     }
   }
 
+  async function handleVerifyMfaOtp(e: React.FormEvent) {
+    e.preventDefault();
+    setFormError(null);
+    setInfoMsg(null);
+    if (!mfaFactorId || !mfaChallengeId) {
+      setFormError("2FA সেশন হারিয়ে গেছে, আবার চেষ্টা করুন");
+      setStage("form");
+      return;
+    }
+    if (mfaCode.length !== 6) return setFormError("৬ ডিজিটের 2FA কোড দিন");
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.mfa.verify({
+        factorId: mfaFactorId,
+        challengeId: mfaChallengeId,
+        code: mfaCode,
+      });
+      if (error) {
+        setLoading(false);
+        setFormError("2FA কোড ভুল বা মেয়াদ শেষ");
+        return;
+      }
+      setLoading(false);
+      setMfaCode("");
+      setMfaFactorId(null);
+      setMfaChallengeId(null);
+      setPassword("");
+      setConfirmPassword("");
+      setStage("reset");
+      setInfoMsg("2FA যাচাই সফল। এখন নতুন পাসওয়ার্ড সেট করুন");
+    } catch (err) {
+      setLoading(false);
+      setFormError(errMsg(err));
+    }
+  }
+
   async function handleResetPassword(e: React.FormEvent) {
     e.preventDefault();
     setFormError(null);
