@@ -1,8 +1,9 @@
-import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, BookOpen, ShoppingBag, User as UserIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import { useRole, primaryHome } from "@/hooks/use-role";
 import { fetchMyProfile, getMissingProfileFields, type ProfileRow } from "@/lib/profile";
 import { ProfileCompletenessBanner } from "@/components/account/ProfileCompletenessBanner";
 
@@ -31,7 +32,16 @@ const TABS: ReadonlyArray<{
 function StudentDashboardLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user } = useAuth();
+  const { info, isInternal, loading: roleLoading } = useRole();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<ProfileRow | null>(null);
+
+  useEffect(() => {
+    if (roleLoading || !info) return;
+    if (isInternal) {
+      navigate({ to: primaryHome(info.primaryRole), replace: true });
+    }
+  }, [roleLoading, info, isInternal, navigate]);
 
   useEffect(() => {
     if (!user) return;
