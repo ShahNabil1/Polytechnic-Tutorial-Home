@@ -9,6 +9,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AuthDrawer } from "@/components/auth-drawer";
+import { CartDrawer } from "@/components/cart-drawer";
+import { useCartDrawer } from "@/lib/cart-drawer-store";
 
 type NavItem = { to: string; label: string; hash?: boolean };
 
@@ -109,6 +111,7 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const openCart = useCartDrawer((s) => s.openDrawer);
 
 
 
@@ -148,15 +151,17 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-2">
           <AuthButton />
-          <Link
-            to="/cart"
-            className="relative flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-secondary"
+          <button
+            type="button"
+            onClick={openCart}
+            className="relative flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-sm font-bold transition-colors hover:bg-secondary"
+            aria-label="কার্ট দেখুন"
           >
             <ShoppingCart className="size-4" />
             <span className="font-inter tabular-nums text-xs">
               {toBanglaNumber(count)}
             </span>
-          </Link>
+          </button>
           <button
             className="grid size-9 place-items-center rounded-md hover:bg-secondary md:hidden"
             onClick={() => setOpen((o) => !o)}
@@ -198,6 +203,7 @@ export function SiteHeader() {
         </div>
       )}
 
+      <CartDrawer />
     </header>
   );
 }

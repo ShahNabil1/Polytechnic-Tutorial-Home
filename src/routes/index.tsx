@@ -290,32 +290,41 @@ function Courses() {
 
 function ShopStrip({ products }: { products: Product[] }) {
   return (
-    <section className="border-y border-border/60 bg-surface px-4 py-16 md:px-6">
+    <section className="relative px-4 py-20 md:px-6 md:py-24">
       <div className="mx-auto max-w-6xl">
-        <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
-          <div>
-            <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              শপ
+        <div className="relative overflow-hidden rounded-3xl border-2 border-brand/25 bg-gradient-to-br from-brand-soft/70 via-background to-amber-50/50 p-6 shadow-[0_20px_60px_-25px_rgba(0,0,0,0.15)] md:p-10">
+          {/* Decorative glow */}
+          <div className="pointer-events-none absolute -top-24 -right-24 size-72 rounded-full bg-brand/20 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-24 -left-24 size-72 rounded-full bg-amber-200/40 blur-3xl" />
+
+          <div className="relative flex flex-col justify-between gap-5 md:flex-row md:items-end">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-brand px-3 py-1 text-[11px] font-extrabold uppercase tracking-widest text-brand-foreground shadow-md shadow-brand/25">
+                <span className="size-1.5 rounded-full bg-white animate-pulse" />
+                অনলাইন শপ · সরাসরি অর্ডার
+              </div>
+              <h2 className="mt-3 text-3xl font-extrabold tracking-tight md:text-4xl">
+                বই, ই-বুক ও সুপার সাজেশন
+              </h2>
+              <p className="mt-2 max-w-xl text-sm font-semibold text-muted-foreground md:text-base">
+                কোর্সের পাশাপাশি প্রয়োজনীয় প্রিন্টেড বই, ডিজিটাল ই-বুক ও পরীক্ষার সুপার সাজেশন —
+                ঘরে বসেই অর্ডার, দ্রুত ডেলিভারি।
+              </p>
             </div>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight md:text-3xl">
-              বই, ই-বুক ও সুপার সাজেশন
-            </h2>
-            <p className="mt-2 max-w-lg text-sm text-muted-foreground">
-              কোর্সের পাশাপাশি প্রয়োজনীয় প্রিন্টেড বই ও পরীক্ষার সাজেশন সরাসরি অর্ডার করুন।
-            </p>
+            <Link
+              to="/shop"
+              className="group inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-foreground px-6 py-3.5 text-sm font-extrabold text-background shadow-lg transition-all hover:-translate-y-0.5 hover:bg-brand hover:text-brand-foreground hover:shadow-xl hover:shadow-brand/30"
+            >
+              See All Products
+              <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+            </Link>
           </div>
-          <Link
-            to="/shop"
-            className="inline-flex items-center gap-2 text-sm font-medium text-foreground hover:text-brand"
-          >
-            See All Products
-            <ArrowRight className="size-4" />
-          </Link>
-        </div>
-        <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-5">
-          {products.map((p) => (
-            <ProductCard key={p.id} product={p} />
-          ))}
+
+          <div className="relative mt-8 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-5">
+            {products.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
         </div>
       </div>
     </section>
