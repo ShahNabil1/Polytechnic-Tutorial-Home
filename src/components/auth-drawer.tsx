@@ -149,19 +149,11 @@ export function AuthDrawer({
             e.preventDefault();
             requestClose();
           }}
-          hideCloseButton
         >
-          <SheetHeader className="flex flex-row items-center justify-between space-y-0 border-b border-border px-5 py-4">
+          <SheetHeader className="border-b border-border px-5 py-4">
             <SheetTitle className="text-base font-semibold">
               PTH এর সাথে শেখা শুরু করি
             </SheetTitle>
-            <button
-              onClick={requestClose}
-              aria-label="বন্ধ করুন"
-              className="grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground"
-            >
-              ✕
-            </button>
           </SheetHeader>
 
           <div className="flex-1 overflow-y-auto px-6 py-6">
