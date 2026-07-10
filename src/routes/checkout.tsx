@@ -1,15 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { z } from "zod";
-import { Lock, ShoppingBag } from "lucide-react";
+import { AlertTriangle, Lock, ShoppingBag } from "lucide-react";
 import {
   useCart,
   cartSubtotal,
   calcShipping,
   hasPhysical,
+  hasOnlineBook,
 } from "@/lib/cart-store";
 import { formatBDT, toBanglaNumber } from "@/lib/format";
 import { productTypeLabel } from "@/lib/products";
+import { BD_LOCATIONS, normalizeBanglaPhone } from "@/lib/bd-locations";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/checkout")({
@@ -23,25 +25,9 @@ export const Route = createFileRoute("/checkout")({
   component: CheckoutPage,
 });
 
-const physicalSchema = z.object({
-  name: z.string().trim().min(2, "নাম দিন").max(80),
-  phone: z
-    .string()
-    .trim()
-    .regex(/^01[0-9]{9}$/, "সঠিক মোবাইল নম্বর দিন (11 digit)"),
-  email: z.string().trim().email("সঠিক ইমেইল দিন").optional().or(z.literal("")),
-  address: z.string().trim().min(10, "সম্পূর্ণ ঠিকানা দিন").max(300),
-  city: z.string().trim().min(2, "জেলা / শহর দিন").max(60),
-});
-
-const digitalSchema = z.object({
-  name: z.string().trim().min(2, "নাম দিন").max(80),
-  phone: z
-    .string()
-    .trim()
-    .regex(/^01[0-9]{9}$/, "সঠিক মোবাইল নম্বর দিন (11 digit)"),
-  email: z.string().trim().email("সঠিক ইমেইল দিন"),
-});
+const phoneSchema = z
+  .string()
+  .regex(/^01[3-9]\d{8}$/, "১১ ডিজিটের সঠিক নম্বর দিন (01[3-9]XXXXXXXX)");
 
 function CheckoutPage() {
   const navigate = useNavigate();
@@ -52,17 +38,32 @@ function CheckoutPage() {
     name: "",
     phone: "",
     email: "",
+    division: "",
+    district: "",
+    upazila: "",
     address: "",
-    city: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
   const isPhysical = hasPhysical(items);
+  const isOnline = hasOnlineBook(items);
+  const emailMandatory = isOnline; // online-only OR mixed → mandatory
   const subtotal = cartSubtotal(items);
+
+  const divisions = BD_LOCATIONS;
+  const districts = useMemo(
+    () => divisions.find((d) => d.name === form.division)?.districts ?? [],
+    [form.division, divisions],
+  );
+  const upazilas = useMemo(
+    () => districts.find((d) => d.name === form.district)?.upazilas ?? [],
+    [districts, form.district],
+  );
+
   const shipping = useMemo(
-    () => calcShipping(items, form.city),
-    [items, form.city],
+    () => calcShipping(items, form.district),
+    [items, form.district],
   );
   const total = subtotal + shipping;
 
@@ -88,80 +89,87 @@ function CheckoutPage() {
     );
   }
 
-  function update(field: keyof typeof form) {
-    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      setForm((f) => ({ ...f, [field]: e.target.value }));
+  function update<K extends keyof typeof form>(field: K) {
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+      let v = e.target.value;
+      if (field === "phone") v = normalizeBanglaPhone(v).slice(0, 11);
+      setForm((f) => {
+        const next = { ...f, [field]: v };
+        if (field === "division") { next.district = ""; next.upazila = ""; }
+        if (field === "district") { next.upazila = ""; }
+        return next;
+      });
       setErrors((prev) => {
         if (!prev[field]) return prev;
-        const next = { ...prev };
-        delete next[field];
-        return next;
+        const n = { ...prev };
+        delete n[field];
+        return n;
       });
     };
   }
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const schema = isPhysical ? physicalSchema : digitalSchema;
-    const parsed = schema.safeParse(form);
-    if (!parsed.success) {
-      const errs: Record<string, string> = {};
-      parsed.error.issues.forEach((i) => {
-        const key = String(i.path[0]);
-        if (!errs[key]) errs[key] = i.message;
-      });
-      setErrors(errs);
-      return;
+  function validate(): boolean {
+    const errs: Record<string, string> = {};
+    if (form.name.trim().length < 2) errs.name = "নাম দিন";
+    const phoneCheck = phoneSchema.safeParse(form.phone);
+    if (!phoneCheck.success) errs.phone = phoneCheck.error.issues[0].message;
+
+    if (emailMandatory) {
+      const em = z.string().trim().email().safeParse(form.email);
+      if (!em.success) errs.email = "সঠিক ইমেইল দিন — ভুল হলে ই-বুকের এ্যাক্সেস পাবেন না";
+    } else if (form.email.trim()) {
+      const em = z.string().trim().email().safeParse(form.email);
+      if (!em.success) errs.email = "সঠিক ইমেইল দিন";
     }
 
-    setSubmitting(true);
-    // Mock payment redirect — will be wired to Paystation once keys are added.
-    await new Promise((r) => setTimeout(r, 900));
+    if (isPhysical) {
+      if (!form.division) errs.division = "বিভাগ সিলেক্ট করুন";
+      if (!form.district) errs.district = "জেলা সিলেক্ট করুন";
+      if (!form.upazila) errs.upazila = "উপজেলা/থানা সিলেক্ট করুন";
+      if (form.address.trim().length < 5) errs.address = "গ্রাম / এরিয়া / বাসা / রোড লিখুন";
+    }
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  }
 
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!validate()) return;
+    setSubmitting(true);
+    await new Promise((r) => setTimeout(r, 900));
     const orderNo = `PE-${Date.now().toString().slice(-8)}`;
     clear();
     navigate({
       to: "/checkout/success",
-      search: {
-        order: orderNo,
-        digital: isPhysical ? undefined : 1,
-      },
+      search: { order: orderNo, digital: isPhysical ? undefined : 1 },
     });
   }
 
   return (
-    <div className="px-4 py-10 md:px-6 md:py-14">
-      <div className="mx-auto max-w-6xl">
-        <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
-          গেস্ট চেকআউট
-        </h1>
-        <p className="mt-1 text-muted-foreground">
-          কোনো অ্যাকাউন্ট খোলার প্রয়োজন নেই — নিচের তথ্য দিয়ে সরাসরি অর্ডার
-          করুন।
+    <div className="px-4 py-8 md:px-6 md:py-12">
+      <div className="mx-auto max-w-5xl">
+        <h1 className="text-2xl font-extrabold tracking-tight md:text-3xl">গেস্ট চেকআউট</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          কোনো অ্যাকাউন্ট খোলার প্রয়োজন নেই — নিচের তথ্য দিয়ে সরাসরি অর্ডার করুন।
         </p>
 
         <form
           onSubmit={onSubmit}
-          className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px]"
+          className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]"
         >
-          <div className="space-y-6">
-            <section className="rounded-2xl border border-border bg-card p-6">
-              <h2 className="text-lg font-bold">
+          <div className="space-y-5">
+            <section className="rounded-2xl border border-border bg-card p-5">
+              <h2 className="text-base font-extrabold">
                 {isPhysical ? "ডেলিভারি ঠিকানা" : "আপনার তথ্য"}
               </h2>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1 text-[11px] text-muted-foreground">
                 {isPhysical
                   ? "কুরিয়ার আপনার এই ঠিকানায় বই পৌঁছে দেবে।"
                   : "পেমেন্টের পর ডাউনলোড লিংক এই ইমেইলে পাঠানো হবে।"}
               </p>
 
-              <div className="mt-5 grid gap-4 md:grid-cols-2">
-                <Field
-                  label="আপনার নাম"
-                  required
-                  error={errors.name}
-                  className="md:col-span-2"
-                >
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <Field label="আপনার নাম" required error={errors.name} className="sm:col-span-2">
                   <input
                     type="text"
                     value={form.name}
@@ -170,24 +178,20 @@ function CheckoutPage() {
                     className="input"
                   />
                 </Field>
-                <Field
-                  label="মোবাইল নম্বর"
-                  required
-                  error={errors.phone}
-                >
+                <Field label="মোবাইল নম্বর" required error={errors.phone}>
                   <input
                     type="tel"
+                    inputMode="numeric"
                     value={form.phone}
                     onChange={update("phone")}
                     placeholder="01XXXXXXXXX"
+                    maxLength={11}
                     className="input font-inter"
                   />
                 </Field>
                 <Field
-                  label={
-                    isPhysical ? "ইমেইল (ঐচ্ছিক)" : "ইমেইল"
-                  }
-                  required={!isPhysical}
+                  label={emailMandatory ? "ইমেইল" : "ইমেইল (ঐচ্ছিক)"}
+                  required={emailMandatory}
                   error={errors.email}
                 >
                   <input
@@ -198,49 +202,72 @@ function CheckoutPage() {
                     className="input font-inter"
                   />
                 </Field>
+
+                {emailMandatory && (
+                  <div className="sm:col-span-2 flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-2.5 text-[11.5px] font-semibold text-amber-800">
+                    <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+                    <span>
+                      সতর্কতাঃ ইমেইল ভুল দিলে অনলাইন / ই-বুকের এ্যাক্সেস পাবেন না।
+                      ইমেইল সঠিকভাবে টাইপ করুন।
+                    </span>
+                  </div>
+                )}
+
                 {isPhysical && (
                   <>
-                    <Field
-                      label="জেলা / শহর"
-                      required
-                      error={errors.city}
-                    >
-                      <input
-                        type="text"
-                        value={form.city}
-                        onChange={update("city")}
-                        placeholder="যেমনঃ ঢাকা"
-                        className="input"
+                    <Field label="বিভাগ" required error={errors.division}>
+                      <select value={form.division} onChange={update("division")} className="input">
+                        <option value="">সিলেক্ট করুন…</option>
+                        {divisions.map((d) => (
+                          <option key={d.name} value={d.name}>{d.name}</option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="জেলা" required error={errors.district}>
+                      <select
+                        value={form.district}
+                        onChange={update("district")}
+                        disabled={!form.division}
+                        className="input disabled:opacity-50"
+                      >
+                        <option value="">সিলেক্ট করুন…</option>
+                        {districts.map((d) => (
+                          <option key={d.name} value={d.name}>{d.name}</option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="উপজেলা / থানা" required error={errors.upazila} className="sm:col-span-2">
+                      <select
+                        value={form.upazila}
+                        onChange={update("upazila")}
+                        disabled={!form.district}
+                        className="input disabled:opacity-50"
+                      >
+                        <option value="">সিলেক্ট করুন…</option>
+                        {upazilas.map((u) => (
+                          <option key={u} value={u}>{u}</option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="গ্রাম / এরিয়া / বাসা / রোড" required error={errors.address} className="sm:col-span-2">
+                      <textarea
+                        value={form.address}
+                        onChange={update("address")}
+                        placeholder="যেমনঃ গ্রাম — বড়বাড়ি, বাসা #১২, রোড #৩, ল্যান্ডমার্কঃ মসজিদের পাশে"
+                        className="input h-20 resize-none"
                       />
                     </Field>
-                    <div className="md:col-span-2">
-                      <Field
-                        label="পূর্ণ ঠিকানা"
-                        required
-                        error={errors.address}
-                      >
-                        <textarea
-                          value={form.address}
-                          onChange={update("address")}
-                          placeholder="বাসা / রোড / থানা / ল্যান্ডমার্ক"
-                          className="input h-24 resize-none"
-                        />
-                      </Field>
-                    </div>
                   </>
                 )}
               </div>
             </section>
 
-            <section className="rounded-2xl border border-border bg-card p-6">
-              <h2 className="text-lg font-bold">পেমেন্ট পদ্ধতি</h2>
-              <div className="mt-4 rounded-xl border border-brand/20 bg-brand-soft/40 p-4">
-                <p className="text-sm font-semibold text-brand">
-                  Paystation দিয়ে সিকিউর পেমেন্ট
-                </p>
-                <p className="mt-1 text-xs text-brand/80">
-                  "অর্ডার কনফার্ম" বাটনে ক্লিক করলে আপনাকে Paystation পেজে
-                  নিয়ে যাওয়া হবে যেখানে বিকাশ / নগদ / রকেট / কার্ড দিয়ে
+            <section className="rounded-2xl border border-border bg-card p-5">
+              <h2 className="text-base font-extrabold">পেমেন্ট পদ্ধতি</h2>
+              <div className="mt-3 rounded-xl border border-brand/20 bg-brand-soft/40 p-3.5">
+                <p className="text-sm font-bold text-brand">Paystation দিয়ে সিকিউর পেমেন্ট</p>
+                <p className="mt-1 text-[11.5px] text-brand/80">
+                  "অর্ডার কনফার্ম" বাটনে ক্লিক করলে Paystation পেজে বিকাশ / নগদ / রকেট / কার্ড দিয়ে
                   পেমেন্ট করতে পারবেন।
                 </p>
               </div>
@@ -248,15 +275,15 @@ function CheckoutPage() {
           </div>
 
           <aside className="h-fit space-y-4 lg:sticky lg:top-24">
-            <div className="rounded-2xl border border-border bg-card p-6">
-              <h2 className="text-lg font-bold">অর্ডার সামারি</h2>
+            <div className="rounded-2xl border border-border bg-card p-5">
+              <h2 className="text-base font-extrabold">অর্ডার সামারি</h2>
 
-              <div className="mt-4 space-y-3 border-t border-border pt-4">
+              <div className="mt-3 space-y-3 border-t border-border pt-3">
                 {items.map((i) => (
                   <div key={i.productId} className="flex gap-3">
                     <div
                       className={cn(
-                        "grid size-12 shrink-0 place-items-center overflow-hidden rounded-lg bg-gradient-to-br text-xl",
+                        "grid size-14 shrink-0 place-items-center overflow-hidden rounded-lg bg-gradient-to-br text-xl",
                         !i.image && (i.coverColor ?? "from-slate-200 to-slate-400"),
                       )}
                     >
@@ -267,75 +294,49 @@ function CheckoutPage() {
                       )}
                     </div>
                     <div className="flex flex-1 flex-col text-sm">
-                      <p className="line-clamp-1 font-medium">{i.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {productTypeLabel(i.type)} ×{" "}
-                        <span className="font-inter tabular-nums">
-                          {toBanglaNumber(i.quantity)}
-                        </span>
+                      <p className="line-clamp-2 font-bold leading-snug">{i.title}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {i.isOnlineBook ? "অনলাইন বুক" : productTypeLabel(i.type)} ×{" "}
+                        <span className="font-inter tabular-nums">{toBanglaNumber(i.quantity)}</span>
                       </p>
                     </div>
-                    <p className="text-sm font-semibold tabular-nums">
+                    <p className="text-sm font-bold tabular-nums">
                       {formatBDT(i.price * i.quantity)}
                     </p>
                   </div>
                 ))}
               </div>
 
-              <div className="mt-4 space-y-2 border-t border-border pt-4 text-sm">
+              <div className="mt-3 space-y-1.5 border-t border-border pt-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">সাবটোটাল</span>
-                  <span className="font-semibold tabular-nums">
-                    {formatBDT(subtotal)}
-                  </span>
+                  <span className="font-bold tabular-nums">{formatBDT(subtotal)}</span>
                 </div>
                 {isPhysical && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">
-                      ডেলিভারি চার্জ
-                    </span>
-                    <span
-                      className={cn(
-                        "tabular-nums",
-                        !form.city && "text-xs text-muted-foreground",
-                      )}
-                    >
-                      {form.city
-                        ? formatBDT(shipping)
-                        : "শহর দিলে দেখাবে"}
+                    <span className="text-muted-foreground">ডেলিভারি চার্জ</span>
+                    <span className={cn("tabular-nums", !form.district && "text-xs text-muted-foreground")}>
+                      {form.district ? formatBDT(shipping) : "জেলা দিলে দেখাবে"}
                     </span>
                   </div>
                 )}
               </div>
 
-              <div className="mt-4 flex justify-between border-t border-dashed border-border pt-4">
-                <span className="text-base font-semibold">সর্বমোট</span>
-                <span className="text-xl font-bold tabular-nums">
-                  {formatBDT(total)}
-                </span>
+              <div className="mt-3 flex justify-between border-t border-dashed border-border pt-3">
+                <span className="text-base font-extrabold">সর্বমোট</span>
+                <span className="text-xl font-extrabold tabular-nums">{formatBDT(total)}</span>
               </div>
 
               <button
                 type="submit"
                 disabled={submitting}
-                className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-brand px-6 py-4 text-sm font-semibold text-brand-foreground shadow-lg shadow-brand/20 transition-all hover:bg-brand/90 disabled:opacity-60"
+                className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-brand px-6 py-3.5 text-sm font-extrabold text-brand-foreground shadow-lg shadow-brand/20 transition-all hover:bg-brand/90 disabled:opacity-60"
               >
-                {submitting ? (
-                  "প্রসেস হচ্ছে..."
-                ) : (
-                  <>
-                    <Lock className="size-4" />
-                    অর্ডার কনফার্ম করুন
-                  </>
-                )}
+                {submitting ? "প্রসেস হচ্ছে..." : (<><Lock className="size-4" />অর্ডার কনফার্ম করুন</>)}
               </button>
 
-              <p className="mt-3 text-center text-[11px] text-muted-foreground">
-                অর্ডার কনফার্ম করে আপনি আমাদের{" "}
-                <a href="#" className="underline">
-                  শর্তাবলী
-                </a>{" "}
-                মেনে নিচ্ছেন।
+              <p className="mt-2.5 text-center text-[10.5px] text-muted-foreground">
+                অর্ডার কনফার্ম করে আপনি আমাদের <a href="#" className="underline">শর্তাবলী</a> মেনে নিচ্ছেন।
               </p>
             </div>
           </aside>
@@ -347,26 +348,21 @@ function CheckoutPage() {
           width: 100%;
           border-radius: 0.65rem;
           background: var(--color-surface);
-          padding: 0.75rem 0.9rem;
-          font-size: 0.9rem;
+          padding: 0.6rem 0.8rem;
+          font-size: 0.875rem;
+          font-weight: 600;
           outline: none;
           box-shadow: inset 0 0 0 1px var(--color-border);
           transition: box-shadow 0.15s;
         }
-        .input:focus {
-          box-shadow: inset 0 0 0 2px var(--color-brand);
-        }
+        .input:focus { box-shadow: inset 0 0 0 2px var(--color-brand); }
       `}</style>
     </div>
   );
 }
 
 function Field({
-  label,
-  required,
-  error,
-  children,
-  className,
+  label, required, error, children, className,
 }: {
   label: string;
   required?: boolean;
@@ -376,14 +372,12 @@ function Field({
 }) {
   return (
     <label className={cn("block", className)}>
-      <span className="mb-1.5 block text-sm font-medium">
+      <span className="mb-1 block text-[12px] font-bold">
         {label}
         {required && <span className="ml-0.5 text-destructive">*</span>}
       </span>
       {children}
-      {error && (
-        <span className="mt-1 block text-xs text-destructive">{error}</span>
-      )}
+      {error && <span className="mt-1 block text-[11px] font-semibold text-destructive">{error}</span>}
     </label>
   );
 }
