@@ -427,7 +427,30 @@ export function AuthDrawer({
         resetAll();
         onOpenChange(false);
       } else {
-        // forgot flow: verified → move to set-new-password stage
+        // forgot flow: phone OTP verified.
+        // If this account has a verified TOTP factor (staff / super admin),
+        // require the 2FA code before allowing password reset.
+        try {
+          const { data: factors } = await supabase.auth.mfa.listFactors();
+          const totp = (factors?.totp ?? []).find((f) => f.status === "verified");
+          if (totp) {
+            const { data: chal, error: cErr } = await supabase.auth.mfa.challenge({
+              factorId: totp.id,
+            });
+            if (cErr) throw cErr;
+            setMfaFactorId(totp.id);
+            setMfaChallengeId(chal.id);
+            setMfaCode("");
+            setLoading(false);
+            setStage("mfa");
+            setInfoMsg("আপনার Authenticator অ্যাপ থেকে ৬-ডিজিট 2FA কোড দিন");
+            return;
+          }
+        } catch (mfaErr) {
+          setLoading(false);
+          setFormError("2FA যাচাই শুরু করা যায়নি: " + errMsg(mfaErr));
+          return;
+        }
         setLoading(false);
         setPassword("");
         setConfirmPassword("");
