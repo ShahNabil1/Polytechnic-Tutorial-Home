@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { BD_LOCATIONS } from "@/lib/bd-locations";
-import { Loader2 as Spinner } from "lucide-react";
+
 import {
   X,
   Loader2,
