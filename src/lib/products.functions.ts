@@ -230,6 +230,7 @@ const ProductUpsertInput = z.object({
     .min(1)
     .max(200)
     .regex(/^[a-z0-9-]+$/i, "slug: lowercase letters, numbers or -"),
+  sku: z.string().trim().max(60).optional().nullable(),
   title: z.string().trim().min(1).max(250),
   subtitle: z.string().trim().max(250).optional().nullable(),
   description: z.string().max(20000).default(""),
@@ -252,9 +253,11 @@ export const upsertProduct = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => ProductUpsertInput.parse(i))
   .handler(async ({ data, context }) => {
     await ensureCanManage(context);
-    const { subcategory_ids, id, ...rest } = data;
+    const { subcategory_ids, id, sku, ...rest } = data;
+    const finalSku = (sku ?? "").trim() || randomSku();
     const payload = {
       ...rest,
+      sku: finalSku,
       images: rest.images as never,
       created_by: id ? undefined : context.userId,
     };
