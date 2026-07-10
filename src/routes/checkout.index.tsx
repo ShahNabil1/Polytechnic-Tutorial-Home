@@ -201,9 +201,33 @@ function CheckoutPage() {
     });
     const idemKey = await sha256Hex(idemPayload);
 
+    // Stash a snapshot so /checkout/return can record gateway cancel/fail/timeout outcomes
+    // against the same signature row (no duplicates: DB unique + RPC upsert).
+    stashSnapshotForReturn({
+      customer: {
+        name: form.name,
+        phone: form.phone,
+        email: form.email || "",
+        division: form.division || "",
+        district: form.district || "",
+        upazila: form.upazila || "",
+        address: form.address || "",
+      },
+      items: items.map((i) => ({
+        productId: i.productId,
+        title: i.title,
+        unitPrice: i.price,
+        quantity: i.quantity,
+        image: i.image || "",
+      })),
+      totals: { subtotal, shipping, total },
+      outcome: "pending",
+    });
+
     try {
       const fingerprint = await computeFingerprint();
       const res = await createOrderFn({
+
         data: {
           idempotencyKey: idemKey,
           fingerprint,
