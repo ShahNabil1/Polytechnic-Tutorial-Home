@@ -25,6 +25,9 @@ import {
   Package as PackageIcon,
   Pencil,
   Truck,
+  ShieldCheck,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 import {
   getAdminOrder,
@@ -32,8 +35,10 @@ import {
   updateOrderItems,
   updateOrderStatus,
   addInternalNote,
-  addBlockedIdentifier,
   searchProductsForOrder,
+  bulkBlockIdentifiers,
+  bulkUnblockIdentifiers,
+  getBlockStatus,
 } from "@/lib/orders.functions";
 import {
   ORDER_STATUSES,
