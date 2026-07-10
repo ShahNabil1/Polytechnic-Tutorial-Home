@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Monitor, Smartphone, Tablet, LogOut, Shield, Pencil, Check, X, ShieldOff, MapPin, Globe } from "lucide-react";
-import { listMySessions, revokeSession, renameSession, revokeOtherSessions } from "@/lib/sessions.functions";
+import { listMySessions, registerSession, revokeSession, renameSession, revokeOtherSessions } from "@/lib/sessions.functions";
 import { ensureReauth } from "@/lib/reauth";
 import { SESSION_LABEL_MAX, validateSessionLabel } from "@/lib/session-label";
 
@@ -40,9 +40,11 @@ export function SessionsCard() {
 
   async function refresh() {
     try {
+      await registerSession();
       setSessions(await listMySessions());
     } catch (e) {
       console.error(e);
+      toast.error("Active sessions লোড করা যায়নি");
     } finally {
       setLoading(false);
     }
