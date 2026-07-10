@@ -8,6 +8,7 @@
 import { SignJWT } from "jose";
 import { getRequest, getRequestHeader } from "@tanstack/react-start/server";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import postgres from "postgres";
 import type { Database } from "@/integrations/supabase/types";
 
 type RegistrationResponseJSON = {
@@ -109,6 +110,20 @@ const admin = () => {
   return adminClient;
 };
 
+let dbClient: postgres.Sql | undefined;
+function db() {
+  const dbUrl = readFirstConfiguredSecret("SUPABASE_DB_URL", "DATABASE_URL");
+  if (!dbUrl) throw new Error("SUPABASE_DB_URL is not configured");
+  dbClient ??= postgres(dbUrl, {
+    max: 1,
+    idle_timeout: 20,
+    connect_timeout: 10,
+    prepare: false,
+    ssl: "require",
+  });
+  return dbClient;
+}
+
 export function getRpConfig() {
   const origin =
     getRequestHeader("origin") ||
@@ -143,9 +158,27 @@ function randomBase64Url(size = 32): string {
   return toBase64Url(bytes);
 }
 
+function randomHex(size = 32): string {
+  return Array.from(crypto.getRandomValues(new Uint8Array(size)), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
+}
+
 async function sha256(data: Uint8Array | string): Promise<Uint8Array> {
   const input = typeof data === "string" ? textEncoder.encode(data) : data;
   return new Uint8Array(await crypto.subtle.digest("SHA-256", input as BufferSource));
+}
+
+async function hmacSha256Hex(secret: string, value: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    textEncoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = new Uint8Array(await crypto.subtle.sign("HMAC", key, textEncoder.encode(value)));
+  return Array.from(signature, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 function concatBytes(...chunks: Uint8Array[]): Uint8Array {
@@ -663,35 +696,62 @@ async function issueSupabaseSession(userId: string) {
   const sessionId = crypto.randomUUID();
   const nowIso = new Date().toISOString();
   const userAgent = getRequestHeader("user-agent") || "passkey";
+  const clientIp = getRequestHeader("cf-connecting-ip") ||
+    getRequestHeader("x-real-ip") ||
+    getRequestHeader("x-forwarded-for")?.split(",")[0]?.trim() ||
+    null;
+  const refreshToken = randomHex(64);
+  const refreshTokenHmacKey = randomHex(32);
+  const refreshTokenHash = await hmacSha256Hex(refreshTokenHmacKey, refreshToken);
 
-  const { error: sessionError } = await admin()
-    .schema("auth" as never)
-    .from("sessions" as never)
-    .insert({
-      id: sessionId,
-      user_id: userId,
-      aal: "aal1",
-      created_at: nowIso,
-      updated_at: nowIso,
-      refreshed_at: nowIso,
-      user_agent: userAgent,
-    } as never);
-  if (sessionError) throw new Error(`Session create failed: ${sessionError.message}`);
-
-  const refreshToken =
-    crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
-  const { error: refreshError } = await admin()
-    .schema("auth" as never)
-    .from("refresh_tokens" as never)
-    .insert({
-      token: refreshToken,
-      user_id: userId,
-      session_id: sessionId,
-      revoked: false,
-      created_at: nowIso,
-      updated_at: nowIso,
-    } as never);
-  if (refreshError) throw new Error(`Refresh token create failed: ${refreshError.message}`);
+  try {
+    await db().begin(async (sql) => {
+      await sql`
+        insert into auth.sessions (
+          id,
+          user_id,
+          aal,
+          created_at,
+          updated_at,
+          refreshed_at,
+          user_agent,
+          ip,
+          refresh_token_hmac_key,
+          refresh_token_counter
+        ) values (
+          ${sessionId}::uuid,
+          ${userId}::uuid,
+          'aal1'::auth.aal_level,
+          ${nowIso}::timestamptz,
+          ${nowIso}::timestamptz,
+          ${nowIso}::timestamp,
+          ${userAgent},
+          ${clientIp}::inet,
+          ${refreshTokenHmacKey},
+          0
+        )
+      `;
+      await sql`
+        insert into auth.refresh_tokens (
+          token,
+          user_id,
+          session_id,
+          revoked,
+          created_at,
+          updated_at
+        ) values (
+          ${refreshTokenHash},
+          ${userId},
+          ${sessionId}::uuid,
+          false,
+          ${nowIso}::timestamptz,
+          ${nowIso}::timestamptz
+        )
+      `;
+    });
+  } catch (error) {
+    throw new Error(`Session create failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
 
   const payload = {
     iss: `${supabaseUrl.replace(/\/$/, "")}/auth/v1`,
