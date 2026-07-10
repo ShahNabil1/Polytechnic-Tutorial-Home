@@ -258,59 +258,6 @@ function ProductPage() {
             )}
           </div>
 
-            {product.stock !== undefined && product.stock !== null && product.stock > 0 && (
-              <p className="order-4 mt-2 text-sm font-bold text-brand">
-                <Check className="mr-1 inline size-4" />
-                স্টকে আছে ({product.stock}+ কপি)
-              </p>
-            )}
-
-            <div className="order-5 mt-5 grid grid-cols-2 gap-2.5 md:mt-8 md:gap-3 lg:order-7">
-              <button
-                onClick={() => add(product)}
-                className="group relative inline-flex items-center justify-center gap-1.5 overflow-hidden rounded-xl border-2 border-foreground/90 bg-background px-3 py-3 text-sm font-extrabold tracking-wide text-foreground shadow-[0_6px_0_-1px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-0.5 hover:bg-foreground hover:text-background active:translate-y-0 md:gap-2 md:rounded-2xl md:px-6 md:py-4 md:text-base"
-              >
-                <ShoppingCart className="size-4 md:size-5" />
-                {inCart ? "Added To Cart" : "Add To Cart"}
-              </button>
-              <button
-                onClick={handleBuyNow}
-                className="group relative inline-flex items-center justify-center gap-1.5 overflow-hidden rounded-xl bg-gradient-to-br from-brand via-brand to-brand/80 px-3 py-3 text-sm font-extrabold tracking-wide text-brand-foreground shadow-lg shadow-brand/30 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-brand/40 active:translate-y-0 md:gap-2 md:rounded-2xl md:px-6 md:py-4 md:text-base"
-              >
-                <Zap className="size-4 fill-current md:size-5" />
-                Buy Now
-              </button>
-            </div>
-
-            <a
-              href={waLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="order-6 mt-2.5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#25D366] px-4 py-3 text-sm font-extrabold tracking-wide text-white shadow-lg shadow-[#25D366]/25 transition-all hover:-translate-y-0.5 hover:bg-[#1ebe57] hover:shadow-xl hover:shadow-[#25D366]/40 active:translate-y-0 md:mt-3 md:gap-3 md:rounded-2xl md:px-6 md:py-4 md:text-base lg:order-8"
-            >
-              <WhatsAppIcon className="size-5 md:size-6" />
-              Order On Whatsapp
-            </a>
-
-            <div className="order-7 mt-6 border-t border-border pt-6 lg:order-5">
-              <h3 className="mb-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
-                বিবরণ
-              </h3>
-              <p className="whitespace-pre-line text-base font-medium leading-relaxed text-foreground/90">
-                {product.description}
-              </p>
-            </div>
-
-            {isDigital && (
-              <div className="order-8 mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-900 lg:order-9">
-                <p className="font-extrabold">📥 ইনস্ট্যান্ট ডাউনলোড</p>
-                <p className="mt-1">
-                  পেমেন্ট সম্পন্ন হওয়ার পরপরই সিকিউর ডাউনলোড লিংক আপনার ইমেইলে পাঠানো হবে।
-                </p>
-              </div>
-            )}
-          </div>
-
         </div>
       </div>
     </div>
