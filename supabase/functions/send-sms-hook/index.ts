@@ -1,13 +1,18 @@
 // Supabase Auth "Send SMS" hook — sends OTP via bulksmsbd.net
 // Configure in Supabase Dashboard: Authentication → Hooks → Send SMS hook
-// URL: https://<project-ref>.supabase.co/functions/v1/send-sms-hook
-// Secret: SEND_SMS_HOOK_SECRET (v1,whsec_...)
 
 import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const BULKSMSBD_API_KEY = Deno.env.get("BULKSMSBD_API_KEY")!;
 const BULKSMSBD_SENDER_ID = Deno.env.get("BULKSMSBD_SENDER_ID")!;
 const HOOK_SECRET = (Deno.env.get("SEND_SMS_HOOK_SECRET") ?? "").replace("v1,whsec_", "");
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
 
 interface SmsHookPayload {
   user: { id: string; phone: string };
@@ -15,11 +20,24 @@ interface SmsHookPayload {
 }
 
 function normalize(phone: string): string {
-  // bulksmsbd expects 8801XXXXXXXXX (no +)
   const digits = phone.replace(/\D/g, "");
   if (digits.startsWith("88")) return digits;
   if (digits.startsWith("0")) return "88" + digits;
   return "88" + digits;
+}
+
+async function lookupName(userId: string): Promise<string> {
+  try {
+    const { data } = await admin
+      .from("profiles")
+      .select("full_name")
+      .eq("id", userId)
+      .maybeSingle();
+    const name = (data?.full_name || "").trim();
+    return name;
+  } catch {
+    return "";
+  }
 }
 
 Deno.serve(async (req) => {
@@ -27,7 +45,6 @@ Deno.serve(async (req) => {
 
   const rawBody = await req.text();
 
-  // Verify signature (Supabase Auth Hook uses Standard Webhooks)
   try {
     const wh = new Webhook(HOOK_SECRET);
     wh.verify(rawBody, Object.fromEntries(req.headers));
@@ -45,7 +62,11 @@ Deno.serve(async (req) => {
 
   const phone = normalize(payload.user.phone);
   const otp = payload.sms.otp;
-  const message = `আপনার Polytechnic Tutorial Home OTP কোড: ${otp}\n\nকোডটি ৫ মিনিটের জন্য বৈধ। কারো সাথে শেয়ার করবেন না।`;
+  const name = await lookupName(payload.user.id);
+  const greeting = name ? `প্রিয় ${name},\n\n` : "";
+  const message =
+    `${greeting}আপনার Polytechnic Tutorial Home OTP কোড: ${otp}\n\n` +
+    `কোডটি ৫ মিনিটের জন্য বৈধ। কারো সাথে শেয়ার করবেন না।`;
 
   const url = new URL("http://bulksmsbd.net/api/smsapi");
   url.searchParams.set("api_key", BULKSMSBD_API_KEY);
@@ -58,7 +79,6 @@ Deno.serve(async (req) => {
   const text = await smsRes.text();
   console.log("bulksmsbd response:", smsRes.status, text);
 
-  // bulksmsbd returns JSON like {"response_code":202,"message_id":...} on success
   let ok = smsRes.ok;
   try {
     const parsed = JSON.parse(text);

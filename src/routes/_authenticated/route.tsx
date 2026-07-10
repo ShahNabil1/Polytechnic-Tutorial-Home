@@ -2,7 +2,9 @@ import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { AuthDrawer } from "@/components/auth-drawer";
+import { SessionEnforcer } from "@/components/account/SessionEnforcer";
 import { Loader2, Lock } from "lucide-react";
+
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -51,5 +53,10 @@ function AuthenticatedLayout() {
     );
   }
 
-  return <Outlet />;
+  return (
+    <>
+      <Outlet />
+      <SessionEnforcer />
+    </>
+  );
 }
