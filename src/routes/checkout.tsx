@@ -93,6 +93,7 @@ function CheckoutPage() {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
       let v = e.target.value;
       if (field === "phone") v = normalizeBanglaPhone(v).slice(0, 11);
+      if (field === "email") v = v.replace(/[^\x20-\x7E]/g, "");
       setForm((f) => {
         const next = { ...f, [field]: v };
         if (field === "division") { next.district = ""; next.upazila = ""; }
@@ -179,7 +180,6 @@ function CheckoutPage() {
                     type="text"
                     value={form.name}
                     onChange={update("name")}
-                    placeholder="যেমনঃ মোঃ রাকিব হাসান"
                     className="input"
                   />
                 </Field>
