@@ -26,7 +26,7 @@ export function useRole() {
     }
     let cancelled = false;
     setLoading(true);
-    fetchRole({})
+    fetchRole(undefined as never)
       .then((res) => {
         if (!cancelled) setInfo(res as RoleInfo);
       })
