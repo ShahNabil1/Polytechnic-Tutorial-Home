@@ -62,12 +62,17 @@ function ProfilePage() {
     if (!user) return;
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", user.id)
         .maybeSingle<ProfileRow>();
       if (cancelled) return;
+      if (error) {
+        setLoadError(error.message);
+        setLoading(false);
+        return;
+      }
       if (data) {
         const next: FormState = {
           full_name: data.full_name ?? "",
@@ -79,6 +84,7 @@ function ProfilePage() {
           registration_no: (data as { registration_no?: string | null }).registration_no ?? "",
         };
         setForm(next);
+        setSavedForm(next);
         setStudentId((data as { student_id?: number | null }).student_id ?? null);
         // Auto edit mode if any required field missing
         const missing = getMissingProfileFields(data);
@@ -86,6 +92,7 @@ function ProfilePage() {
       } else {
         setEditMode(true);
       }
+      setLoadError(null);
       setLoading(false);
     })();
     return () => { cancelled = true; };
