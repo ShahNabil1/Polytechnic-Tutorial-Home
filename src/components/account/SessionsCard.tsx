@@ -187,7 +187,7 @@ export function SessionsCard() {
                             autoFocus
                             type="text"
                             value={draft}
-                            onChange={(e) => setDraft(e.target.value)}
+                            onChange={(e) => setDraft(toEnglishText(e.target.value))}
                             onKeyDown={(e) => {
                               if (e.key === "Enter" && !draftError) saveEdit(s.id);
                               if (e.key === "Escape") cancelEdit();
