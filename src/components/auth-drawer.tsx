@@ -591,7 +591,7 @@ export function AuthDrawer({
       >
         <SheetContent
           side="right"
-          className="w-full sm:max-w-md flex flex-col gap-0 p-0"
+          className="w-full sm:max-w-md flex flex-col gap-0 p-0 h-[100dvh] max-h-[100dvh] overscroll-contain"
           onInteractOutside={(e) => {
             e.preventDefault();
             requestClose();
