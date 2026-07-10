@@ -91,6 +91,7 @@ export const Route = createFileRoute("/product/$slug")({
 
 function ProductPage() {
   const { product } = Route.useLoaderData();
+  const navigate = useNavigate();
   const add = useCart((s) => s.add);
   const inCart = useCart((s) => s.items.some((i) => i.productId === product.id));
   const [idx, setIdx] = useState(0);
@@ -100,16 +101,26 @@ function ProductPage() {
   const hasImages = images.length > 0;
   const current = hasImages ? images[Math.min(idx, images.length - 1)] : null;
 
+  const productUrl = `${SITE_URL}/product/${product.slug}`;
+  const waMessage = `আসসালামু আলাইকুম,\n\nআমি এই বইটি অর্ডার করতে চাই:\n\n📘 ${product.title}\n💵 মূল্য: ${formatBDT(product.price)}\n🔗 ${productUrl}\n\nঅনুগ্রহ করে অর্ডার প্রসেস করুন।`;
+  const waLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(waMessage)}`;
+
+  const handleBuyNow = () => {
+    if (!inCart) add(product);
+    navigate({ to: "/checkout" });
+  };
+
   return (
     <div className="px-4 py-10 md:px-6 md:py-14">
       <div className="mx-auto max-w-6xl">
         <Link
           to="/shop"
-          className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+          className="mb-6 inline-flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="size-4" />
           সব বই দেখুন
         </Link>
+
 
         <div className="grid gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
           <div>
