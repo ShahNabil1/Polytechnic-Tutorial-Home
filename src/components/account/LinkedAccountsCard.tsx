@@ -1,9 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Mail, Phone, Link2, Unlink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { UserIdentity } from "@supabase/supabase-js";
 import { ensureReauth } from "@/lib/reauth";
+
+const RESEND_COOLDOWN_SECONDS = 60;
+const MAX_RESENDS = 3;
+const LOCKOUT_MINUTES = 5;
 
 function bnToEnDigits(s: string): string {
   const map: Record<string, string> = {
