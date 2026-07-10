@@ -66,6 +66,24 @@ export const useCart = create<CartState>()(
           if (product.coverEmoji) newItem.coverEmoji = product.coverEmoji;
           return { items: [...state.items, newItem] };
         }),
+      addBundle: (bundle) =>
+        set((state) => {
+          const key = `bundle:${bundle.id}`;
+          if (state.items.some((i) => i.productId === key)) return state;
+          const item: CartItem = {
+            productId: key,
+            slug: bundle.slug,
+            title: bundle.title,
+            price: bundle.price,
+            type: bundle.hasPhysical ? "physical" : "ebook",
+            quantity: 1,
+            isOnlineBook: !bundle.hasPhysical,
+            isBundle: true,
+            bundleSlug: bundle.slug,
+          };
+          if (bundle.image) item.image = bundle.image;
+          return { items: [...state.items, item] };
+        }),
       remove: (productId) =>
         set((state) => ({
           items: state.items.filter((i) => i.productId !== productId),
