@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ProfilePage } from "@/components/account/ProfilePage";
+import { InternalProfilePage } from "@/components/internal/InternalProfilePage";
 
 export const Route = createFileRoute("/_authenticated/_internal/instructor/profile")({
   head: () => ({
@@ -8,5 +8,5 @@ export const Route = createFileRoute("/_authenticated/_internal/instructor/profi
       { name: "robots", content: "noindex" },
     ],
   }),
-  component: () => <ProfilePage role="instructor" />,
+  component: () => <InternalProfilePage role="instructor" />,
 });
