@@ -183,8 +183,12 @@ export const createOrder = createServerFn({ method: "POST" })
     const { error: itemErr } = await sb.from("order_items").insert(itemsRows as any);
     if (itemErr) throw new Error(itemErr.message);
 
+    // On successful order: remove any incomplete-checkout rows for this phone.
+    await sb.from("incomplete_checkouts").delete().eq("customer_phone", data.customer.phone);
+
     return { id: order.id, orderNo: order.order_no, status: order.status };
   });
+
 
 function isUuid(v: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
