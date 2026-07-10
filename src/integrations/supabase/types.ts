@@ -17,32 +17,54 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          board_roll: string | null
           created_at: string
+          current_semester: Database["public"]["Enums"]["semester_level"] | null
+          department_name: string | null
           email: string | null
           full_name: string | null
           id: string
+          institute_name: string | null
           phone: string | null
           phone_verified: boolean
+          registration_no: string | null
+          student_id: number
           updated_at: string
         }
         Insert: {
           avatar_url?: string | null
+          board_roll?: string | null
           created_at?: string
+          current_semester?:
+            | Database["public"]["Enums"]["semester_level"]
+            | null
+          department_name?: string | null
           email?: string | null
           full_name?: string | null
           id: string
+          institute_name?: string | null
           phone?: string | null
           phone_verified?: boolean
+          registration_no?: string | null
+          student_id?: number
           updated_at?: string
         }
         Update: {
           avatar_url?: string | null
+          board_roll?: string | null
           created_at?: string
+          current_semester?:
+            | Database["public"]["Enums"]["semester_level"]
+            | null
+          department_name?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
+          institute_name?: string | null
           phone?: string | null
           phone_verified?: boolean
+          registration_no?: string | null
+          student_id?: number
           updated_at?: string
         }
         Relationships: []
@@ -193,7 +215,17 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      semester_level:
+        | "1st"
+        | "2nd"
+        | "3rd"
+        | "4th"
+        | "5th"
+        | "6th"
+        | "7th"
+        | "8th"
+        | "graduated"
+        | "probation"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -320,6 +352,19 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      semester_level: [
+        "1st",
+        "2nd",
+        "3rd",
+        "4th",
+        "5th",
+        "6th",
+        "7th",
+        "8th",
+        "graduated",
+        "probation",
+      ],
+    },
   },
 } as const
