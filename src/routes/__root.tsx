@@ -16,6 +16,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Toaster } from "@/components/ui/sonner";
+import { BlocklistGate } from "@/components/BlocklistGate";
 
 function NotFoundComponent() {
   return (
@@ -172,7 +173,9 @@ function RootComponent() {
   if (isInternalApp) {
     return (
       <QueryClientProvider client={queryClient}>
-        <Outlet />
+        <BlocklistGate>
+          <Outlet />
+        </BlocklistGate>
         <Toaster richColors position="top-center" />
       </QueryClientProvider>
     );
@@ -180,13 +183,15 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="flex min-h-screen flex-col">
-        <SiteHeader />
-        <main className="flex-1">
-          <Outlet />
-        </main>
-        {!hideFooter && <SiteFooter />}
-      </div>
+      <BlocklistGate>
+        <div className="flex min-h-screen flex-col">
+          <SiteHeader />
+          <main className="flex-1">
+            <Outlet />
+          </main>
+          {!hideFooter && <SiteFooter />}
+        </div>
+      </BlocklistGate>
       <Toaster richColors position="top-center" />
     </QueryClientProvider>
   );
