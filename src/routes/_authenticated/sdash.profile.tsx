@@ -349,7 +349,7 @@ function ProfilePage() {
           <Field label="বোর্ড রোল *">
             <input
               type="text" value={form.board_roll}
-              onChange={(e) => updateField("board_roll", e.target.value)}
+              onChange={(e) => updateField("board_roll", toEnglishText(e.target.value))}
               className={inputClass} placeholder="যেমনঃ 123456"
               required disabled={locked}
             />
