@@ -64,7 +64,7 @@ export function CartDrawer() {
           </div>
         ) : (
           <>
-            <div className="flex-1 overflow-y-auto px-4 py-4">
+            <div className="flex-1 overflow-y-auto px-3 py-3 md:px-4 md:py-4">
               <AnimatePresence initial={false}>
                 {items.map((item) => {
                   const isDigital = item.type !== "physical";
