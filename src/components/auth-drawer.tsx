@@ -457,7 +457,7 @@ export function AuthDrawer({
       setTab("login");
     } catch (err) {
       setLoading(false);
-      setFormError(errMsg(err));
+      setFormError(friendlyPasswordError(err));
     }
   }
 
