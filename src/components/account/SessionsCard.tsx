@@ -35,16 +35,19 @@ export function SessionsCard() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const otherCount = sessions.filter((s) => !s.is_current).length;
 
   async function refresh() {
     try {
       await registerSession();
-      setSessions(await listMySessions());
+      const rows = await listMySessions();
+      setSessions(rows);
+      setLoadError(null);
     } catch (e) {
       console.error(e);
-      toast.error("Active sessions লোড করা যায়নি");
+      setLoadError(e instanceof Error ? e.message : "Active sessions লোড করা যায়নি");
     } finally {
       setLoading(false);
     }
@@ -148,6 +151,12 @@ export function SessionsCard() {
             {revokingOthers ? <Loader2 className="size-3.5 animate-spin" /> : <ShieldOff className="size-3.5" />}
             অন্য সব ডিভাইস থেকে সাইন আউট
           </button>
+        </div>
+      )}
+
+      {!loading && loadError && (
+        <div className="mb-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
+          Active sessions লোড করা যায়নি। আবার সাইন ইন করে চেষ্টা করুন।
         </div>
       )}
 
