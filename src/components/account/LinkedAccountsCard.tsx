@@ -66,6 +66,7 @@ export function LinkedAccountsCard() {
       return;
     }
     if (!confirm("Google একাউন্ট আনলিংক করবেন?")) return;
+    if (!(await ensureReauth())) return;
     const { error } = await supabase.auth.unlinkIdentity(googleIdentity);
     if (error) toast.error(error.message);
     else {
