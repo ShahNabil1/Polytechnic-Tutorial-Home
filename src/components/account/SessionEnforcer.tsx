@@ -53,7 +53,11 @@ export function SessionEnforcer() {
     ensureRegistered();
 
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") ensureRegistered();
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        window.setTimeout(() => {
+          void ensureRegistered();
+        }, 0);
+      }
       if (event === "SIGNED_OUT") registeredForSessionRef.current = null;
     });
 

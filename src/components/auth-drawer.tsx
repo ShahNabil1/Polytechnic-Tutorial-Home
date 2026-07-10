@@ -22,6 +22,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { AlertCircle, CheckCircle2, Eye, EyeOff, KeyRound } from "lucide-react";
+import { checkPhoneAvailability } from "@/lib/auth.functions";
 
 type Tab = "login" | "signup";
 type Stage = "form" | "otp" | "reset";
@@ -30,6 +31,23 @@ type OtpFlow = "signup" | "forgot";
 const RESEND_COOLDOWN_SECONDS = 60;
 const MAX_RESENDS = 3;
 const LOCKOUT_MINUTES = 5;
+const AUTH_TIMEOUT_MS = 20_000;
+
+function withTimeout<T>(promise: PromiseLike<T>, message: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error(message)), AUTH_TIMEOUT_MS);
+    Promise.resolve(promise).then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        window.clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
 
 function bnToEnDigits(s: string): string {
   const map: Record<string, string> = {
@@ -135,7 +153,6 @@ export function AuthDrawer({
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberPasskey, setRememberPasskey] = useState(true);
   const [otp, setOtp] = useState("");
 
   const [loading, setLoading] = useState(false);
@@ -255,7 +272,10 @@ export function AuthDrawer({
     }
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ phone, password });
+      const { error } = await withTimeout(
+        supabase.auth.signInWithPassword({ phone, password }),
+        "লগইন হতে বেশি সময় লাগছে। ইন্টারনেট চেক করে আবার চেষ্টা করুন।",
+      );
       setLoading(false);
       if (error) {
         const msg = (errMsg(error) || "").toLowerCase();
@@ -267,15 +287,6 @@ export function AuthDrawer({
         return;
       }
       toast.success("সাইন ইন সফল");
-      const passkeyClient = await getPasskeyClient();
-      if (rememberPasskey && passkeyClient.isPasskeySupported()) {
-        try {
-          await passkeyClient.registerPasskey();
-          toast.success("Passkey সেভ হয়েছে");
-        } catch (e) {
-          toast.error("Passkey সেভ করা যায়নি: " + errMsg(e));
-        }
-      }
       resetAll();
       onOpenChange(false);
     } catch (err) {
@@ -295,11 +306,25 @@ export function AuthDrawer({
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
-        phone,
-        password,
-        options: { data: { full_name: fullName } },
-      });
+      const availability = await withTimeout(
+        checkPhoneAvailability({ data: { phone } }),
+        "নাম্বার যাচাই হতে বেশি সময় লাগছে। আবার চেষ্টা করুন।",
+      );
+
+      if (availability.registered) {
+        setLoading(false);
+        setFormError("এই নাম্বারে ইতিমধ্যে একাউন্ট আছে। লগইন ট্যাবে যান।");
+        return;
+      }
+
+      const { error } = await withTimeout(
+        supabase.auth.signUp({
+          phone,
+          password,
+          options: { data: { full_name: fullName } },
+        }),
+        "সাইন আপ শুরু হতে বেশি সময় লাগছে। আবার চেষ্টা করুন।",
+      );
       setLoading(false);
       if (error) {
         const msg = (errMsg(error) || "").toLowerCase();
@@ -363,7 +388,10 @@ export function AuthDrawer({
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.verifyOtp({ phone, token: otp, type: "sms" });
+      const { error } = await withTimeout(
+        supabase.auth.verifyOtp({ phone, token: otp, type: "sms" }),
+        "OTP যাচাই হতে বেশি সময় লাগছে। আবার চেষ্টা করুন।",
+      );
       if (error) {
         setLoading(false);
         const msg = (errMsg(error) || "").toLowerCase();
@@ -389,15 +417,6 @@ export function AuthDrawer({
         }
         setLoading(false);
         toast.success("একাউন্ট তৈরি হয়েছে");
-        const passkeyClient = await getPasskeyClient();
-        if (rememberPasskey && passkeyClient.isPasskeySupported()) {
-          try {
-            await passkeyClient.registerPasskey();
-            toast.success("Passkey সেভ হয়েছে");
-          } catch (e) {
-            toast.error("Passkey সেভ করা যায়নি: " + errMsg(e));
-          }
-        }
         resetAll();
         onOpenChange(false);
       } else {
@@ -550,18 +569,6 @@ export function AuthDrawer({
     </div>
   ) : null;
 
-  const PasskeyToggle = (
-    <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground select-none">
-      <input
-        type="checkbox"
-        checked={rememberPasskey}
-        onChange={(e) => setRememberPasskey(e.target.checked)}
-        className="size-3.5 rounded border-input accent-amber-500"
-      />
-      <span>এই ডিভাইসে Passkey সেভ করে রাখো</span>
-    </label>
-  );
-
   const cardTitle =
     stage === "reset"
       ? "নতুন পাসওয়ার্ড সেট করুন"
@@ -654,7 +661,6 @@ export function AuthDrawer({
                       </button>
                     </div>
                     {ErrorBox}
-                    {PasskeyToggle}
                     <Button
                       type="submit"
                       className="w-full bg-amber-500 text-amber-950 hover:bg-amber-600"
@@ -741,7 +747,6 @@ export function AuthDrawer({
                       onClearError={clearFormError}
                     />
                     {ErrorBox}
-                    {PasskeyToggle}
                     <Button
                       type="submit"
                       className="w-full bg-amber-500 text-amber-950 hover:bg-amber-600"
