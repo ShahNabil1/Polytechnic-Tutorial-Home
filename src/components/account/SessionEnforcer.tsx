@@ -6,11 +6,10 @@
  * - Every 60s heartbeats — if server says session was revoked, signs out.
  */
 import { useEffect, useRef, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { registerSession, pingSession, revokeSession } from "@/lib/sessions.functions";
 import { toast } from "sonner";
 import { Loader2, Monitor, LogOut } from "lucide-react";
+import { pingTrackedSession, registerTrackedSession, revokeTrackedSession } from "@/lib/session-api";
 
 type ChoiceSession = {
   id: string;
@@ -25,15 +24,9 @@ type RegisterResult =
   | { status: "choice"; sessions: ChoiceSession[] }
   | { status: "failed" };
 
-type RegisterSessionCall = () => Promise<
-  | { ok: true }
-  | { ok: false; needsChoice: true; sessions: ChoiceSession[] }
-  | { ok: false }
->;
-
-async function tryRegister(registerSessionCall: RegisterSessionCall): Promise<RegisterResult> {
+async function tryRegister(): Promise<RegisterResult> {
   try {
-    const res = await registerSessionCall();
+    const res = await registerTrackedSession();
     if (res.ok) return { status: "ok" };
     if ("needsChoice" in res && res.needsChoice) {
       return { status: "choice", sessions: res.sessions };
@@ -46,9 +39,6 @@ async function tryRegister(registerSessionCall: RegisterSessionCall): Promise<Re
 }
 
 export function SessionEnforcer() {
-  const registerSessionFn = useServerFn(registerSession);
-  const pingSessionFn = useServerFn(pingSession);
-  const revokeSessionFn = useServerFn(revokeSession);
   const [choice, setChoice] = useState<ChoiceSession[] | null>(null);
   const [kicking, setKicking] = useState<string | null>(null);
   const registeredForSessionRef = useRef<string | null>(null);
@@ -61,7 +51,7 @@ export function SessionEnforcer() {
       const sess = data.session;
       if (!sess) return;
       if (registeredForSessionRef.current === sess.access_token) return;
-      const result = await tryRegister(() => registerSessionFn());
+      const result = await tryRegister();
       if (cancelled) return;
       if (result.status === "ok") {
         registeredForSessionRef.current = sess.access_token;
@@ -87,7 +77,7 @@ export function SessionEnforcer() {
       const { data } = await supabase.auth.getSession();
       if (!data.session) return;
       try {
-        const res = await pingSessionFn();
+        const res = await pingTrackedSession();
         if (!res.alive) {
           if (!registeredForSessionRef.current) {
             await ensureRegistered();
@@ -111,8 +101,8 @@ export function SessionEnforcer() {
   async function handlePick(id: string) {
     setKicking(id);
     try {
-      await revokeSessionFn({ data: { id } });
-      const result = await tryRegister(() => registerSessionFn());
+      await revokeTrackedSession(id);
+      const result = await tryRegister();
       setChoice(result.status === "choice" ? result.sessions : null);
       if (result.status === "ok") toast.success("সাইন-ইন সম্পন্ন");
     } catch (e) {

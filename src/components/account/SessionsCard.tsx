@@ -1,12 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Loader2, Monitor, Smartphone, Tablet, LogOut, Shield, Pencil, Check, X, ShieldOff, MapPin, Globe } from "lucide-react";
-import { listMySessions, registerSession, revokeSession, renameSession, revokeOtherSessions } from "@/lib/sessions.functions";
 import { ensureReauth } from "@/lib/reauth";
 import { SESSION_LABEL_MAX, validateSessionLabel } from "@/lib/session-label";
+import {
+  listTrackedSessions,
+  registerTrackedSession,
+  renameTrackedSession,
+  revokeOtherTrackedSessions,
+  revokeTrackedSession,
+  type TrackedSession,
+} from "@/lib/session-api";
 
-type Session = Awaited<ReturnType<typeof listMySessions>>[number];
+type Session = TrackedSession;
 
 function relTime(iso: string): string {
   const d = new Date(iso).getTime();
@@ -29,11 +35,6 @@ function DeviceIcon({ type }: { type: string | null }) {
 }
 
 export function SessionsCard() {
-  const registerSessionFn = useServerFn(registerSession);
-  const listMySessionsFn = useServerFn(listMySessions);
-  const revokeSessionFn = useServerFn(revokeSession);
-  const renameSessionFn = useServerFn(renameSession);
-  const revokeOtherSessionsFn = useServerFn(revokeOtherSessions);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [revoking, setRevoking] = useState<string | null>(null);
@@ -47,8 +48,8 @@ export function SessionsCard() {
 
   const refresh = useCallback(async () => {
     try {
-      await registerSessionFn();
-      const rows = await listMySessionsFn();
+      await registerTrackedSession();
+      const rows = await listTrackedSessions();
       setSessions(rows);
       setLoadError(null);
     } catch (e) {
@@ -57,7 +58,7 @@ export function SessionsCard() {
     } finally {
       setLoading(false);
     }
-  }, [listMySessionsFn, registerSessionFn]);
+  }, []);
   useEffect(() => {
     void refresh();
     const t = setInterval(refresh, 30000);
@@ -68,7 +69,7 @@ export function SessionsCard() {
     if (!confirm("এই সেশন থেকে সাইন আউট করবেন?")) return;
     setRevoking(id);
     try {
-      await revokeSessionFn({ data: { id } });
+      await revokeTrackedSession(id);
       toast.success("সেশন রিভোক হয়েছে");
       await refresh();
     } catch (e) {
@@ -84,7 +85,7 @@ export function SessionsCard() {
     if (!(await ensureReauth())) return;
     setRevokingOthers(true);
     try {
-      const r = await revokeOtherSessionsFn();
+      const r = await revokeOtherTrackedSessions();
       toast.success(`${r.revoked} টি সেশন সাইন আউট করা হয়েছে`);
       await refresh();
     } catch (e) {
@@ -113,7 +114,7 @@ export function SessionsCard() {
     }
     setSaving(true);
     try {
-      await renameSessionFn({ data: { id, label } });
+      await renameTrackedSession(id, label);
       toast.success("নাম আপডেট হয়েছে");
       setEditingId(null);
       setDraft("");
