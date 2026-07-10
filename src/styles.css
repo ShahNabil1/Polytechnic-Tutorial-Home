@@ -112,11 +112,39 @@
     font-family: var(--font-bengali);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+    /* Normalise SolaimanLipi's small x-height so Bangla glyphs render
+       at a similar visual size to Latin fonts. */
+    font-size-adjust: 0.5;
   }
 
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    line-height: 1.65;
+    letter-spacing: 0.002em;
+    word-spacing: 0.02em;
+  }
+
+  /* Bangla-specific tuning: SolaimanLipi needs a bit more vertical breathing
+     room so ascenders / matras don't crowd the line above. */
+  :lang(bn),
+  html[lang="bn"] {
+    line-height: 1.7;
+  }
+
+  /* Headings — tighter tracking and line-height for Bangla display type. */
+  h1, h2, h3, h4, h5, h6 {
+    line-height: 1.28;
+    letter-spacing: -0.005em;
+    text-wrap: balance;
+  }
+  h1 { line-height: 1.22; }
+  h2 { line-height: 1.26; }
+
+  p {
+    text-wrap: pretty;
   }
 
   .font-inter,
@@ -124,6 +152,8 @@
   input[type="tel"],
   input[type="number"] {
     font-family: var(--font-inter);
+    font-size-adjust: none;
+    letter-spacing: 0;
   }
 
   html,
@@ -148,4 +178,5 @@
     overscroll-behavior: contain;
   }
 }
+
 
