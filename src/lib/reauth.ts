@@ -44,6 +44,9 @@ export function clearReauth() {
  */
 export async function ensureReauth(): Promise<boolean> {
   if (isReauthFresh()) return true;
+  // If the user has no password AND no passkey, there's nothing to reauth
+  // against — trust the current session (e.g. Google-only bootstrap flow).
+  if (!methodsAvailable) return true;
   if (!opener) {
     console.warn("[reauth] no dialog host mounted");
     return false;
