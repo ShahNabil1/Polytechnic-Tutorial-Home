@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Loader2, Monitor, Smartphone, Tablet, LogOut, Shield, Pencil, Check, X, ShieldOff, MapPin, Globe } from "lucide-react";
 import { listMySessions, registerSession, revokeSession, renameSession, revokeOtherSessions } from "@/lib/sessions.functions";
@@ -28,6 +29,11 @@ function DeviceIcon({ type }: { type: string | null }) {
 }
 
 export function SessionsCard() {
+  const registerSessionFn = useServerFn(registerSession);
+  const listMySessionsFn = useServerFn(listMySessions);
+  const revokeSessionFn = useServerFn(revokeSession);
+  const renameSessionFn = useServerFn(renameSession);
+  const revokeOtherSessionsFn = useServerFn(revokeOtherSessions);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [revoking, setRevoking] = useState<string | null>(null);
@@ -39,10 +45,10 @@ export function SessionsCard() {
 
   const otherCount = sessions.filter((s) => !s.is_current).length;
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     try {
-      await registerSession();
-      const rows = await listMySessions();
+      await registerSessionFn();
+      const rows = await listMySessionsFn();
       setSessions(rows);
       setLoadError(null);
     } catch (e) {
@@ -51,18 +57,18 @@ export function SessionsCard() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [listMySessionsFn, registerSessionFn]);
   useEffect(() => {
-    refresh();
+    void refresh();
     const t = setInterval(refresh, 30000);
     return () => clearInterval(t);
-  }, []);
+  }, [refresh]);
 
   async function handleRevoke(id: string) {
     if (!confirm("এই সেশন থেকে সাইন আউট করবেন?")) return;
     setRevoking(id);
     try {
-      await revokeSession({ data: { id } });
+      await revokeSessionFn({ data: { id } });
       toast.success("সেশন রিভোক হয়েছে");
       await refresh();
     } catch (e) {
@@ -78,7 +84,7 @@ export function SessionsCard() {
     if (!(await ensureReauth())) return;
     setRevokingOthers(true);
     try {
-      const r = await revokeOtherSessions();
+      const r = await revokeOtherSessionsFn();
       toast.success(`${r.revoked} টি সেশন সাইন আউট করা হয়েছে`);
       await refresh();
     } catch (e) {
@@ -107,7 +113,7 @@ export function SessionsCard() {
     }
     setSaving(true);
     try {
-      await renameSession({ data: { id, label } });
+      await renameSessionFn({ data: { id, label } });
       toast.success("নাম আপডেট হয়েছে");
       setEditingId(null);
       setDraft("");
