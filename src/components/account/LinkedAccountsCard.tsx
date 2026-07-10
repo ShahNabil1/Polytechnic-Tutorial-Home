@@ -127,8 +127,37 @@ export function LinkedAccountsCard() {
       if (error) throw error;
       setPhoneStage("otp");
       toast.success("OTP পাঠানো হয়েছে");
+      resetOtpControls();
+      startCooldown();
     } catch (e) {
       toast.error("OTP পাঠানো যায়নি: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setPhoneLoading(false);
+    }
+  }
+
+  async function handleResendPhoneOtp() {
+    if (cooldown > 0 || lockedUntil) return;
+    if (resendCount >= MAX_RESENDS) {
+      const until = Date.now() + LOCKOUT_MINUTES * 60 * 1000;
+      setLockedUntil(until);
+      setLockRemaining(LOCKOUT_MINUTES * 60);
+      toast.error(`অনেক বার রিসেন্ড হয়েছে। ${LOCKOUT_MINUTES} মিনিট পর আবার চেষ্টা করুন।`);
+      return;
+    }
+    setPhoneLoading(true);
+    try {
+      // For phone-change flow the correct resend type is "phone_change".
+      const { error } = await supabase.auth.resend({
+        type: "phone_change",
+        phone: normalizePhone(phoneRaw),
+      });
+      if (error) throw error;
+      setResendCount((n) => n + 1);
+      startCooldown();
+      toast.success(`OTP আবার পাঠানো হয়েছে (${resendCount + 1}/${MAX_RESENDS})`);
+    } catch (e) {
+      toast.error("রিসেন্ড ব্যর্থ: " + (e instanceof Error ? e.message : String(e)));
     } finally {
       setPhoneLoading(false);
     }
@@ -151,6 +180,7 @@ export function LinkedAccountsCard() {
       setPhoneStage("idle");
       setPhoneRaw("");
       setOtp("");
+      resetOtpControls();
       await refresh();
     } catch (e) {
       toast.error("OTP ভুল বা মেয়াদ শেষ: " + (e instanceof Error ? e.message : String(e)));
