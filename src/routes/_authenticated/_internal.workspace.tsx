@@ -25,6 +25,7 @@ function WorkspaceLayout() {
       brand="Workspace"
       subtitle={isSuperAdmin ? "Super Admin Console" : "Employee Console"}
       nav={nav}
+      profileTo="/workspace/profile"
     >
       <Outlet />
     </InternalShell>
