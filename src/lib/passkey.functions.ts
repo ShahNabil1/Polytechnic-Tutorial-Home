@@ -39,18 +39,23 @@ export const verifyPasskeyRegistration = createServerFn({ method: "POST" })
   });
 
 // ---- Authenticate options (public) ----
-const AuthOptionsSchema = z.object({ phone: z.string().min(4).max(20) });
+// Phone is optional — when omitted, the server returns an empty
+// `allowCredentials` list so the browser can pick any resident passkey
+// (discoverable / usernameless flow).
+const AuthOptionsSchema = z.object({
+  phone: z.string().min(4).max(20).optional().nullable(),
+});
 
 export const getPasskeyAuthOptions = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => AuthOptionsSchema.parse(input))
+  .inputValidator((input: unknown) => AuthOptionsSchema.parse(input ?? {}))
   .handler(async ({ data }) => {
     const { beginAuthentication } = await import("./passkey.server");
-    return beginAuthentication(data.phone);
+    return beginAuthentication(data.phone ?? null);
   });
 
 // ---- Authenticate verify (public) — returns Supabase session tokens ----
 const AuthVerifySchema = z.object({
-  phone: z.string().min(4).max(20),
+  phone: z.string().min(4).max(20).optional().nullable(),
   response: z.any(),
 });
 
@@ -59,7 +64,7 @@ export const verifyPasskeyAuthentication = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { finishAuthentication } = await import("./passkey.server");
     return finishAuthentication({
-      phone: data.phone,
+      phone: data.phone ?? null,
       response: data.response,
     });
   });
