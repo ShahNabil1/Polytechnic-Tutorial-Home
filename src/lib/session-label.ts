@@ -12,8 +12,9 @@ export const SESSION_LABEL_MAX = 40;
  * and a small set of safe punctuation: - _ . , ' ( )
  * Disallows: <, >, /, \, {, }, quotes, control chars, emoji, etc.
  */
+// English-only: Bangla is intentionally blocked at the input layer too.
 export const SESSION_LABEL_REGEX =
-  /^[A-Za-z0-9\u0980-\u09FF\s\-_.,'()]+$/u;
+  /^[A-Za-z0-9\s\-_.,'()]+$/u;
 
 export const sessionLabelSchema = z
   .string()
