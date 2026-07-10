@@ -32,26 +32,35 @@ function WorkspaceHome() {
             Permissions
           </p>
           <p className="mt-2 font-display text-2xl font-bold tracking-tight text-slate-900">
-            {info?.permissions?.length ?? 0}
+            {info?.primaryRole === "super_admin"
+              ? "All access"
+              : (info?.permissions?.length ?? 0)}
           </p>
+          {info?.primaryRole === "super_admin" && (
+            <p className="mt-1 text-xs font-medium text-slate-500">
+              Owner — bypasses all permission checks
+            </p>
+          )}
         </div>
       </div>
 
-      {info?.permissions && info.permissions.length > 0 && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-bold text-slate-900">Granted permissions</p>
-          <ul className="mt-3 flex flex-wrap gap-2">
-            {info.permissions.map((p) => (
-              <li
-                key={p}
-                className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700"
-              >
-                {p}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {info?.primaryRole !== "super_admin" &&
+        info?.permissions &&
+        info.permissions.length > 0 && (
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <p className="text-sm font-bold text-slate-900">Granted permissions</p>
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {info.permissions.map((p) => (
+                <li
+                  key={p}
+                  className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700"
+                >
+                  {p}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
     </div>
   );
 }
