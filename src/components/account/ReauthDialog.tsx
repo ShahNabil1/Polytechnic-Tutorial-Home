@@ -28,14 +28,18 @@ export function ReauthDialogHost() {
       try {
         const { data } = await supabase.auth.getUser();
         const providers = (data.user?.app_metadata?.providers as string[] | undefined) ?? [];
-        setHasPassword(providers.includes("email") || providers.includes("phone"));
+        const pw = providers.includes("email") || providers.includes("phone");
+        setHasPassword(pw);
         setPhone(data.user?.phone ?? null);
+        let pk = false;
         try {
           const list = await listMyPasskeys();
-          setHasPasskey((list?.length ?? 0) > 0);
+          pk = (list?.length ?? 0) > 0;
         } catch {
-          setHasPasskey(false);
+          pk = false;
         }
+        setHasPasskey(pk);
+        setReauthMethodsAvailable(pw || (!!data.user?.phone && pk));
       } finally {
         setReady(true);
       }
