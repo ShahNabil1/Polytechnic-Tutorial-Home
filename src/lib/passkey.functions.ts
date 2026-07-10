@@ -6,10 +6,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-import type {
-  RegistrationResponseJSON,
-  AuthenticationResponseJSON,
-} from "@simplewebauthn/server";
 
 // ---- Register options (auth required) ----
 export const getPasskeyRegistrationOptions = createServerFn({ method: "POST" })
@@ -32,7 +28,7 @@ export const verifyPasskeyRegistration = createServerFn({ method: "POST" })
     const { finishRegistration } = await import("./passkey.server");
     return finishRegistration({
       userId: context.userId,
-      response: data.response as RegistrationResponseJSON,
+      response: data.response,
       deviceName: data.deviceName,
     });
   });
@@ -59,7 +55,7 @@ export const verifyPasskeyAuthentication = createServerFn({ method: "POST" })
     const { finishAuthentication } = await import("./passkey.server");
     return finishAuthentication({
       phone: data.phone,
-      response: data.response as AuthenticationResponseJSON,
+      response: data.response,
     });
   });
 
