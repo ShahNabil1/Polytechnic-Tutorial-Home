@@ -31,6 +31,7 @@ import { Route as AuthenticatedInternalWorkspaceIndexRouteImport } from './route
 import { Route as AuthenticatedInternalInstructorIndexRouteImport } from './routes/_authenticated/_internal.instructor.index'
 import { Route as ApiPublicSessionsActionRouteImport } from './routes/api/public/sessions.$action'
 import { Route as AuthenticatedInternalWorkspaceProfileRouteImport } from './routes/_authenticated/_internal.workspace.profile'
+import { Route as AuthenticatedInternalWorkspaceInstructorsRouteImport } from './routes/_authenticated/_internal.workspace.instructors'
 import { Route as AuthenticatedInternalWorkspaceEmployeesRouteImport } from './routes/_authenticated/_internal.workspace.employees'
 import { Route as AuthenticatedInternalInstructorProfileRouteImport } from './routes/_authenticated/_internal.instructor.profile'
 
@@ -149,6 +150,12 @@ const AuthenticatedInternalWorkspaceProfileRoute =
     path: '/profile',
     getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
   } as any)
+const AuthenticatedInternalWorkspaceInstructorsRoute =
+  AuthenticatedInternalWorkspaceInstructorsRouteImport.update({
+    id: '/instructors',
+    path: '/instructors',
+    getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
+  } as any)
 const AuthenticatedInternalWorkspaceEmployeesRoute =
   AuthenticatedInternalWorkspaceEmployeesRouteImport.update({
     id: '/employees',
@@ -181,6 +188,7 @@ export interface FileRoutesByFullPath {
   '/sdash/': typeof AuthenticatedSdashIndexRoute
   '/instructor/profile': typeof AuthenticatedInternalInstructorProfileRoute
   '/workspace/employees': typeof AuthenticatedInternalWorkspaceEmployeesRoute
+  '/workspace/instructors': typeof AuthenticatedInternalWorkspaceInstructorsRoute
   '/workspace/profile': typeof AuthenticatedInternalWorkspaceProfileRoute
   '/api/public/sessions/$action': typeof ApiPublicSessionsActionRoute
   '/instructor/': typeof AuthenticatedInternalInstructorIndexRoute
@@ -202,6 +210,7 @@ export interface FileRoutesByTo {
   '/sdash': typeof AuthenticatedSdashIndexRoute
   '/instructor/profile': typeof AuthenticatedInternalInstructorProfileRoute
   '/workspace/employees': typeof AuthenticatedInternalWorkspaceEmployeesRoute
+  '/workspace/instructors': typeof AuthenticatedInternalWorkspaceInstructorsRoute
   '/workspace/profile': typeof AuthenticatedInternalWorkspaceProfileRoute
   '/api/public/sessions/$action': typeof ApiPublicSessionsActionRoute
   '/instructor': typeof AuthenticatedInternalInstructorIndexRoute
@@ -229,6 +238,7 @@ export interface FileRoutesById {
   '/_authenticated/sdash/': typeof AuthenticatedSdashIndexRoute
   '/_authenticated/_internal/instructor/profile': typeof AuthenticatedInternalInstructorProfileRoute
   '/_authenticated/_internal/workspace/employees': typeof AuthenticatedInternalWorkspaceEmployeesRoute
+  '/_authenticated/_internal/workspace/instructors': typeof AuthenticatedInternalWorkspaceInstructorsRoute
   '/_authenticated/_internal/workspace/profile': typeof AuthenticatedInternalWorkspaceProfileRoute
   '/api/public/sessions/$action': typeof ApiPublicSessionsActionRoute
   '/_authenticated/_internal/instructor/': typeof AuthenticatedInternalInstructorIndexRoute
@@ -255,6 +265,7 @@ export interface FileRouteTypes {
     | '/sdash/'
     | '/instructor/profile'
     | '/workspace/employees'
+    | '/workspace/instructors'
     | '/workspace/profile'
     | '/api/public/sessions/$action'
     | '/instructor/'
@@ -276,6 +287,7 @@ export interface FileRouteTypes {
     | '/sdash'
     | '/instructor/profile'
     | '/workspace/employees'
+    | '/workspace/instructors'
     | '/workspace/profile'
     | '/api/public/sessions/$action'
     | '/instructor'
@@ -302,6 +314,7 @@ export interface FileRouteTypes {
     | '/_authenticated/sdash/'
     | '/_authenticated/_internal/instructor/profile'
     | '/_authenticated/_internal/workspace/employees'
+    | '/_authenticated/_internal/workspace/instructors'
     | '/_authenticated/_internal/workspace/profile'
     | '/api/public/sessions/$action'
     | '/_authenticated/_internal/instructor/'
@@ -477,6 +490,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInternalWorkspaceProfileRouteImport
       parentRoute: typeof AuthenticatedInternalWorkspaceRoute
     }
+    '/_authenticated/_internal/workspace/instructors': {
+      id: '/_authenticated/_internal/workspace/instructors'
+      path: '/instructors'
+      fullPath: '/workspace/instructors'
+      preLoaderRoute: typeof AuthenticatedInternalWorkspaceInstructorsRouteImport
+      parentRoute: typeof AuthenticatedInternalWorkspaceRoute
+    }
     '/_authenticated/_internal/workspace/employees': {
       id: '/_authenticated/_internal/workspace/employees'
       path: '/employees'
@@ -514,6 +534,7 @@ const AuthenticatedInternalInstructorRouteWithChildren =
 
 interface AuthenticatedInternalWorkspaceRouteChildren {
   AuthenticatedInternalWorkspaceEmployeesRoute: typeof AuthenticatedInternalWorkspaceEmployeesRoute
+  AuthenticatedInternalWorkspaceInstructorsRoute: typeof AuthenticatedInternalWorkspaceInstructorsRoute
   AuthenticatedInternalWorkspaceProfileRoute: typeof AuthenticatedInternalWorkspaceProfileRoute
   AuthenticatedInternalWorkspaceIndexRoute: typeof AuthenticatedInternalWorkspaceIndexRoute
 }
@@ -522,6 +543,8 @@ const AuthenticatedInternalWorkspaceRouteChildren: AuthenticatedInternalWorkspac
   {
     AuthenticatedInternalWorkspaceEmployeesRoute:
       AuthenticatedInternalWorkspaceEmployeesRoute,
+    AuthenticatedInternalWorkspaceInstructorsRoute:
+      AuthenticatedInternalWorkspaceInstructorsRoute,
     AuthenticatedInternalWorkspaceProfileRoute:
       AuthenticatedInternalWorkspaceProfileRoute,
     AuthenticatedInternalWorkspaceIndexRoute:
