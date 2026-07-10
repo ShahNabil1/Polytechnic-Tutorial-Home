@@ -13,7 +13,6 @@ import { Route as TermsOfServiceRouteImport } from './routes/terms-of-service'
 import { Route as ShopRouteImport } from './routes/shop'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as CheckoutRouteImport } from './routes/checkout'
-import { Route as CartRouteImport } from './routes/cart'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
@@ -58,11 +57,6 @@ const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
 const CheckoutRoute = CheckoutRouteImport.update({
   id: '/checkout',
   path: '/checkout',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CartRoute = CartRouteImport.update({
-  id: '/cart',
-  path: '/cart',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -207,7 +201,6 @@ const AuthenticatedInternalWorkspaceEcommerceCategoriesRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRouteWithChildren
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/shop': typeof ShopRoute
@@ -237,7 +230,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRouteWithChildren
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/shop': typeof ShopRoute
@@ -266,7 +258,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/about': typeof AboutRoute
-  '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRouteWithChildren
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/shop': typeof ShopRoute
@@ -299,7 +290,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
-    | '/cart'
     | '/checkout'
     | '/privacy-policy'
     | '/shop'
@@ -329,7 +319,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
-    | '/cart'
     | '/checkout'
     | '/privacy-policy'
     | '/shop'
@@ -357,7 +346,6 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/about'
-    | '/cart'
     | '/checkout'
     | '/privacy-policy'
     | '/shop'
@@ -390,7 +378,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
-  CartRoute: typeof CartRoute
   CheckoutRoute: typeof CheckoutRouteWithChildren
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   ShopRoute: typeof ShopRoute
@@ -427,13 +414,6 @@ declare module '@tanstack/react-router' {
       path: '/checkout'
       fullPath: '/checkout'
       preLoaderRoute: typeof CheckoutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cart': {
-      id: '/cart'
-      path: '/cart'
-      fullPath: '/cart'
-      preLoaderRoute: typeof CartRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -734,7 +714,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
-  CartRoute: CartRoute,
   CheckoutRoute: CheckoutRouteWithChildren,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
   ShopRoute: ShopRoute,

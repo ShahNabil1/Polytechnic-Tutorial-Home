@@ -141,7 +141,11 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const hideFooter = pathname === "/sdash" || pathname.startsWith("/sdash/");
+  const hideFooter =
+    pathname === "/sdash" ||
+    pathname.startsWith("/sdash/") ||
+    pathname === "/shop" ||
+    pathname.startsWith("/shop/");
   const isInternalApp =
     pathname === "/workspace" ||
     pathname.startsWith("/workspace/") ||
