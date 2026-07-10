@@ -416,6 +416,11 @@ function CheckoutPage() {
           outline: none;
           box-shadow: inset 0 0 0 1px var(--color-border);
           transition: box-shadow 0.15s;
+        }
+        .input:focus { box-shadow: inset 0 0 0 2px var(--color-brand); }
+      `}</style>
+    </div>
+  );
 }
 
 async function sha256Hex(input: string): Promise<string> {
@@ -427,15 +432,9 @@ async function sha256Hex(input: string): Promise<string> {
         .join("");
     }
   } catch {}
-  // Fallback: cheap non-cryptographic hash — still stable per identical input.
   let h = 0;
   for (let i = 0; i < input.length; i++) h = (h * 31 + input.charCodeAt(i)) | 0;
   return `f${(h >>> 0).toString(16)}`;
-}
-        .input:focus { box-shadow: inset 0 0 0 2px var(--color-brand); }
-      `}</style>
-    </div>
-  );
 }
 
 function Field({
