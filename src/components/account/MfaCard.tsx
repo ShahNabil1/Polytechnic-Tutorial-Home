@@ -188,7 +188,7 @@ export function MfaCard() {
                 autoComplete="one-time-code"
                 maxLength={6}
                 value={code}
-                onChange={(e) => setCode(onlyAsciiPrintable(e.target.value).replace(/\D/g, "").slice(0, 6))}
+                onChange={(e) => setCode(toEnglishDigits(e.target.value).replace(/\D/g, "").slice(0, 6))}
                 className="w-40 rounded-md border border-input bg-background px-3 py-2 text-center font-mono text-lg tracking-widest outline-none focus:border-brand"
                 placeholder="000000"
               />
