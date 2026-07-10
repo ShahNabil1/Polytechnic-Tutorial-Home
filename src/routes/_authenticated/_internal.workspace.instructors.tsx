@@ -1,5 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { AdminUsersManager } from "@/components/admin/AdminUsersManager";
+import { AdminUsersManagerEN } from "@/components/internal/AdminUsersManagerEN";
 import { useRole } from "@/hooks/use-role";
 
 export const Route = createFileRoute("/_authenticated/_internal/workspace/instructors")({
@@ -12,5 +12,5 @@ function InstructorsPage() {
   if (info?.primaryRole !== "super_admin") {
     throw redirect({ to: "/workspace" });
   }
-  return <AdminUsersManager role="instructor" />;
+  return <AdminUsersManagerEN role="instructor" />;
 }
