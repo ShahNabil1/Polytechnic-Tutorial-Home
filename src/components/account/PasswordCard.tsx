@@ -2,12 +2,11 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Lock, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { ensureReauth, clearReauth } from "@/lib/reauth";
 
 export function PasswordCard() {
   const [hasPassword, setHasPassword] = useState<boolean | null>(null);
   const [phone, setPhone] = useState<string | null>(null);
-  const [email, setEmail] = useState<string | null>(null);
-  const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
   const [show, setShow] = useState(false);
@@ -17,48 +16,38 @@ export function PasswordCard() {
     (async () => {
       const { data } = await supabase.auth.getUser();
       const idents = data.user?.identities ?? [];
-      // "password" identity is stored under email or phone provider with a password
-      // Supabase exposes providers list in user.app_metadata.providers
       const providers = (data.user?.app_metadata?.providers as string[] | undefined) ?? [];
       const passwordSet = providers.includes("email") || providers.includes("phone");
       setHasPassword(passwordSet && idents.some((i) => i.provider === "phone" || i.provider === "email"));
       setPhone(data.user?.phone ?? null);
-      setEmail(data.user?.email ?? null);
     })();
   }, []);
+
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (next.length < 6) return toast.error("পাসওয়ার্ড কমপক্ষে ৬ ক্যারেক্টার হতে হবে");
     if (next !== confirm) return toast.error("পাসওয়ার্ড দুটো মিলছে না");
 
+    if (hasPassword) {
+      // Step-up: verify current password / passkey via shared dialog.
+      if (!(await ensureReauth())) return;
+    } else if (!phone) {
+      toast.error("পাসওয়ার্ড সেট করার আগে ফোন নাম্বার লিংক করুন");
+      return;
+    }
+
     setSaving(true);
     try {
-      if (hasPassword) {
-        // Reauth first
-        const reauth = phone
-          ? await supabase.auth.signInWithPassword({ phone, password: current })
-          : email
-            ? await supabase.auth.signInWithPassword({ email, password: current })
-            : null;
-        if (!reauth || reauth.error) {
-          toast.error("বর্তমান পাসওয়ার্ড ভুল");
-          setSaving(false);
-          return;
-        }
-      } else if (!phone) {
-        toast.error("পাসওয়ার্ড সেট করার আগে ফোন নাম্বার লিংক করুন");
-        setSaving(false);
-        return;
-      }
-
       const { error } = await supabase.auth.updateUser({ password: next });
       if (error) throw error;
       toast.success(hasPassword ? "পাসওয়ার্ড আপডেট হয়েছে" : "পাসওয়ার্ড সেট হয়েছে");
-      setCurrent("");
       setNext("");
       setConfirm("");
       setHasPassword(true);
+      // Password just changed — invalidate stored reauth so the next
+      // sensitive action re-prompts with the new credential.
+      clearReauth();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
     } finally {
@@ -89,10 +78,13 @@ export function PasswordCard() {
 
       <form onSubmit={handleSubmit} className="space-y-3">
         {hasPassword && (
-          <PwField label="বর্তমান পাসওয়ার্ড" value={current} onChange={setCurrent} show={show} onToggle={() => setShow((s) => !s)} autoComplete="current-password" />
+          <p className="rounded-md border border-border bg-secondary/40 px-3 py-2 text-[11px] text-muted-foreground">
+            সেভ করার সময় বর্তমান পাসওয়ার্ড বা Passkey দিয়ে যাচাই চাওয়া হবে।
+          </p>
         )}
         <PwField label="নতুন পাসওয়ার্ড" value={next} onChange={setNext} show={show} onToggle={() => setShow((s) => !s)} autoComplete="new-password" />
         <PwField label="নতুন পাসওয়ার্ড কনফার্ম" value={confirm} onChange={setConfirm} show={show} onToggle={() => setShow((s) => !s)} autoComplete="new-password" />
+
 
         <button
           type="submit"

@@ -8,6 +8,7 @@ import { PasskeysCard } from "@/components/account/PasskeysCard";
 import { LinkedAccountsCard } from "@/components/account/LinkedAccountsCard";
 import { PasswordCard } from "@/components/account/PasswordCard";
 import { SessionsCard } from "@/components/account/SessionsCard";
+import { ReauthDialogHost } from "@/components/account/ReauthDialog";
 
 export const Route = createFileRoute("/_authenticated/sdash/profile")({
   component: ProfilePage,
@@ -127,6 +128,7 @@ function ProfilePage() {
       <PasswordCard />
       <PasskeysCard />
       <SessionsCard />
+      <ReauthDialogHost />
     </div>
   );
 }

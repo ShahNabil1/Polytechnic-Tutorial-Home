@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { Loader2, Mail, Phone, Link2, Unlink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { UserIdentity } from "@supabase/supabase-js";
+import { ensureReauth } from "@/lib/reauth";
 
 function bnToEnDigits(s: string): string {
   const map: Record<string, string> = {
@@ -44,6 +45,7 @@ export function LinkedAccountsCard() {
   const emailIdentity = identities.find((i) => i.provider === "email");
 
   async function handleLinkGoogle() {
+    if (!(await ensureReauth())) return;
     setLinkingGoogle(true);
     try {
       const { error } = await supabase.auth.linkIdentity({
@@ -64,6 +66,7 @@ export function LinkedAccountsCard() {
       return;
     }
     if (!confirm("Google একাউন্ট আনলিংক করবেন?")) return;
+    if (!(await ensureReauth())) return;
     const { error } = await supabase.auth.unlinkIdentity(googleIdentity);
     if (error) toast.error(error.message);
     else {
@@ -77,6 +80,7 @@ export function LinkedAccountsCard() {
       toast.error("সঠিক ১১ ডিজিটের নাম্বার দিন");
       return;
     }
+    if (!(await ensureReauth())) return;
     setPhoneLoading(true);
     try {
       const { error } = await supabase.auth.updateUser({ phone: normalizePhone(phoneRaw) });
