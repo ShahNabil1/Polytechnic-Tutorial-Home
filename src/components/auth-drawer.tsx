@@ -638,7 +638,9 @@ export function AuthDrawer({
   const cardTitle =
     stage === "reset"
       ? "নতুন পাসওয়ার্ড সেট করুন"
-      : stage === "otp"
+      : stage === "mfa"
+        ? "টু-ফ্যাক্টর কোড দিন"
+        : stage === "otp"
         ? "ফোন ভেরিফাই করুন"
         : forgotMode
           ? "পাসওয়ার্ড রিসেট করুন"
