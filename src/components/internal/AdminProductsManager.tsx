@@ -345,20 +345,13 @@ export function AdminProductsManager() {
           onClose={() => setEditorOpen(false)}
           onSave={saveDraft}
         />
-      {editorOpen && (
-        <ProductEditor
-          draft={draft}
-          setDraft={setDraft}
-          categories={cats}
-          onClose={() => setEditorOpen(false)}
-          onSave={saveDraft}
-        />
       )}
         </>
       )}
     </div>
   );
 }
+
 
 
 function ProductEditor({
