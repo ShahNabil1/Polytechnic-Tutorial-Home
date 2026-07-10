@@ -111,6 +111,7 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const openCart = useCartDrawer((s) => s.openDrawer);
 
 
 
