@@ -73,12 +73,13 @@ function ShopPage() {
     <div className="px-4 py-10 md:px-6 md:py-14">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight md:text-4xl">সকল বইসমূহ</h1>
-          <p className="mt-2 text-muted-foreground">
+          <h1 className="text-3xl font-extrabold tracking-tight md:text-4xl">সকল বইসমূহ</h1>
+          <p className="mt-2 font-semibold text-muted-foreground">
             {type ? productTypeLabel(type as ProductType) : "ফিজিক্যাল বই, ই-বুক এবং সুপার সাজেশন"} —
             আপনার প্রয়োজন অনুযায়ী ফিল্টার করুন।
           </p>
         </div>
+
 
         <div className="mb-8 space-y-5 rounded-2xl border border-border bg-card p-5">
           <FilterRow label="প্রোডাক্ট টাইপ">
