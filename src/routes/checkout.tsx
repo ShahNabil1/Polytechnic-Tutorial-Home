@@ -180,7 +180,6 @@ function CheckoutPage() {
                     type="text"
                     value={form.name}
                     onChange={update("name")}
-                    placeholder="যেমনঃ মোঃ রাকিব হাসান"
                     className="input"
                   />
                 </Field>
