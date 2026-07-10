@@ -113,7 +113,7 @@ function PwField({
         <input
           type={show ? "text" : "password"}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => onChange(toEnglishPassword(e.target.value))}
           autoComplete={autoComplete}
           minLength={6}
           className="w-full rounded-md border border-input bg-background px-3 py-2 pr-9 text-sm outline-none focus:border-brand"
