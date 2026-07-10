@@ -203,6 +203,9 @@ export function AuthDrawer({
     setPassword("");
     setConfirmPassword("");
     setOtp("");
+    setMfaCode("");
+    setMfaFactorId(null);
+    setMfaChallengeId(null);
     setStage("form");
     setTab("login");
     setForgotMode(false);
