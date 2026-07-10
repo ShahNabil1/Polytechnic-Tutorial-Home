@@ -158,26 +158,26 @@ function randomBase64Url(size = 32): string {
   return toBase64Url(bytes);
 }
 
-function randomHex(size = 32): string {
-  return Array.from(crypto.getRandomValues(new Uint8Array(size)), (byte) =>
-    byte.toString(16).padStart(2, "0"),
-  ).join("");
-}
-
 async function sha256(data: Uint8Array | string): Promise<Uint8Array> {
   const input = typeof data === "string" ? textEncoder.encode(data) : data;
   return new Uint8Array(await crypto.subtle.digest("SHA-256", input as BufferSource));
 }
 
+function asArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return copy.buffer;
+}
+
 async function hmacSha256(keyBytes: Uint8Array, value: Uint8Array): Promise<Uint8Array> {
   const key = await crypto.subtle.importKey(
     "raw",
-    keyBytes,
+    asArrayBuffer(keyBytes),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"],
   );
-  return new Uint8Array(await crypto.subtle.sign("HMAC", key, value as BufferSource));
+  return new Uint8Array(await crypto.subtle.sign("HMAC", key, asArrayBuffer(value)));
 }
 
 function uuidToBytes(uuid: string): Uint8Array {
