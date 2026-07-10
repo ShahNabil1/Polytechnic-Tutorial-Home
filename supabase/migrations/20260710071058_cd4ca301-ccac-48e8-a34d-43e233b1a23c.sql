@@ -1,0 +1,1 @@
+CREATE POLICY "Users update own session label" ON public.user_sessions FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
