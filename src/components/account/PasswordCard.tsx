@@ -83,10 +83,13 @@ export function PasswordCard() {
 
       <form onSubmit={handleSubmit} className="space-y-3">
         {hasPassword && (
-          <PwField label="বর্তমান পাসওয়ার্ড" value={current} onChange={setCurrent} show={show} onToggle={() => setShow((s) => !s)} autoComplete="current-password" />
+          <p className="rounded-md border border-border bg-secondary/40 px-3 py-2 text-[11px] text-muted-foreground">
+            সেভ করার সময় বর্তমান পাসওয়ার্ড বা Passkey দিয়ে যাচাই চাওয়া হবে।
+          </p>
         )}
         <PwField label="নতুন পাসওয়ার্ড" value={next} onChange={setNext} show={show} onToggle={() => setShow((s) => !s)} autoComplete="new-password" />
         <PwField label="নতুন পাসওয়ার্ড কনফার্ম" value={confirm} onChange={setConfirm} show={show} onToggle={() => setShow((s) => !s)} autoComplete="new-password" />
+
 
         <button
           type="submit"
