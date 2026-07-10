@@ -7,7 +7,7 @@
  */
 import { SignJWT } from "jose";
 import { getRequest, getRequestHeader } from "@tanstack/react-start/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
 type RegistrationResponseJSON = {
@@ -36,6 +36,8 @@ type CredentialRow = {
   counter: number | string | null;
   transports: string[] | null;
 };
+
+type AppSupabaseClient = SupabaseClient<Database>;
 
 const CHALLENGE_TTL_SECONDS = 5 * 60;
 const ACCESS_TOKEN_TTL_SECONDS = 60 * 60;
@@ -388,14 +390,19 @@ async function importCosePublicKey(cosePublicKey: Uint8Array): Promise<{
 }
 
 async function storeChallenge(args: {
+  supabase?: AppSupabaseClient;
   challenge: string;
   purpose: "register" | "authenticate";
   userId?: string | null;
   phone?: string | null;
 }) {
+  const client = args.supabase ?? admin();
   const expiresAt = new Date(Date.now() + CHALLENGE_TTL_SECONDS * 1000).toISOString();
-  await admin().from("webauthn_challenges").delete().lt("expires_at", new Date().toISOString());
-  const { error } = await admin().from("webauthn_challenges").insert({
+  let cleanup = client.from("webauthn_challenges").delete().lt("expires_at", new Date().toISOString());
+  if (args.userId) cleanup = cleanup.eq("user_id", args.userId);
+  if (args.phone) cleanup = cleanup.eq("phone", args.phone);
+  await cleanup;
+  const { error } = await client.from("webauthn_challenges").insert({
     challenge: args.challenge,
     purpose: args.purpose,
     user_id: args.userId ?? null,
@@ -406,11 +413,13 @@ async function storeChallenge(args: {
 }
 
 async function consumeChallenge(args: {
+  supabase?: AppSupabaseClient;
   purpose: "register" | "authenticate";
   userId?: string | null;
   phone?: string | null;
 }): Promise<string> {
-  let q = admin()
+  const client = args.supabase ?? admin();
+  let q = client
     .from("webauthn_challenges")
     .select("challenge, expires_at")
     .eq("purpose", args.purpose)
@@ -422,7 +431,7 @@ async function consumeChallenge(args: {
   const { data, error } = await q.maybeSingle();
   if (error) throw new Error(`Challenge lookup failed: ${error.message}`);
   if (!data) throw new Error("Challenge not found or expired");
-  await admin().from("webauthn_challenges").delete().eq("challenge", data.challenge);
+  await client.from("webauthn_challenges").delete().eq("challenge", data.challenge);
   return data.challenge;
 }
 
@@ -441,26 +450,29 @@ async function findUserIdByPhone(phone: string): Promise<string | null> {
   return null;
 }
 
-export async function beginRegistration(userId: string) {
+export async function beginRegistration(args: {
+  supabase: AppSupabaseClient;
+  userId: string;
+  userName: string;
+}) {
   const rp = getRpConfig();
-  const { data: user } = await admin().auth.admin.getUserById(userId);
-  const userName = user?.user?.phone || user?.user?.email || userId;
 
-  const { data: existing } = await admin()
+  const { data: existing, error: existingError } = await args.supabase
     .from("webauthn_credentials")
     .select("credential_id, transports")
-    .eq("user_id", userId);
+    .eq("user_id", args.userId);
+  if (existingError) throw new Error(`Passkey lookup failed: ${existingError.message}`);
 
   const challenge = randomBase64Url();
-  await storeChallenge({ challenge, purpose: "register", userId });
+  await storeChallenge({ supabase: args.supabase, challenge, purpose: "register", userId: args.userId });
 
   return {
     challenge,
     rp: { name: rp.rpName, id: rp.rpID },
     user: {
-      id: toBase64Url(textEncoder.encode(userId)),
-      name: userName,
-      displayName: userName,
+      id: toBase64Url(textEncoder.encode(args.userId)),
+      name: args.userName,
+      displayName: args.userName,
     },
     pubKeyCredParams: [
       { type: "public-key", alg: -7 },
@@ -481,12 +493,18 @@ export async function beginRegistration(userId: string) {
 }
 
 export async function finishRegistration(args: {
+  supabase: AppSupabaseClient;
   userId: string;
+  phone?: string | null;
   response: RegistrationResponseJSON;
   deviceName?: string;
 }) {
   const rp = getRpConfig();
-  const expectedChallenge = await consumeChallenge({ purpose: "register", userId: args.userId });
+  const expectedChallenge = await consumeChallenge({
+    supabase: args.supabase,
+    purpose: "register",
+    userId: args.userId,
+  });
 
   parseClientData({
     encoded: args.response.response.clientDataJSON,
@@ -502,8 +520,9 @@ export async function finishRegistration(args: {
   const credentialIdString = toBase64Url(credentialId);
   if (credentialIdString !== args.response.id) throw new Error("Credential ID mismatch");
 
-  const { error } = await admin().from("webauthn_credentials").insert({
+  const { error } = await args.supabase.from("webauthn_credentials").insert({
     user_id: args.userId,
+    phone: args.phone ?? null,
     credential_id: credentialIdString,
     public_key: toBase64Url(publicKey),
     counter: readUint32(authData, 33),
