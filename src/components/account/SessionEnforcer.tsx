@@ -6,6 +6,7 @@
  * - Every 60s heartbeats — if server says session was revoked, signs out.
  */
 import { useEffect, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { registerSession, pingSession, revokeSession } from "@/lib/sessions.functions";
 import { toast } from "sonner";
@@ -24,9 +25,15 @@ type RegisterResult =
   | { status: "choice"; sessions: ChoiceSession[] }
   | { status: "failed" };
 
-async function tryRegister(): Promise<RegisterResult> {
+type RegisterSessionCall = () => Promise<
+  | { ok: true }
+  | { ok: false; needsChoice: true; sessions: ChoiceSession[] }
+  | { ok: false }
+>;
+
+async function tryRegister(registerSessionCall: RegisterSessionCall): Promise<RegisterResult> {
   try {
-    const res = await registerSession();
+    const res = await registerSessionCall();
     if (res.ok) return { status: "ok" };
     if ("needsChoice" in res && res.needsChoice) {
       return { status: "choice", sessions: res.sessions };
@@ -39,6 +46,9 @@ async function tryRegister(): Promise<RegisterResult> {
 }
 
 export function SessionEnforcer() {
+  const registerSessionFn = useServerFn(registerSession);
+  const pingSessionFn = useServerFn(pingSession);
+  const revokeSessionFn = useServerFn(revokeSession);
   const [choice, setChoice] = useState<ChoiceSession[] | null>(null);
   const [kicking, setKicking] = useState<string | null>(null);
   const registeredForSessionRef = useRef<string | null>(null);
@@ -51,7 +61,7 @@ export function SessionEnforcer() {
       const sess = data.session;
       if (!sess) return;
       if (registeredForSessionRef.current === sess.access_token) return;
-      const result = await tryRegister();
+      const result = await tryRegister(() => registerSessionFn());
       if (cancelled) return;
       if (result.status === "ok") {
         registeredForSessionRef.current = sess.access_token;
@@ -77,7 +87,7 @@ export function SessionEnforcer() {
       const { data } = await supabase.auth.getSession();
       if (!data.session) return;
       try {
-        const res = await pingSession();
+        const res = await pingSessionFn();
         if (!res.alive) {
           if (!registeredForSessionRef.current) {
             await ensureRegistered();
@@ -101,8 +111,8 @@ export function SessionEnforcer() {
   async function handlePick(id: string) {
     setKicking(id);
     try {
-      await revokeSession({ data: { id } });
-      const result = await tryRegister();
+      await revokeSessionFn({ data: { id } });
+      const result = await tryRegister(() => registerSessionFn());
       setChoice(result.status === "choice" ? result.sessions : null);
       if (result.status === "ok") toast.success("সাইন-ইন সম্পন্ন");
     } catch (e) {
