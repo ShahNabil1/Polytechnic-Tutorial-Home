@@ -12,6 +12,7 @@ export interface CartItem {
   coverColor?: string;
   coverEmoji?: string;
   quantity: number;
+  isOnlineBook?: boolean;
 }
 
 interface CartState {
@@ -46,6 +47,7 @@ export const useCart = create<CartState>()(
             price: product.price,
             type: product.type,
             quantity: product.type === "physical" ? qty : 1,
+            isOnlineBook: !!product.isOnlineBook,
           };
           if (image) newItem.image = image;
           if (product.coverColor) newItem.coverColor = product.coverColor;
@@ -77,7 +79,11 @@ export function cartSubtotal(items: CartItem[]) {
 }
 
 export function hasPhysical(items: CartItem[]) {
-  return items.some((i) => i.type === "physical");
+  return items.some((i) => i.type === "physical" && !i.isOnlineBook);
+}
+
+export function hasOnlineBook(items: CartItem[]) {
+  return items.some((i) => i.isOnlineBook || i.type === "ebook" || i.type === "suggestion");
 }
 
 export function calcShipping(items: CartItem[], city: string) {

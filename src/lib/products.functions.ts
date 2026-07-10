@@ -55,6 +55,7 @@ function mapProduct(row: any, subs: { slug: string; kind: string }[]): Product {
     stock: row.stock,
     featured: row.is_featured,
     isActive: row.is_active,
+    isOnlineBook: row.is_online_book ?? false,
   };
 }
 
@@ -237,6 +238,7 @@ const ProductUpsertInput = z.object({
   stock: z.number().int().min(0).max(1_000_000).optional().nullable(),
   is_active: z.boolean().default(true),
   is_featured: z.boolean().default(false),
+  is_online_book: z.boolean().default(false),
 });
 
 export const upsertProduct = createServerFn({ method: "POST" })
