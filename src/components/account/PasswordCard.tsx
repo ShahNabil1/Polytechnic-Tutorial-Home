@@ -50,7 +50,7 @@ export function PasswordCard() {
       // sensitive action re-prompts with the new credential.
       clearReauth();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(friendlyPasswordError(e));
     } finally {
       setSaving(false);
     }
