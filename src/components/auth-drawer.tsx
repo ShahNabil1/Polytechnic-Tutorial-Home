@@ -721,7 +721,7 @@ export function AuthDrawer({
                         placeholder="আপনার নাম"
                         value={fullName}
                         onChange={(e) => {
-                          setFullName(e.target.value);
+                          setFullName(toEnglishText(e.target.value));
                           if (formError) setFormError(null);
                         }}
                         autoComplete="name"
