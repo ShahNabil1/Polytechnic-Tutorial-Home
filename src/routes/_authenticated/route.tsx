@@ -58,6 +58,7 @@ function AuthenticatedLayout() {
     <>
       <Outlet />
       <SessionEnforcer />
+      <InactivityLogout />
     </>
   );
 }
