@@ -706,55 +706,34 @@ async function issueSupabaseSession(userId: string) {
   const user = userRes.user;
 
   const now = Math.floor(Date.now() / 1000);
-  const sessionId = crypto.randomUUID();
-  const nowIso = new Date().toISOString();
   const userAgent = getRequestHeader("user-agent") || "passkey";
   const clientIp = getRequestHeader("cf-connecting-ip") ||
     getRequestHeader("x-real-ip") ||
     getRequestHeader("x-forwarded-for")?.split(",")[0]?.trim() ||
-    null;
+    "";
   const refreshTokenHmacKeyBytes = crypto.getRandomValues(new Uint8Array(32));
   const refreshTokenHmacKey = toBase64Url(refreshTokenHmacKeyBytes);
   const refreshTokenCounter = 0;
+
+  // Create auth.sessions row via RPC — direct TCP from Cloudflare Workers to
+  // Postgres hangs, so we go through PostgREST/HTTP instead.
+  const { data: sessionIdData, error: sessionErr } = await admin().rpc(
+    "create_passkey_auth_session",
+    {
+      _user_id: userId,
+      _user_agent: userAgent,
+      _ip: clientIp,
+      _refresh_token_hmac_key: refreshTokenHmacKey,
+      _refresh_token_counter: refreshTokenCounter,
+    },
+  );
+  if (sessionErr || !sessionIdData) {
+    throw new Error(`Session create failed: ${sessionErr?.message ?? "no session id returned"}`);
+  }
+  const sessionId = sessionIdData as string;
   const refreshToken = await createSupabaseRefreshToken(sessionId, refreshTokenCounter, refreshTokenHmacKeyBytes);
 
-  try {
-    await db().begin(async (sql) => {
-      await sql`
-        insert into auth.sessions (
-          id,
-          user_id,
-          aal,
-          created_at,
-          updated_at,
-          refreshed_at,
-          user_agent,
-          ip,
-          refresh_token_hmac_key,
-          refresh_token_counter
-        ) values (
-          ${sessionId}::uuid,
-          ${userId}::uuid,
-          'aal1'::auth.aal_level,
-          ${nowIso}::timestamptz,
-          ${nowIso}::timestamptz,
-          ${nowIso}::timestamp,
-          ${userAgent},
-          ${clientIp}::inet,
-          ${refreshTokenHmacKey},
-          ${refreshTokenCounter}
-        )
-      `;
-      await sql`
-        update auth.users
-        set last_sign_in_at = ${nowIso}::timestamptz,
-            updated_at = ${nowIso}::timestamptz
-        where id = ${userId}::uuid
-      `;
-    });
-  } catch (error) {
-    throw new Error(`Session create failed: ${error instanceof Error ? error.message : String(error)}`);
-  }
+
 
   const payload = {
     iss: `${supabaseUrl.replace(/\/$/, "")}/auth/v1`,
