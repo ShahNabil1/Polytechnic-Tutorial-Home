@@ -79,7 +79,7 @@ function randomBase64Url(size = 32): string {
 
 async function sha256(data: Uint8Array | string): Promise<Uint8Array> {
   const input = typeof data === "string" ? textEncoder.encode(data) : data;
-  return new Uint8Array(await crypto.subtle.digest("SHA-256", input));
+  return new Uint8Array(await crypto.subtle.digest("SHA-256", input as BufferSource));
 }
 
 function concatBytes(...chunks: Uint8Array[]): Uint8Array {
@@ -511,8 +511,8 @@ export async function finishAuthentication(args: {
   const verified = await crypto.subtle.verify(
     verifier.algorithm,
     verifier.key,
-    signature,
-    signedData,
+    signature as BufferSource,
+    signedData as BufferSource,
   );
   if (!verified) throw new Error("Passkey verification failed");
 
