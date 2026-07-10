@@ -254,6 +254,7 @@ function CheckoutPage() {
         sessionStorage.setItem(`order:${orderNo}`, JSON.stringify(snapshot));
         sessionStorage.setItem("order:last", orderNo);
       } catch {}
+      resetIncompleteCapture();
       clear();
       navigate({
         to: "/checkout/success",
