@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { AuthDrawer } from "@/components/auth-drawer";
 import { SessionEnforcer } from "@/components/account/SessionEnforcer";
+import { InactivityLogout } from "@/components/InactivityLogout";
 import { Loader2, Lock } from "lucide-react";
 
 
@@ -57,6 +58,7 @@ function AuthenticatedLayout() {
     <>
       <Outlet />
       <SessionEnforcer />
+      <InactivityLogout />
     </>
   );
 }
