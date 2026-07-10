@@ -8,6 +8,7 @@
 import { SignJWT } from "jose";
 import { getRequest, getRequestHeader } from "@tanstack/react-start/server";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import postgres from "postgres";
 import type { Database } from "@/integrations/supabase/types";
 
 type RegistrationResponseJSON = {
@@ -109,6 +110,20 @@ const admin = () => {
   return adminClient;
 };
 
+let dbClient: postgres.Sql | undefined;
+function db() {
+  const dbUrl = readFirstConfiguredSecret("SUPABASE_DB_URL", "DATABASE_URL");
+  if (!dbUrl) throw new Error("SUPABASE_DB_URL is not configured");
+  dbClient ??= postgres(dbUrl, {
+    max: 1,
+    idle_timeout: 20,
+    connect_timeout: 10,
+    prepare: false,
+    ssl: "require",
+  });
+  return dbClient;
+}
+
 export function getRpConfig() {
   const origin =
     getRequestHeader("origin") ||
@@ -146,6 +161,50 @@ function randomBase64Url(size = 32): string {
 async function sha256(data: Uint8Array | string): Promise<Uint8Array> {
   const input = typeof data === "string" ? textEncoder.encode(data) : data;
   return new Uint8Array(await crypto.subtle.digest("SHA-256", input as BufferSource));
+}
+
+function asArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return copy.buffer;
+}
+
+async function hmacSha256(keyBytes: Uint8Array, value: Uint8Array): Promise<Uint8Array> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    asArrayBuffer(keyBytes),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  return new Uint8Array(await crypto.subtle.sign("HMAC", key, asArrayBuffer(value)));
+}
+
+function uuidToBytes(uuid: string): Uint8Array {
+  const hex = uuid.replace(/-/g, "");
+  if (!/^[0-9a-f]{32}$/i.test(hex)) throw new Error("Invalid session id");
+  const out = new Uint8Array(16);
+  for (let i = 0; i < 16; i++) out[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  return out;
+}
+
+function encodeUvarint(value: number): Uint8Array {
+  const out: number[] = [];
+  let x = Math.max(0, Math.floor(value));
+  while (x >= 0x80) {
+    out.push((x & 0x7f) | 0x80);
+    x = Math.floor(x / 128);
+  }
+  out.push(x);
+  return new Uint8Array(out);
+}
+
+async function createSupabaseRefreshToken(sessionId: string, counter: number, hmacKeyBytes: Uint8Array) {
+  const unsigned = concatBytes(new Uint8Array([0]), uuidToBytes(sessionId), encodeUvarint(counter));
+  const signature = (await hmacSha256(hmacKeyBytes, unsigned)).slice(0, 16);
+  const signed = concatBytes(unsigned, signature);
+  const checksum = (await sha256(signed)).slice(0, 4);
+  return toBase64Url(concatBytes(signed, checksum));
 }
 
 function concatBytes(...chunks: Uint8Array[]): Uint8Array {
@@ -663,35 +722,52 @@ async function issueSupabaseSession(userId: string) {
   const sessionId = crypto.randomUUID();
   const nowIso = new Date().toISOString();
   const userAgent = getRequestHeader("user-agent") || "passkey";
+  const clientIp = getRequestHeader("cf-connecting-ip") ||
+    getRequestHeader("x-real-ip") ||
+    getRequestHeader("x-forwarded-for")?.split(",")[0]?.trim() ||
+    null;
+  const refreshTokenHmacKeyBytes = crypto.getRandomValues(new Uint8Array(32));
+  const refreshTokenHmacKey = toBase64Url(refreshTokenHmacKeyBytes);
+  const refreshTokenCounter = 0;
+  const refreshToken = await createSupabaseRefreshToken(sessionId, refreshTokenCounter, refreshTokenHmacKeyBytes);
 
-  const { error: sessionError } = await admin()
-    .schema("auth" as never)
-    .from("sessions" as never)
-    .insert({
-      id: sessionId,
-      user_id: userId,
-      aal: "aal1",
-      created_at: nowIso,
-      updated_at: nowIso,
-      refreshed_at: nowIso,
-      user_agent: userAgent,
-    } as never);
-  if (sessionError) throw new Error(`Session create failed: ${sessionError.message}`);
-
-  const refreshToken =
-    crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
-  const { error: refreshError } = await admin()
-    .schema("auth" as never)
-    .from("refresh_tokens" as never)
-    .insert({
-      token: refreshToken,
-      user_id: userId,
-      session_id: sessionId,
-      revoked: false,
-      created_at: nowIso,
-      updated_at: nowIso,
-    } as never);
-  if (refreshError) throw new Error(`Refresh token create failed: ${refreshError.message}`);
+  try {
+    await db().begin(async (sql) => {
+      await sql`
+        insert into auth.sessions (
+          id,
+          user_id,
+          aal,
+          created_at,
+          updated_at,
+          refreshed_at,
+          user_agent,
+          ip,
+          refresh_token_hmac_key,
+          refresh_token_counter
+        ) values (
+          ${sessionId}::uuid,
+          ${userId}::uuid,
+          'aal1'::auth.aal_level,
+          ${nowIso}::timestamptz,
+          ${nowIso}::timestamptz,
+          ${nowIso}::timestamp,
+          ${userAgent},
+          ${clientIp}::inet,
+          ${refreshTokenHmacKey},
+          ${refreshTokenCounter}
+        )
+      `;
+      await sql`
+        update auth.users
+        set last_sign_in_at = ${nowIso}::timestamptz,
+            updated_at = ${nowIso}::timestamptz
+        where id = ${userId}::uuid
+      `;
+    });
+  } catch (error) {
+    throw new Error(`Session create failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
 
   const payload = {
     iss: `${supabaseUrl.replace(/\/$/, "")}/auth/v1`,
