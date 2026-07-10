@@ -19,15 +19,22 @@ type ChoiceSession = {
   last_seen_at: string;
 };
 
-async function tryRegister(): Promise<ChoiceSession[] | null> {
+type RegisterResult =
+  | { status: "ok" }
+  | { status: "choice"; sessions: ChoiceSession[] }
+  | { status: "failed" };
+
+async function tryRegister(): Promise<RegisterResult> {
   try {
     const res = await registerSession();
-    if (res.ok) return null;
-    if ("needsChoice" in res && res.needsChoice) return res.sessions;
-    return null;
+    if (res.ok) return { status: "ok" };
+    if ("needsChoice" in res && res.needsChoice) {
+      return { status: "choice", sessions: res.sessions };
+    }
+    return { status: "failed" };
   } catch (e) {
     console.error("registerSession failed", e);
-    return null;
+    return { status: "failed" };
   }
 }
 
@@ -44,10 +51,14 @@ export function SessionEnforcer() {
       const sess = data.session;
       if (!sess) return;
       if (registeredForSessionRef.current === sess.access_token) return;
-      registeredForSessionRef.current = sess.access_token;
-      const need = await tryRegister();
+      const result = await tryRegister();
       if (cancelled) return;
-      if (need) setChoice(need);
+      if (result.status === "ok") {
+        registeredForSessionRef.current = sess.access_token;
+        setChoice(null);
+      } else if (result.status === "choice") {
+        setChoice(result.sessions);
+      }
     }
 
     ensureRegistered();
@@ -68,6 +79,10 @@ export function SessionEnforcer() {
       try {
         const res = await pingSession();
         if (!res.alive) {
+          if (!registeredForSessionRef.current) {
+            await ensureRegistered();
+            return;
+          }
           toast.error("অন্য ডিভাইস থেকে সাইন আউট করা হয়েছে");
           await supabase.auth.signOut();
         }
@@ -87,9 +102,9 @@ export function SessionEnforcer() {
     setKicking(id);
     try {
       await revokeSession({ data: { id } });
-      const need = await tryRegister();
-      setChoice(need);
-      if (!need) toast.success("সাইন-ইন সম্পন্ন");
+      const result = await tryRegister();
+      setChoice(result.status === "choice" ? result.sessions : null);
+      if (result.status === "ok") toast.success("সাইন-ইন সম্পন্ন");
     } catch (e) {
       toast.error("সেশন কাটতে পারলাম না: " + (e instanceof Error ? e.message : String(e)));
     } finally {
