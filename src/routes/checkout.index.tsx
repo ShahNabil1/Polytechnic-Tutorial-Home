@@ -20,7 +20,10 @@ import {
   queueIncompleteCapture,
   flushIncompleteCaptureNow,
   resetIncompleteCapture,
+  stashSnapshotForReturn,
+  clearStashedSnapshot,
 } from "@/lib/incomplete-checkout-client";
+
 
 export const Route = createFileRoute("/checkout/")({
   head: () => ({
