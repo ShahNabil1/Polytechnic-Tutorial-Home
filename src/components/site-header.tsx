@@ -66,7 +66,7 @@ function AuthButton() {
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
-          className="hidden items-center gap-1.5 rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand/90 sm:flex"
+          className="inline-flex items-center gap-1.5 rounded-md bg-brand px-2.5 py-1.5 text-xs font-medium text-brand-foreground transition-colors hover:bg-brand/90 sm:px-3 sm:text-sm"
         >
           <UserIcon className="size-4" />
           সাইন ইন
@@ -76,13 +76,13 @@ function AuthButton() {
     );
   }
   return (
-    <div className="hidden items-center gap-2 sm:flex">
+    <div className="flex items-center gap-2">
       <Link
         to="/sdash"
-        className="inline-flex items-center gap-1.5 rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand/90"
+        className="inline-flex items-center gap-1.5 rounded-md bg-brand px-2.5 py-1.5 text-xs font-medium text-brand-foreground transition-colors hover:bg-brand/90 sm:px-3 sm:text-sm"
       >
         <UserIcon className="size-4" />
-        ড্যাশবোর্ড
+        <span className="hidden xs:inline sm:inline">ড্যাশবোর্ড</span>
       </Link>
       <button
         type="button"
@@ -91,7 +91,7 @@ function AuthButton() {
           toast.success("সাইন আউট হয়েছে");
           navigate({ to: "/" });
         }}
-        className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-secondary"
+        className="hidden items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-secondary sm:inline-flex"
         title={user.email ?? user.phone ?? ""}
       >
         <LogOut className="size-4" />
@@ -100,6 +100,7 @@ function AuthButton() {
     </div>
   );
 }
+
 
 export function SiteHeader() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
