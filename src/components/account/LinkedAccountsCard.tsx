@@ -88,14 +88,25 @@ export function LinkedAccountsCard() {
     if (!(await ensureReauth())) return;
     setLinkingGoogle(true);
     try {
-      const { error } = await supabase.auth.linkIdentity({
+      const { data, error } = await supabase.auth.linkIdentity({
         provider: "google",
         options: { redirectTo: `${window.location.origin}/sdash/profile` },
       });
       if (error) throw error;
+      // Some Supabase versions don't auto-redirect; do it manually.
+      if (data?.url) window.location.href = data.url;
     } catch (e) {
       setLinkingGoogle(false);
-      toast.error("Google লিংক করা যায়নি: " + (e instanceof Error ? e.message : String(e)));
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/manual.*link|linking.*disabled|not.*enabled/i.test(msg)) {
+        toast.error(
+          "Google লিংক করতে Supabase Dashboard → Authentication → Settings-এ 'Manual Linking' এনাবল করতে হবে।",
+        );
+      } else if (/already.*linked|identity.*exists/i.test(msg)) {
+        toast.error("এই Google একাউন্টটা অন্য একজন ইউজারের সাথে অলরেডি লিংক করা।");
+      } else {
+        toast.error("Google লিংক করা যায়নি: " + msg);
+      }
     }
   }
 
