@@ -40,6 +40,48 @@ export const getMyInternalProfile = createServerFn({ method: "GET" })
     return (data as InternalProfile | null) ?? null;
   });
 
+export const syncMyPrimaryAuthEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: isInternal, error: roleError } = await context.supabase.rpc("has_permission", {
+      _user_id: context.userId,
+      _permission: "internal.access",
+    });
+    if (roleError) throw new Error(roleError.message);
+    if (isInternal !== true) throw new Error("Forbidden");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: authUser, error: userError } = await supabaseAdmin.auth.admin.getUserById(context.userId);
+    if (userError) throw new Error(userError.message);
+
+    const user = authUser.user as any;
+    const currentEmail = typeof user?.email === "string" ? user.email.trim().toLowerCase() : "";
+    const metadataEmail =
+      typeof user?.user_metadata?.email === "string" ? user.user_metadata.email.trim().toLowerCase() : "";
+    const identityEmail =
+      (user?.identities ?? [])
+        .map((identity: any) => identity?.identity_data?.email || identity?.email)
+        .find((email: unknown) => typeof email === "string" && email.includes("@"))
+        ?.trim()
+        .toLowerCase() ?? "";
+    const email = currentEmail || metadataEmail || identityEmail;
+
+    if (!email || !z.string().email().safeParse(email).success) {
+      return { ok: false, email: null, synced: false, reason: "no_linked_email" as const };
+    }
+
+    if (!currentEmail) {
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(context.userId, {
+        email,
+        email_confirm: true,
+      } as never);
+      if (updateError) throw new Error(updateError.message);
+    }
+
+    await supabaseAdmin.from("profiles").update({ email } as never).eq("id", context.userId);
+    return { ok: true, email, synced: !currentEmail };
+  });
+
 const UpdateSchema = z.object({
   address: z.string().max(500).optional().nullable(),
   nid_number: z.string().max(50).optional().nullable(),
