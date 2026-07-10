@@ -49,9 +49,10 @@ export const registerSession = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     if (existing) {
+      // Touch metadata but keep any user-renamed device_label intact.
       await supabaseAdmin
         .from("user_sessions")
-        .update({ last_seen_at: new Date().toISOString(), ip, user_agent: ua, device_label: label })
+        .update({ last_seen_at: new Date().toISOString(), ip, user_agent: ua })
         .eq("id", existing.id);
       return { ok: true as const };
     }
@@ -115,6 +116,25 @@ export const revokeSession = createServerFn({ method: "POST" })
     const { error } = await context.supabase
       .from("user_sessions")
       .delete()
+      .eq("id", data.id)
+      .eq("user_id", context.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
+const RenameSchema = z.object({
+  id: z.string().uuid(),
+  label: z.string().trim().min(1, "নাম দিন").max(60, "সর্বোচ্চ ৬০ অক্ষর"),
+});
+
+/** Rename a session's device label. */
+export const renameSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => RenameSchema.parse(input))
+  .handler(async ({ context, data }) => {
+    const { error } = await context.supabase
+      .from("user_sessions")
+      .update({ device_label: data.label })
       .eq("id", data.id)
       .eq("user_id", context.userId);
     if (error) throw new Error(error.message);
