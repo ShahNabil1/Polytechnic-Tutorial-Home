@@ -171,7 +171,7 @@ function ShopPage() {
 function FilterRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      <p className="mb-2.5 text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
         {label}
       </p>
       <div className="flex flex-wrap gap-2">{children}</div>
@@ -195,9 +195,9 @@ function FilterChip({
       to={to}
       search={search}
       className={cn(
-        "rounded-full px-4 py-1.5 text-sm font-medium transition-all",
+        "rounded-full px-4 py-1.5 text-sm font-bold transition-all",
         active
-          ? "bg-foreground text-background"
+          ? "bg-foreground text-background shadow-md"
           : "bg-secondary text-secondary-foreground hover:bg-secondary/70",
       )}
     >
@@ -205,3 +205,4 @@ function FilterChip({
     </Link>
   );
 }
+
