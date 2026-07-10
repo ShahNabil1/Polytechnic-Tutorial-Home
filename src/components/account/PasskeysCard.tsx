@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { KeyRound, Loader2, Plus, Trash2 } from "lucide-react";
 import { listMyPasskeys, deleteMyPasskey } from "@/lib/passkey.functions";
+import { ensureReauth } from "@/lib/reauth";
 
 const MAX_PASSKEYS = 3;
 
