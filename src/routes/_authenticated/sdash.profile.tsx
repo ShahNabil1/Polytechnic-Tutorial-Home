@@ -1,16 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, User as UserIcon, Upload, IdCard } from "lucide-react";
+import { Loader2, User as UserIcon, Upload, IdCard, Pencil, Lock, CheckCircle2, X } from "lucide-react";
 import { PasskeysCard } from "@/components/account/PasskeysCard";
 import { LinkedAccountsCard } from "@/components/account/LinkedAccountsCard";
 import { PasswordCard } from "@/components/account/PasswordCard";
 import { SessionsCard } from "@/components/account/SessionsCard";
 import { ReauthDialogHost } from "@/components/account/ReauthDialog";
+import { ImageCropperDialog } from "@/components/account/ImageCropperDialog";
 import { uploadFileToR2 } from "@/lib/upload-client";
-import { SEMESTER_OPTIONS, type ProfileRow } from "@/lib/profile";
+import {
+  SEMESTER_OPTIONS,
+  DEPARTMENT_OPTIONS,
+  getMissingProfileFields,
+  type ProfileRow,
+} from "@/lib/profile";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/sdash/profile")({
   component: ProfilePage,
@@ -44,6 +51,8 @@ function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadPct, setUploadPct] = useState(0);
+  const [editMode, setEditMode] = useState(false);
+  const [pickedFile, setPickedFile] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -57,7 +66,7 @@ function ProfilePage() {
         .maybeSingle<ProfileRow>();
       if (cancelled) return;
       if (data) {
-        setForm({
+        const next: FormState = {
           full_name: data.full_name ?? "",
           avatar_url: data.avatar_url ?? "",
           institute_name: (data as { institute_name?: string | null }).institute_name ?? "",
@@ -65,29 +74,55 @@ function ProfilePage() {
           current_semester: (data as { current_semester?: string | null }).current_semester ?? "",
           board_roll: (data as { board_roll?: string | null }).board_roll ?? "",
           registration_no: (data as { registration_no?: string | null }).registration_no ?? "",
-        });
+        };
+        setForm(next);
         setStudentId((data as { student_id?: number | null }).student_id ?? null);
+        // Auto edit mode if any required field missing
+        const missing = getMissingProfileFields(data);
+        setEditMode(missing.length > 0);
+      } else {
+        setEditMode(true);
       }
       setLoading(false);
     })();
     return () => { cancelled = true; };
   }, [user]);
 
+  const isComplete = useMemo(
+    () =>
+      getMissingProfileFields({
+        full_name: form.full_name || null,
+        institute_name: form.institute_name || null,
+        department_name: form.department_name || null,
+        current_semester: (form.current_semester || null) as ProfileRow["current_semester"],
+        board_roll: form.board_roll || null,
+        registration_no: form.registration_no || null,
+      } as Partial<ProfileRow>).length === 0,
+    [form],
+  );
+
   function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  async function handleAvatarPick(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleFilePick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       toast.error("শুধুমাত্র ছবি আপলোড করা যাবে");
       return;
     }
+    setPickedFile(file);
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
+  async function handleCropped(blob: Blob) {
+    setPickedFile(null);
     setUploading(true);
     setUploadPct(0);
     try {
-      const { url } = await uploadFileToR2(file, {
+      const croppedFile = new File([blob], `avatar-${Date.now()}.jpg`, { type: "image/jpeg" });
+      const { url } = await uploadFileToR2(croppedFile, {
         folder: "avatars",
         onProgress: (p) => setUploadPct(p),
       });
@@ -97,7 +132,6 @@ function ProfilePage() {
       toast.error("আপলোড ব্যর্থ: " + (err instanceof Error ? err.message : "unknown"));
     } finally {
       setUploading(false);
-      if (fileRef.current) fileRef.current.value = "";
     }
   }
 
@@ -116,8 +150,12 @@ function ProfilePage() {
     } as never;
     const { error } = await supabase.from("profiles").update(payload).eq("id", user.id);
     setSaving(false);
-    if (error) toast.error("সেভ করা যায়নি: " + error.message);
-    else toast.success("প্রোফাইল আপডেট হয়েছে");
+    if (error) {
+      toast.error("সেভ করা যায়নি: " + error.message);
+      return;
+    }
+    toast.success("প্রোফাইল সেভ হয়েছে");
+    if (isComplete) setEditMode(false);
   }
 
   if (loading) {
@@ -128,6 +166,8 @@ function ProfilePage() {
     );
   }
 
+  const locked = !editMode;
+
   return (
     <div className="space-y-6">
       <div>
@@ -137,7 +177,6 @@ function ProfilePage() {
         </p>
       </div>
 
-      {/* Student ID card */}
       {studentId !== null && (
         <section className="flex items-center gap-3 rounded-xl border border-brand/40 bg-brand/5 p-4">
           <div className="grid size-10 place-items-center rounded-lg bg-brand text-brand-foreground">
@@ -150,94 +189,119 @@ function ProfilePage() {
         </section>
       )}
 
-      {/* Basic profile */}
       <section className="rounded-xl border border-border bg-card p-6">
-        <h2 className="mb-4 flex items-center gap-2 text-base font-semibold">
-          <UserIcon className="size-4 text-brand" />
-          ব্যক্তিগত তথ্য
-        </h2>
-
-        <div className="mb-5 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-          {form.avatar_url ? (
-            <img src={form.avatar_url} alt="" className="size-20 rounded-full object-cover ring-1 ring-border" />
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <h2 className="flex items-center gap-2 text-base font-semibold">
+            <UserIcon className="size-4 text-brand" />
+            ব্যক্তিগত তথ্য
+            {locked && (
+              <span className="ml-1 inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+                <Lock className="size-3" /> লকড
+              </span>
+            )}
+          </h2>
+          {locked ? (
+            <button
+              type="button"
+              onClick={() => setEditMode(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-brand/40 bg-brand/10 px-3 py-1.5 text-xs font-semibold text-brand hover:bg-brand/20"
+            >
+              <Pencil className="size-3.5" /> এডিট
+            </button>
           ) : (
-            <div className="grid size-20 place-items-center rounded-full bg-secondary">
-              <UserIcon className="size-8 text-muted-foreground" />
+            isComplete && (
+              <button
+                type="button"
+                onClick={() => setEditMode(false)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary"
+              >
+                <X className="size-3.5" /> বাতিল
+              </button>
+            )
+          )}
+        </div>
+
+        <div className="mb-6 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+          {form.avatar_url ? (
+            <img src={form.avatar_url} alt="" className="size-24 rounded-full object-cover ring-2 ring-brand/30" />
+          ) : (
+            <div className="grid size-24 place-items-center rounded-full bg-secondary">
+              <UserIcon className="size-9 text-muted-foreground" />
             </div>
           )}
           <div className="flex-1">
             <div className="text-base font-semibold">{form.full_name || "নাম যোগ করুন"}</div>
             <div className="text-xs text-muted-foreground">{user?.phone || user?.email || user?.id}</div>
-            <div className="mt-3 flex items-center gap-2">
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleAvatarPick}
-              />
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                disabled={uploading}
-                className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-secondary disabled:opacity-60"
-              >
-                {uploading ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
-                {uploading ? `আপলোড হচ্ছে... ${uploadPct}%` : "ছবি আপলোড"}
-              </button>
-              {form.avatar_url && (
+            {!locked && (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFilePick}
+                />
                 <button
                   type="button"
-                  onClick={() => updateField("avatar_url", "")}
-                  className="text-xs text-muted-foreground hover:text-destructive"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploading}
+                  className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-secondary disabled:opacity-60"
                 >
-                  সরান
+                  {uploading ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
+                  {uploading ? `আপলোড হচ্ছে... ${uploadPct}%` : "ছবি পরিবর্তন"}
                 </button>
-              )}
-            </div>
+                {form.avatar_url && (
+                  <button
+                    type="button"
+                    onClick={() => updateField("avatar_url", "")}
+                    className="text-xs text-muted-foreground hover:text-destructive"
+                  >
+                    সরান
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
-        <form onSubmit={handleSaveProfile} className="grid gap-4 sm:grid-cols-2">
+        <form onSubmit={handleSaveProfile} className={cn("grid gap-4 sm:grid-cols-2", locked && "opacity-90")}>
           <Field label="পূর্ণ নাম *">
             <input
-              type="text"
-              value={form.full_name}
+              type="text" value={form.full_name}
               onChange={(e) => updateField("full_name", e.target.value)}
-              className={inputClass}
-              placeholder="আপনার নাম"
-              required
+              className={inputClass} placeholder="আপনার নাম"
+              required disabled={locked}
             />
           </Field>
 
           <Field label="ইনস্টিটিউট নাম *">
             <input
-              type="text"
-              value={form.institute_name}
+              type="text" value={form.institute_name}
               onChange={(e) => updateField("institute_name", e.target.value)}
               className={inputClass}
               placeholder="যেমনঃ Dhaka Polytechnic Institute"
-              required
+              required disabled={locked}
             />
           </Field>
 
           <Field label="ডিপার্টমেন্ট *">
-            <input
-              type="text"
+            <select
               value={form.department_name}
               onChange={(e) => updateField("department_name", e.target.value)}
-              className={inputClass}
-              placeholder="যেমনঃ Computer Science & Technology"
-              required
-            />
+              className={inputClass} required disabled={locked}
+            >
+              <option value="">— নির্বাচন করুন —</option>
+              {DEPARTMENT_OPTIONS.map((d) => (
+                <option key={d.value} value={d.value}>{d.label}</option>
+              ))}
+            </select>
           </Field>
 
           <Field label="বর্তমান সেমিস্টার *">
             <select
               value={form.current_semester}
               onChange={(e) => updateField("current_semester", e.target.value)}
-              className={inputClass}
-              required
+              className={inputClass} required disabled={locked}
             >
               <option value="">— নির্বাচন করুন —</option>
               {SEMESTER_OPTIONS.map((s) => (
@@ -248,36 +312,38 @@ function ProfilePage() {
 
           <Field label="বোর্ড রোল *">
             <input
-              type="text"
-              value={form.board_roll}
+              type="text" value={form.board_roll}
               onChange={(e) => updateField("board_roll", e.target.value)}
-              className={inputClass}
-              placeholder="যেমনঃ 123456"
-              required
+              className={inputClass} placeholder="যেমনঃ 123456"
+              required disabled={locked}
             />
           </Field>
 
           <Field label="রেজিস্ট্রেশন নম্বর *">
             <input
-              type="text"
-              value={form.registration_no}
+              type="text" value={form.registration_no}
               onChange={(e) => updateField("registration_no", e.target.value)}
-              className={inputClass}
-              placeholder="যেমনঃ 1234567890"
-              required
+              className={inputClass} placeholder="যেমনঃ 1234567890"
+              required disabled={locked}
             />
           </Field>
 
-          <div className="sm:col-span-2">
-            <button
-              type="submit"
-              disabled={saving}
-              className="inline-flex items-center gap-2 rounded-md bg-brand px-4 py-2 text-sm font-medium text-brand-foreground hover:bg-brand/90 disabled:opacity-60"
-            >
-              {saving && <Loader2 className="size-4 animate-spin" />}
-              সেভ করুন
-            </button>
-          </div>
+          {!locked && (
+            <div className="sm:col-span-2 flex items-center gap-2">
+              <button
+                type="submit" disabled={saving}
+                className="inline-flex items-center gap-2 rounded-md bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground hover:bg-brand/90 disabled:opacity-60"
+              >
+                {saving ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
+                সেভ করুন
+              </button>
+              {!isComplete && (
+                <span className="text-xs text-amber-600 dark:text-amber-400">
+                  সব ম্যান্ডেটরি ফিল্ড পূরণ না হলে লক হবে না
+                </span>
+              )}
+            </div>
+          )}
         </form>
       </section>
 
@@ -286,12 +352,23 @@ function ProfilePage() {
       <PasskeysCard />
       <SessionsCard />
       <ReauthDialogHost />
+
+      {pickedFile && (
+        <ImageCropperDialog
+          file={pickedFile}
+          aspect={1}
+          cropShape="round"
+          onCancel={() => setPickedFile(null)}
+          onCropped={handleCropped}
+          submitLabel="আপলোড করুন"
+        />
+      )}
     </div>
   );
 }
 
 const inputClass =
-  "w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-brand";
+  "w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-brand disabled:cursor-not-allowed disabled:bg-secondary/60 disabled:text-foreground/80";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
