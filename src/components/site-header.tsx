@@ -179,9 +179,25 @@ export function SiteHeader() {
                 className="py-3 text-sm text-muted-foreground hover:text-foreground"
               />
             ))}
+            {user && (
+              <button
+                type="button"
+                onClick={async () => {
+                  setOpen(false);
+                  await supabase.auth.signOut();
+                  toast.success("সাইন আউট হয়েছে");
+                  navigate({ to: "/" });
+                }}
+                className="flex items-center gap-2 border-t border-border/60 py-3 text-left text-sm text-destructive"
+              >
+                <LogOut className="size-4" />
+                সাইন আউট
+              </button>
+            )}
           </nav>
         </div>
       )}
+
     </header>
   );
 }
