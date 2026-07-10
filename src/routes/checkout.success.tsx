@@ -44,11 +44,11 @@ type OrderSnapshot = {
 };
 
 const STATUS_LABEL: Record<OrderStatus, string> = {
-  pending: "পেন্ডিং",
-  processing: "প্রসেসিং",
-  shipped: "শিপড",
-  delivered: "ডেলিভার্ড",
-  cancelled: "ক্যানসেলড",
+  pending: "Pending",
+  processing: "Processing",
+  shipped: "Shipped",
+  delivered: "Delivered",
+  cancelled: "Cancelled",
 };
 
 const STATUS_STYLE: Record<OrderStatus, string> = {
@@ -113,10 +113,10 @@ function SuccessPage() {
               <span
                 className={cn(
                   "mt-0.5 inline-flex items-center rounded-full px-2.5 py-1 text-xs font-extrabold ring-1",
-                  STATUS_STYLE[(snap?.status ?? "pending") as OrderStatus],
+                  STATUS_STYLE[(snap?.status ?? "processing") as OrderStatus],
                 )}
               >
-                {STATUS_LABEL[(snap?.status ?? "pending") as OrderStatus]}
+                {STATUS_LABEL[(snap?.status ?? "processing") as OrderStatus]}
               </span>
             </div>
           </div>

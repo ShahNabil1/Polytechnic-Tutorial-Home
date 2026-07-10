@@ -141,12 +141,39 @@ function CheckoutPage() {
     if (!validate()) return;
     submittedRef.current = true;
     setSubmitting(true);
+
+    // Idempotency: derive a stable key from the current cart + customer snapshot.
+    // A repeated submit (double-click, retry) with the same payload reuses the
+    // previously created order instead of generating a new Order ID.
+    const idemPayload = JSON.stringify({
+      c: form,
+      i: items.map((i) => [i.productId, i.quantity, i.price, i.isOnlineBook ?? false]),
+      t: total,
+    });
+    const idemKey = `idem:${await sha256Hex(idemPayload)}`;
+
+    let orderNo: string;
+    try {
+      const existing = sessionStorage.getItem(idemKey);
+      if (existing) {
+        // Duplicate submit detected — reuse the existing order, do NOT create a new one.
+        orderNo = existing;
+        clear();
+        navigate({
+          to: "/checkout/success",
+          search: { order: orderNo, digital: isPhysical ? undefined : 1 },
+        });
+        return;
+      }
+    } catch {}
+
     await new Promise((r) => setTimeout(r, 900));
-    const orderNo = nextOrderId();
+    orderNo = nextOrderId();
     const snapshot = {
       orderNo,
-      status: "pending" as const,
+      status: "processing" as const,
       createdAt: Date.now(),
+      idempotencyKey: idemKey,
       customer: { ...form },
       items: items.map((i) => ({
         productId: i.productId,
@@ -167,6 +194,7 @@ function CheckoutPage() {
     try {
       sessionStorage.setItem(`order:${orderNo}`, JSON.stringify(snapshot));
       sessionStorage.setItem("order:last", orderNo);
+      sessionStorage.setItem(idemKey, orderNo);
     } catch {}
     clear();
     navigate({
@@ -393,6 +421,20 @@ function CheckoutPage() {
       `}</style>
     </div>
   );
+}
+
+async function sha256Hex(input: string): Promise<string> {
+  try {
+    if (typeof crypto !== "undefined" && crypto.subtle) {
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+      return Array.from(new Uint8Array(buf))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+    }
+  } catch {}
+  let h = 0;
+  for (let i = 0; i < input.length; i++) h = (h * 31 + input.charCodeAt(i)) | 0;
+  return `f${(h >>> 0).toString(16)}`;
 }
 
 function Field({
