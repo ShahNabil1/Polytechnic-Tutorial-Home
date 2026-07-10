@@ -54,6 +54,38 @@ function NavAnchor({
   );
 }
 
+function AuthButton() {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  if (loading) return null;
+  if (!user) {
+    return (
+      <Link
+        to="/auth"
+        className="hidden items-center gap-1.5 rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand/90 sm:flex"
+      >
+        <UserIcon className="size-4" />
+        সাইন ইন
+      </Link>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={async () => {
+        await supabase.auth.signOut();
+        toast.success("সাইন আউট হয়েছে");
+        navigate({ to: "/" });
+      }}
+      className="hidden items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-secondary sm:flex"
+      title={user.email ?? ""}
+    >
+      <LogOut className="size-4" />
+      সাইন আউট
+    </button>
+  );
+}
+
 export function SiteHeader() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const items = useCart((s) => s.items);
