@@ -152,7 +152,7 @@ export function AuthDrawer({
         >
           <SheetHeader className="border-b border-border px-5 py-4">
             <SheetTitle className="text-base font-semibold">
-              PTH এর সাথে শেখা শুরু করি
+              স্বাগতম 👋
             </SheetTitle>
           </SheetHeader>
 
