@@ -11,8 +11,11 @@ const searchSchema = z.object({
   digital: z.coerce.number().optional(),
 });
 
+type OrderStatus = "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+
 type OrderSnapshot = {
   orderNo: string;
+  status?: OrderStatus;
   createdAt: number;
   customer: {
     name: string;
@@ -38,6 +41,22 @@ type OrderSnapshot = {
   shipping: number;
   total: number;
   isPhysical: boolean;
+};
+
+const STATUS_LABEL: Record<OrderStatus, string> = {
+  pending: "পেন্ডিং",
+  processing: "প্রসেসিং",
+  shipped: "শিপড",
+  delivered: "ডেলিভার্ড",
+  cancelled: "ক্যানসেলড",
+};
+
+const STATUS_STYLE: Record<OrderStatus, string> = {
+  pending: "bg-amber-100 text-amber-800 ring-amber-300",
+  processing: "bg-blue-100 text-blue-800 ring-blue-300",
+  shipped: "bg-indigo-100 text-indigo-800 ring-indigo-300",
+  delivered: "bg-emerald-100 text-emerald-800 ring-emerald-300",
+  cancelled: "bg-rose-100 text-rose-800 ring-rose-300",
 };
 
 export const Route = createFileRoute("/checkout/success")({
