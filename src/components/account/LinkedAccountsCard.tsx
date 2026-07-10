@@ -303,17 +303,47 @@ export function LinkedAccountsCard() {
                   ভেরিফাই
                 </button>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setPhoneStage("idle");
-                  setPhoneRaw("");
-                  setOtp("");
-                }}
-                className="text-xs text-muted-foreground hover:text-foreground"
-              >
-                বাতিল
-              </button>
+              <div className="flex items-center justify-between gap-2 pt-1 text-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPhoneStage("idle");
+                    setPhoneRaw("");
+                    setOtp("");
+                    resetOtpControls();
+                  }}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  বাতিল
+                </button>
+                {lockedUntil ? (
+                  <span className="text-destructive">
+                    {LOCKOUT_MINUTES} মিনিটের জন্য লকড ({Math.floor(lockRemaining / 60)}:
+                    {String(lockRemaining % 60).padStart(2, "0")})
+                  </span>
+                ) : cooldown > 0 ? (
+                  <span className="text-muted-foreground">
+                    আবার পাঠান ({cooldown}s)
+                  </span>
+                ) : resendCount >= MAX_RESENDS ? (
+                  <button
+                    type="button"
+                    onClick={handleResendPhoneOtp}
+                    className="text-destructive hover:underline"
+                  >
+                    লিমিট পৌঁছেছে
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleResendPhoneOtp}
+                    disabled={phoneLoading}
+                    className="text-brand hover:underline disabled:opacity-60"
+                  >
+                    কোড আবার পাঠান ({MAX_RESENDS - resendCount} বার বাকি)
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>
