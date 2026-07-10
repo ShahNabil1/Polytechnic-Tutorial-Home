@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { AuthDrawer } from "@/components/auth-drawer";
 
 type NavItem = { to: string; label: string; hash?: boolean };
 
@@ -57,16 +58,21 @@ function NavAnchor({
 function AuthButton() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const [drawerOpen, setDrawerOpen] = useState(false);
   if (loading) return null;
   if (!user) {
     return (
-      <Link
-        to="/auth"
-        className="hidden items-center gap-1.5 rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand/90 sm:flex"
-      >
-        <UserIcon className="size-4" />
-        সাইন ইন
-      </Link>
+      <>
+        <button
+          type="button"
+          onClick={() => setDrawerOpen(true)}
+          className="hidden items-center gap-1.5 rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand/90 sm:flex"
+        >
+          <UserIcon className="size-4" />
+          সাইন ইন
+        </button>
+        <AuthDrawer open={drawerOpen} onOpenChange={setDrawerOpen} />
+      </>
     );
   }
   return (
@@ -78,7 +84,7 @@ function AuthButton() {
         navigate({ to: "/" });
       }}
       className="hidden items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-secondary sm:flex"
-      title={user.email ?? ""}
+      title={user.email ?? user.phone ?? ""}
     >
       <LogOut className="size-4" />
       সাইন আউট
