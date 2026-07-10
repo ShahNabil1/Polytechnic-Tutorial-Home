@@ -652,6 +652,34 @@ export function AdminOrderDrawer({
   );
 }
 
+function ReadField({
+  label,
+  value,
+  href,
+  icon,
+  className,
+}: {
+  label: string;
+  value: string;
+  href?: string;
+  icon?: React.ReactNode;
+  className?: string;
+}) {
+  const body = (
+    <span className="inline-flex items-center gap-1.5 break-all text-sm font-semibold text-slate-900">
+      {icon}
+      {href ? <span className="text-brand hover:underline">{value}</span> : value}
+    </span>
+  );
+  return (
+    <div className={cn("block", className)}>
+      <p className="mb-0.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+        {label}
+      </p>
+      {href ? <a href={href}>{body}</a> : body}
+    </div>
+  );
+
 function Section({
   title,
   icon: Icon,
