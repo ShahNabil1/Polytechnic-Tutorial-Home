@@ -35,7 +35,6 @@ export function PasskeysCard() {
       toast.error(`সর্বোচ্চ ${MAX_PASSKEYS} টা Passkey রাখা যাবে`);
       return;
     }
-    if (passkeys.length > 0 && !(await ensureReauth())) return;
     setAdding(true);
     try {
       const { registerPasskey } = await import("@/lib/passkey-client");
