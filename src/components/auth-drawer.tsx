@@ -22,7 +22,6 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { AlertCircle, CheckCircle2, Eye, EyeOff, KeyRound } from "lucide-react";
-import { isPasskeySupported, registerPasskey, signInWithPasskey } from "@/lib/passkey-client";
 
 type Tab = "login" | "signup";
 type Stage = "form" | "otp" | "reset";
@@ -62,6 +61,10 @@ function errMsg(e: unknown, fallback = "কিছু ভুল হয়েছ�
     return anyE.message || anyE.error_description || anyE.msg || fallback;
   }
   return fallback;
+}
+
+function getPasskeyClient() {
+  return import("@/lib/passkey-client");
 }
 
 export function AuthDrawer({
@@ -213,9 +216,10 @@ export function AuthDrawer({
         return;
       }
       toast.success("সাইন ইন সফল");
-      if (rememberPasskey && isPasskeySupported()) {
+      const passkeyClient = await getPasskeyClient();
+      if (rememberPasskey && passkeyClient.isPasskeySupported()) {
         try {
-          await registerPasskey();
+          await passkeyClient.registerPasskey();
           toast.success("Passkey সেভ হয়েছে");
         } catch (e) {
           toast.error("Passkey সেভ করা যায়নি: " + errMsg(e));
@@ -334,9 +338,10 @@ export function AuthDrawer({
         }
         setLoading(false);
         toast.success("একাউন্ট তৈরি হয়েছে");
-        if (rememberPasskey && isPasskeySupported()) {
+        const passkeyClient = await getPasskeyClient();
+        if (rememberPasskey && passkeyClient.isPasskeySupported()) {
           try {
-            await registerPasskey();
+            await passkeyClient.registerPasskey();
             toast.success("Passkey সেভ হয়েছে");
           } catch (e) {
             toast.error("Passkey সেভ করা যায়নি: " + errMsg(e));
@@ -413,7 +418,8 @@ export function AuthDrawer({
   async function handlePasskeyLogin() {
     setFormError(null);
     setInfoMsg(null);
-    if (!isPasskeySupported()) {
+    const passkeyClient = await getPasskeyClient();
+    if (!passkeyClient.isPasskeySupported()) {
       setFormError("এই ব্রাউজারে Passkey সাপোর্ট নেই");
       return;
     }
@@ -423,7 +429,7 @@ export function AuthDrawer({
     }
     setLoading(true);
     try {
-      await signInWithPasskey(phone);
+      await passkeyClient.signInWithPasskey(phone);
       setLoading(false);
       toast.success("Passkey দিয়ে সাইন ইন সফল");
       resetAll();

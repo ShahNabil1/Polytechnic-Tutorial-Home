@@ -1,31 +1,49 @@
 /**
  * Server-only passkey (WebAuthn) helpers.
- * Contains: RP config derivation, challenge storage, credential lookup,
- * Supabase session issuance (custom JWT + refresh_token/session rows).
+ *
+ * This file intentionally avoids @simplewebauthn/server. That package pulls in
+ * ASN.1 helpers that depend on tslib conditional exports, which can crash the
+ * deployed SSR worker during module initialization.
  */
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { SignJWT } from "jose";
 import { getRequest, getRequestHeader } from "@tanstack/react-start/server";
-import {
-  generateRegistrationOptions,
-  generateAuthenticationOptions,
-  verifyRegistrationResponse,
-  verifyAuthenticationResponse,
-} from "@simplewebauthn/server";
-import type {
-  RegistrationResponseJSON,
-  AuthenticationResponseJSON,
-} from "@simplewebauthn/server";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+
+type RegistrationResponseJSON = {
+  id: string;
+  response: {
+    clientDataJSON: string;
+    attestationObject: string;
+    transports?: AuthenticatorTransport[];
+  };
+};
+
+type AuthenticationResponseJSON = {
+  id: string;
+  response: {
+    clientDataJSON: string;
+    authenticatorData: string;
+    signature: string;
+  };
+};
+
+type CredentialRow = {
+  id: string;
+  user_id: string;
+  credential_id: string;
+  public_key: string;
+  counter: number | string | null;
+  transports: string[] | null;
+};
 
 const CHALLENGE_TTL_SECONDS = 5 * 60;
-const ACCESS_TOKEN_TTL_SECONDS = 60 * 60; // 1h
+const ACCESS_TOKEN_TTL_SECONDS = 60 * 60;
+const textEncoder = new TextEncoder();
+const textDecoder = new TextDecoder();
 
 const admin = () => supabaseAdmin;
 
-// -------------------- RP / origin --------------------
-
 export function getRpConfig() {
-  // Prefer browser's Origin header (this is what WebAuthn signs).
   const origin =
     getRequestHeader("origin") ||
     getRequestHeader("referer") ||
@@ -38,13 +56,12 @@ export function getRpConfig() {
   };
 }
 
-// -------------------- Base64URL helpers --------------------
-
 function toBase64Url(bytes: Uint8Array): string {
   let bin = "";
   for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
   return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
+
 function fromBase64Url(str: string): Uint8Array {
   const pad = str.length % 4 === 0 ? "" : "=".repeat(4 - (str.length % 4));
   const b64 = str.replace(/-/g, "+").replace(/_/g, "/") + pad;
@@ -54,7 +71,258 @@ function fromBase64Url(str: string): Uint8Array {
   return out;
 }
 
-// -------------------- Challenge storage --------------------
+function randomBase64Url(size = 32): string {
+  const bytes = new Uint8Array(size);
+  crypto.getRandomValues(bytes);
+  return toBase64Url(bytes);
+}
+
+async function sha256(data: Uint8Array | string): Promise<Uint8Array> {
+  const input = typeof data === "string" ? textEncoder.encode(data) : data;
+  return new Uint8Array(await crypto.subtle.digest("SHA-256", input as BufferSource));
+}
+
+function concatBytes(...chunks: Uint8Array[]): Uint8Array {
+  const total = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    out.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return out;
+}
+
+function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+  return diff === 0;
+}
+
+function readUint32(bytes: Uint8Array, offset: number): number {
+  return (
+    bytes[offset] * 0x1000000 +
+    ((bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3])
+  );
+}
+
+class CborReader {
+  pos = 0;
+
+  constructor(private readonly bytes: Uint8Array) {}
+
+  read(): unknown {
+    if (this.pos >= this.bytes.length) throw new Error("CBOR data ended early");
+    const initial = this.bytes[this.pos++];
+    const major = initial >> 5;
+    const additional = initial & 0x1f;
+
+    if (major === 0) return this.readLength(additional);
+    if (major === 1) return -1 - this.readLength(additional);
+    if (major === 2) {
+      const length = this.readLength(additional);
+      const end = this.pos + length;
+      if (end > this.bytes.length) throw new Error("Invalid CBOR byte string");
+      const value = this.bytes.slice(this.pos, end);
+      this.pos = end;
+      return value;
+    }
+    if (major === 3) {
+      const length = this.readLength(additional);
+      const end = this.pos + length;
+      if (end > this.bytes.length) throw new Error("Invalid CBOR text string");
+      const value = textDecoder.decode(this.bytes.slice(this.pos, end));
+      this.pos = end;
+      return value;
+    }
+    if (major === 4) {
+      const length = this.readLength(additional);
+      const value: unknown[] = [];
+      for (let i = 0; i < length; i++) value.push(this.read());
+      return value;
+    }
+    if (major === 5) {
+      const length = this.readLength(additional);
+      const map = new Map<unknown, unknown>();
+      for (let i = 0; i < length; i++) map.set(this.read(), this.read());
+      return map;
+    }
+    if (major === 7) {
+      if (additional === 20) return false;
+      if (additional === 21) return true;
+      if (additional === 22) return null;
+      if (additional === 23) return undefined;
+    }
+    throw new Error(`Unsupported CBOR value: major=${major}, additional=${additional}`);
+  }
+
+  private readLength(additional: number): number {
+    if (additional < 24) return additional;
+    if (additional === 24) return this.takeInt(1);
+    if (additional === 25) return this.takeInt(2);
+    if (additional === 26) return this.takeInt(4);
+    if (additional === 27) {
+      const high = this.takeInt(4);
+      const low = this.takeInt(4);
+      const value = high * 0x100000000 + low;
+      if (!Number.isSafeInteger(value)) throw new Error("CBOR integer is too large");
+      return value;
+    }
+    throw new Error("Indefinite CBOR lengths are not supported");
+  }
+
+  private takeInt(length: number): number {
+    if (this.pos + length > this.bytes.length) throw new Error("CBOR data ended early");
+    let value = 0;
+    for (let i = 0; i < length; i++) value = value * 256 + this.bytes[this.pos++];
+    return value;
+  }
+}
+
+function decodeCbor(bytes: Uint8Array): unknown {
+  const reader = new CborReader(bytes);
+  return reader.read();
+}
+
+function decodeCborWithLength(bytes: Uint8Array): { readBytes: number } {
+  const reader = new CborReader(bytes);
+  reader.read();
+  return { readBytes: reader.pos };
+}
+
+function getMapValue<T>(map: unknown, key: string | number): T {
+  if (!(map instanceof Map) || !map.has(key)) throw new Error(`CBOR map is missing ${String(key)}`);
+  return map.get(key) as T;
+}
+
+function parseClientData(args: {
+  encoded: string;
+  expectedType: "webauthn.create" | "webauthn.get";
+  expectedChallenge: string;
+  expectedOrigin: string;
+}): Uint8Array {
+  const bytes = fromBase64Url(args.encoded);
+  const parsed = JSON.parse(textDecoder.decode(bytes)) as {
+    type?: string;
+    challenge?: string;
+    origin?: string;
+    crossOrigin?: boolean;
+  };
+  if (parsed.type !== args.expectedType) throw new Error("Invalid WebAuthn response type");
+  if (parsed.challenge !== args.expectedChallenge) throw new Error("Invalid WebAuthn challenge");
+  if (parsed.origin !== args.expectedOrigin) throw new Error("Invalid WebAuthn origin");
+  if (parsed.crossOrigin === true) throw new Error("Cross-origin WebAuthn responses are not allowed");
+  return bytes;
+}
+
+async function parseAuthenticatorData(authData: Uint8Array, rpID: string) {
+  if (authData.length < 37) throw new Error("Authenticator data is too short");
+  const expectedRpHash = await sha256(rpID);
+  if (!bytesEqual(authData.slice(0, 32), expectedRpHash)) throw new Error("Invalid WebAuthn RP ID");
+  const flags = authData[32];
+  if ((flags & 0x01) !== 0x01) throw new Error("User presence was not verified");
+  return {
+    flags,
+    counter: readUint32(authData, 33),
+  };
+}
+
+function extractRegistrationCredential(authData: Uint8Array) {
+  const flags = authData[32];
+  if ((flags & 0x40) !== 0x40) throw new Error("Registration response has no credential data");
+  let offset = 37 + 16;
+  if (authData.length < offset + 2) throw new Error("Credential data is incomplete");
+  const credentialIdLength = (authData[offset] << 8) | authData[offset + 1];
+  offset += 2;
+  const credentialId = authData.slice(offset, offset + credentialIdLength);
+  offset += credentialIdLength;
+  if (credentialId.length !== credentialIdLength) throw new Error("Credential ID is incomplete");
+  const publicKeySlice = authData.slice(offset);
+  const { readBytes } = decodeCborWithLength(publicKeySlice);
+  return { credentialId, publicKey: publicKeySlice.slice(0, readBytes) };
+}
+
+function readDerLength(bytes: Uint8Array, offset: number): { length: number; offset: number } {
+  const first = bytes[offset++];
+  if (first < 0x80) return { length: first, offset };
+  const count = first & 0x7f;
+  let length = 0;
+  for (let i = 0; i < count; i++) length = length * 256 + bytes[offset++];
+  return { length, offset };
+}
+
+function derToP1363(signature: Uint8Array, size = 32): Uint8Array {
+  if (signature.length === size * 2) return signature;
+  let offset = 0;
+  if (signature[offset++] !== 0x30) throw new Error("Invalid ECDSA signature");
+  const sequence = readDerLength(signature, offset);
+  offset = sequence.offset;
+  void sequence;
+
+  const readInteger = () => {
+    if (signature[offset++] !== 0x02) throw new Error("Invalid ECDSA signature integer");
+    const part = readDerLength(signature, offset);
+    offset = part.offset;
+    let value = signature.slice(offset, offset + part.length);
+    offset += part.length;
+    while (value.length > 0 && value[0] === 0) value = value.slice(1);
+    if (value.length > size) throw new Error("ECDSA signature integer is too long");
+    const out = new Uint8Array(size);
+    out.set(value, size - value.length);
+    return out;
+  };
+
+  return concatBytes(readInteger(), readInteger());
+}
+
+async function importCosePublicKey(cosePublicKey: Uint8Array): Promise<{
+  key: CryptoKey;
+  algorithm: EcdsaParams | RsaHashedImportParams;
+  normalizeSignature: (signature: Uint8Array) => Uint8Array;
+}> {
+  const cose = decodeCbor(cosePublicKey);
+  const kty = getMapValue<number>(cose, 1);
+  const alg = getMapValue<number>(cose, 3);
+
+  if (kty === 2 && alg === -7) {
+    const crv = getMapValue<number>(cose, -1);
+    if (crv !== 1) throw new Error("Only P-256 passkeys are supported");
+    const x = getMapValue<Uint8Array>(cose, -2);
+    const y = getMapValue<Uint8Array>(cose, -3);
+    const key = await crypto.subtle.importKey(
+      "jwk",
+      { kty: "EC", crv: "P-256", x: toBase64Url(x), y: toBase64Url(y), ext: true },
+      { name: "ECDSA", namedCurve: "P-256" },
+      false,
+      ["verify"],
+    );
+    return {
+      key,
+      algorithm: { name: "ECDSA", hash: "SHA-256" },
+      normalizeSignature: (signature) => derToP1363(signature, 32),
+    };
+  }
+
+  if (kty === 3 && alg === -257) {
+    const n = getMapValue<Uint8Array>(cose, -1);
+    const e = getMapValue<Uint8Array>(cose, -2);
+    const key = await crypto.subtle.importKey(
+      "jwk",
+      { kty: "RSA", n: toBase64Url(n), e: toBase64Url(e), alg: "RS256", ext: true },
+      { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+      false,
+      ["verify"],
+    );
+    return {
+      key,
+      algorithm: { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+      normalizeSignature: (signature) => signature,
+    };
+  }
+
+  throw new Error("Unsupported passkey algorithm");
+}
 
 async function storeChallenge(args: {
   challenge: string;
@@ -63,11 +331,7 @@ async function storeChallenge(args: {
   phone?: string | null;
 }) {
   const expiresAt = new Date(Date.now() + CHALLENGE_TTL_SECONDS * 1000).toISOString();
-  // Clean expired for the same scope
-  await admin()
-    .from("webauthn_challenges")
-    .delete()
-    .lt("expires_at", new Date().toISOString());
+  await admin().from("webauthn_challenges").delete().lt("expires_at", new Date().toISOString());
   const { error } = await admin().from("webauthn_challenges").insert({
     challenge: args.challenge,
     purpose: args.purpose,
@@ -95,12 +359,24 @@ async function consumeChallenge(args: {
   const { data, error } = await q.maybeSingle();
   if (error) throw new Error(`Challenge lookup failed: ${error.message}`);
   if (!data) throw new Error("Challenge not found or expired");
-  // Delete this specific challenge
   await admin().from("webauthn_challenges").delete().eq("challenge", data.challenge);
   return data.challenge;
 }
 
-// -------------------- Registration --------------------
+async function findUserIdByPhone(phone: string): Promise<string | null> {
+  const normalized = phone.replace(/^\+/, "");
+  for (let page = 1; page <= 10; page++) {
+    const { data, error } = await admin().auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw new Error(`User lookup failed: ${error.message}`);
+    const match = data.users.find((user) => {
+      const userPhone = user.phone ?? "";
+      return userPhone === phone || userPhone.replace(/^\+/, "") === normalized;
+    });
+    if (match) return match.id;
+    if (data.users.length < 1000) break;
+  }
+  return null;
+}
 
 export async function beginRegistration(userId: string) {
   const rp = getRpConfig();
@@ -112,29 +388,33 @@ export async function beginRegistration(userId: string) {
     .select("credential_id, transports")
     .eq("user_id", userId);
 
-  const options = await generateRegistrationOptions({
-    rpName: rp.rpName,
-    rpID: rp.rpID,
-    userID: new TextEncoder().encode(userId),
-    userName,
-    attestationType: "none",
+  const challenge = randomBase64Url();
+  await storeChallenge({ challenge, purpose: "register", userId });
+
+  return {
+    challenge,
+    rp: { name: rp.rpName, id: rp.rpID },
+    user: {
+      id: toBase64Url(textEncoder.encode(userId)),
+      name: userName,
+      displayName: userName,
+    },
+    pubKeyCredParams: [
+      { type: "public-key", alg: -7 },
+      { type: "public-key", alg: -257 },
+    ],
+    timeout: CHALLENGE_TTL_SECONDS * 1000,
+    attestation: "none",
     authenticatorSelection: {
       residentKey: "preferred",
       userVerification: "preferred",
     },
     excludeCredentials: (existing ?? []).map((c) => ({
       id: c.credential_id,
+      type: "public-key",
       transports: (c.transports as AuthenticatorTransport[]) || undefined,
     })),
-  });
-
-  await storeChallenge({
-    challenge: options.challenge,
-    purpose: "register",
-    userId,
-  });
-
-  return options;
+  };
 }
 
 export async function finishRegistration(args: {
@@ -143,35 +423,28 @@ export async function finishRegistration(args: {
   deviceName?: string;
 }) {
   const rp = getRpConfig();
-  const expectedChallenge = await consumeChallenge({
-    purpose: "register",
-    userId: args.userId,
-  });
+  const expectedChallenge = await consumeChallenge({ purpose: "register", userId: args.userId });
 
-  const verification = await verifyRegistrationResponse({
-    response: args.response,
+  parseClientData({
+    encoded: args.response.response.clientDataJSON,
+    expectedType: "webauthn.create",
     expectedChallenge,
     expectedOrigin: rp.origin,
-    expectedRPID: rp.rpID,
-    requireUserVerification: false,
   });
 
-  if (!verification.verified || !verification.registrationInfo) {
-    throw new Error("Passkey registration failed verification");
-  }
-
-  const { credential } = verification.registrationInfo;
-  const credentialId = credential.id; // base64url
-  const publicKey = toBase64Url(credential.publicKey);
-  const counter = credential.counter ?? 0;
-  const transports = args.response.response.transports ?? [];
+  const attestation = decodeCbor(fromBase64Url(args.response.response.attestationObject));
+  const authData = getMapValue<Uint8Array>(attestation, "authData");
+  await parseAuthenticatorData(authData, rp.rpID);
+  const { credentialId, publicKey } = extractRegistrationCredential(authData);
+  const credentialIdString = toBase64Url(credentialId);
+  if (credentialIdString !== args.response.id) throw new Error("Credential ID mismatch");
 
   const { error } = await admin().from("webauthn_credentials").insert({
     user_id: args.userId,
-    credential_id: credentialId,
-    public_key: publicKey,
-    counter,
-    transports,
+    credential_id: credentialIdString,
+    public_key: toBase64Url(publicKey),
+    counter: readUint32(authData, 33),
+    transports: args.response.response.transports ?? [],
     device_name: args.deviceName ?? null,
   });
   if (error) throw new Error(`Save passkey failed: ${error.message}`);
@@ -179,37 +452,11 @@ export async function finishRegistration(args: {
   return { verified: true };
 }
 
-// -------------------- Authentication (login) --------------------
-
 export async function beginAuthentication(phone: string) {
   const rp = getRpConfig();
+  const userId = await findUserIdByPhone(phone);
 
-  // Find user by phone via admin API
-  const { data: userList } = await admin().auth.admin.listUsers({ perPage: 1 });
-  // listUsers doesn't filter by phone; use SQL via a raw query on auth.users
-  let userId: string | null = null;
-  {
-    const { data } = await admin()
-      .schema("auth" as never)
-      .from("users" as never)
-      .select("id")
-      .eq("phone", phone.replace(/^\+/, ""))
-      .maybeSingle();
-    userId = (data as { id?: string } | null)?.id ?? null;
-    // Supabase sometimes stores phone with or without leading '+'
-    if (!userId) {
-      const { data: d2 } = await admin()
-        .schema("auth" as never)
-        .from("users" as never)
-        .select("id")
-        .eq("phone", phone)
-        .maybeSingle();
-      userId = (d2 as { id?: string } | null)?.id ?? null;
-    }
-  }
-  void userList;
-
-  let credentials: { credential_id: string; transports: string[] }[] = [];
+  let credentials: { credential_id: string; transports: string[] | null }[] = [];
   if (userId) {
     const { data } = await admin()
       .from("webauthn_credentials")
@@ -218,22 +465,20 @@ export async function beginAuthentication(phone: string) {
     credentials = data ?? [];
   }
 
-  const options = await generateAuthenticationOptions({
-    rpID: rp.rpID,
+  const challenge = randomBase64Url();
+  await storeChallenge({ challenge, purpose: "authenticate", phone });
+
+  return {
+    challenge,
+    timeout: CHALLENGE_TTL_SECONDS * 1000,
+    rpId: rp.rpID,
     userVerification: "preferred",
     allowCredentials: credentials.map((c) => ({
       id: c.credential_id,
+      type: "public-key",
       transports: (c.transports as AuthenticatorTransport[]) || undefined,
     })),
-  });
-
-  await storeChallenge({
-    challenge: options.challenge,
-    purpose: "authenticate",
-    phone,
-  });
-
-  return options;
+  };
 }
 
 export async function finishAuthentication(args: {
@@ -241,50 +486,51 @@ export async function finishAuthentication(args: {
   response: AuthenticationResponseJSON;
 }) {
   const rp = getRpConfig();
-  const expectedChallenge = await consumeChallenge({
-    purpose: "authenticate",
-    phone: args.phone,
-  });
+  const expectedChallenge = await consumeChallenge({ purpose: "authenticate", phone: args.phone });
 
-  const credentialId = args.response.id;
   const { data: cred, error: credErr } = await admin()
     .from("webauthn_credentials")
     .select("id, user_id, credential_id, public_key, counter, transports")
-    .eq("credential_id", credentialId)
-    .maybeSingle();
+    .eq("credential_id", args.response.id)
+    .maybeSingle<CredentialRow>();
   if (credErr) throw new Error(`Credential lookup failed: ${credErr.message}`);
   if (!cred) throw new Error("এই ডিভাইসের Passkey রেজিস্টার্ড নেই");
 
-  const verification = await verifyAuthenticationResponse({
-    response: args.response,
+  const clientDataBytes = parseClientData({
+    encoded: args.response.response.clientDataJSON,
+    expectedType: "webauthn.get",
     expectedChallenge,
     expectedOrigin: rp.origin,
-    expectedRPID: rp.rpID,
-    credential: {
-      id: cred.credential_id,
-      publicKey: fromBase64Url(cred.public_key) as unknown as Uint8Array<ArrayBuffer>,
-      counter: Number(cred.counter),
-      transports: (cred.transports as AuthenticatorTransport[]) || undefined,
-    },
-    requireUserVerification: false,
   });
+  const authData = fromBase64Url(args.response.response.authenticatorData);
+  const parsedAuthData = await parseAuthenticatorData(authData, rp.rpID);
+  const signedData = concatBytes(authData, await sha256(clientDataBytes));
+  const verifier = await importCosePublicKey(fromBase64Url(cred.public_key));
+  const signature = verifier.normalizeSignature(fromBase64Url(args.response.response.signature));
 
-  if (!verification.verified) throw new Error("Passkey verification failed");
+  const verified = await crypto.subtle.verify(
+    verifier.algorithm,
+    verifier.key,
+    signature as BufferSource,
+    signedData as BufferSource,
+  );
+  if (!verified) throw new Error("Passkey verification failed");
 
-  // Update counter + last_used
+  const oldCounter = Number(cred.counter ?? 0);
+  if (oldCounter > 0 && parsedAuthData.counter > 0 && parsedAuthData.counter <= oldCounter) {
+    throw new Error("Passkey counter check failed");
+  }
+
   await admin()
     .from("webauthn_credentials")
     .update({
-      counter: verification.authenticationInfo.newCounter,
+      counter: parsedAuthData.counter,
       last_used_at: new Date().toISOString(),
     })
     .eq("id", cred.id);
 
-  // Mint a Supabase session for this user
   return await issueSupabaseSession(cred.user_id);
 }
-
-// -------------------- Supabase session issuance --------------------
 
 async function issueSupabaseSession(userId: string) {
   const secret = process.env.SB_JWT_SIGNING_SECRET;
@@ -299,45 +545,37 @@ async function issueSupabaseSession(userId: string) {
   const now = Math.floor(Date.now() / 1000);
   const sessionId = crypto.randomUUID();
   const nowIso = new Date().toISOString();
-
   const userAgent = getRequestHeader("user-agent") || "passkey";
 
-  // 1) Create session row
-  {
-    const { error } = await admin()
-      .schema("auth" as never)
-      .from("sessions" as never)
-      .insert({
-        id: sessionId,
-        user_id: userId,
-        aal: "aal1",
-        created_at: nowIso,
-        updated_at: nowIso,
-        refreshed_at: nowIso,
-        user_agent: userAgent,
-      } as never);
-    if (error) throw new Error(`Session create failed: ${error.message}`);
-  }
+  const { error: sessionError } = await admin()
+    .schema("auth" as never)
+    .from("sessions" as never)
+    .insert({
+      id: sessionId,
+      user_id: userId,
+      aal: "aal1",
+      created_at: nowIso,
+      updated_at: nowIso,
+      refreshed_at: nowIso,
+      user_agent: userAgent,
+    } as never);
+  if (sessionError) throw new Error(`Session create failed: ${sessionError.message}`);
 
-  // 2) Create refresh_token row
   const refreshToken =
     crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
-  {
-    const { error } = await admin()
-      .schema("auth" as never)
-      .from("refresh_tokens" as never)
-      .insert({
-        token: refreshToken,
-        user_id: userId,
-        session_id: sessionId,
-        revoked: false,
-        created_at: nowIso,
-        updated_at: nowIso,
-      } as never);
-    if (error) throw new Error(`Refresh token create failed: ${error.message}`);
-  }
+  const { error: refreshError } = await admin()
+    .schema("auth" as never)
+    .from("refresh_tokens" as never)
+    .insert({
+      token: refreshToken,
+      user_id: userId,
+      session_id: sessionId,
+      revoked: false,
+      created_at: nowIso,
+      updated_at: nowIso,
+    } as never);
+  if (refreshError) throw new Error(`Refresh token create failed: ${refreshError.message}`);
 
-  // 3) Sign access token JWT
   const payload = {
     iss: `${supabaseUrl.replace(/\/$/, "")}/auth/v1`,
     sub: userId,
@@ -357,7 +595,7 @@ async function issueSupabaseSession(userId: string) {
 
   const accessToken = await new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
-    .sign(new TextEncoder().encode(secret) as unknown as Uint8Array<ArrayBuffer>);
+    .sign(textEncoder.encode(secret));
 
   return {
     access_token: accessToken,
