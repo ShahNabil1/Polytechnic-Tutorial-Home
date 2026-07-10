@@ -80,6 +80,7 @@ export function LinkedAccountsCard() {
       toast.error("সঠিক ১১ ডিজিটের নাম্বার দিন");
       return;
     }
+    if (!(await ensureReauth())) return;
     setPhoneLoading(true);
     try {
       const { error } = await supabase.auth.updateUser({ phone: normalizePhone(phoneRaw) });
