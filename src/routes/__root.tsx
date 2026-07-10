@@ -110,6 +110,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: "https://cdn.jsdelivr.net/gh/maateen/bangla-web-fonts/fonts/SolaimanLipi/solaimanlipi.css",
       },
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap",
+      },
     ],
   }),
   shellComponent: RootShell,
@@ -136,6 +142,20 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const hideFooter = pathname === "/sdash" || pathname.startsWith("/sdash/");
+  const isInternalApp =
+    pathname === "/workspace" ||
+    pathname.startsWith("/workspace/") ||
+    pathname === "/instructor" ||
+    pathname.startsWith("/instructor/");
+
+  if (isInternalApp) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <Outlet />
+        <Toaster richColors position="top-center" />
+      </QueryClientProvider>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>

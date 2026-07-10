@@ -8,28 +8,50 @@ export const Route = createFileRoute("/_authenticated/_internal/workspace/")({
 function WorkspaceHome() {
   const { info } = useRole();
   return (
-    <div className="space-y-4">
-      <div className="rounded-lg border p-6">
-        <h2 className="text-lg font-semibold">স্বাগতম</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          আপনার রোল: <span className="font-medium text-foreground">{info?.primaryRole}</span>
+    <div className="space-y-6">
+      <div>
+        <h1 className="font-display text-3xl font-bold tracking-tight text-slate-900">
+          Welcome back
+        </h1>
+        <p className="mt-1 text-sm font-medium text-slate-500">
+          Manage your workspace, team and access controls from one place.
         </p>
-        {info?.permissions && info.permissions.length > 0 && (
-          <div className="mt-4">
-            <p className="text-sm font-medium">গ্র্যান্টেড পারমিশন:</p>
-            <ul className="mt-1 flex flex-wrap gap-2">
-              {info.permissions.map((p) => (
-                <li key={p} className="rounded-md bg-secondary px-2 py-1 text-xs">
-                  {p}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
       </div>
-      <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
-        এমপ্লয়ি/ইন্সট্রাক্টর ম্যানেজমেন্ট, 2FA সেটআপ, প্রোফাইল ও আরও ফিচার পরবর্তী স্টেপে যোগ হবে।
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+            Your Role
+          </p>
+          <p className="mt-2 font-display text-2xl font-bold tracking-tight text-slate-900 capitalize">
+            {info?.primaryRole?.replace("_", " ")}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+            Permissions
+          </p>
+          <p className="mt-2 font-display text-2xl font-bold tracking-tight text-slate-900">
+            {info?.permissions?.length ?? 0}
+          </p>
+        </div>
       </div>
+
+      {info?.permissions && info.permissions.length > 0 && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-sm font-bold text-slate-900">Granted permissions</p>
+          <ul className="mt-3 flex flex-wrap gap-2">
+            {info.permissions.map((p) => (
+              <li
+                key={p}
+                className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700"
+              >
+                {p}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
