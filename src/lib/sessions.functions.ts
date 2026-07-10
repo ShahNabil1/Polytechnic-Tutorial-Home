@@ -10,39 +10,12 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const MAX_DEVICES = 2;
-
 type ClaimsWithSession = {
   session_id?: string;
   sid?: string;
   sub?: string;
   jti?: string;
 };
-
-/**
- * Resolve a stable identifier for the current auth session. Prefers the JWT
- * `session_id` / `sid` claim (which Supabase includes on modern tokens), and
- * falls back to `jti` so we still register a row on older tokens.
- */
-function currentSessionId(claims: unknown): string {
-  const c = (claims ?? {}) as ClaimsWithSession;
-  const id = c.session_id ?? c.sid ?? c.jti;
-  if (!id) {
-    console.error("[sessions] missing session_id claim; keys=", Object.keys(c));
-    throw new Error("Session claim missing (session_id)");
-  }
-  return id;
-}
-
-function getSessionIdFromClaims(claims: unknown): string {
-  const c = (claims ?? {}) as ClaimsWithSession;
-  const id = c.session_id ?? c.sid ?? c.jti;
-  if (!id) {
-    console.error("[sessions] missing session_id claim; keys=", Object.keys(c));
-    throw new Error("Session claim missing (session_id)");
-  }
-  return id;
-}
 
 
 /**
