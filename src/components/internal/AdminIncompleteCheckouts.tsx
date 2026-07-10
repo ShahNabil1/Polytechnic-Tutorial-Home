@@ -206,6 +206,12 @@ export function AdminIncompleteCheckouts({ search }: { search: string }) {
                           <span className="font-mono font-bold text-slate-800">
                             {formatDhakaDateTime(a.at)}
                           </span>
+                          <OutcomeBadge outcome={a.outcome} />
+                          {a.gateway_ref && (
+                            <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-600">
+                              ref: {a.gateway_ref}
+                            </span>
+                          )}
                           {a.ip && (
                             <span className="inline-flex items-center gap-1 font-mono text-slate-500">
                               <Globe className="size-3" />
@@ -219,6 +225,7 @@ export function AdminIncompleteCheckouts({ search }: { search: string }) {
                             </span>
                           )}
                         </li>
+
                       ))}
                     </ul>
                   </div>
