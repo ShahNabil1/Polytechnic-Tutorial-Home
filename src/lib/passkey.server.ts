@@ -262,7 +262,7 @@ export async function finishAuthentication(args: {
     expectedRPID: rp.rpID,
     credential: {
       id: cred.credential_id,
-      publicKey: fromBase64Url(cred.public_key) as unknown as Uint8Array,
+      publicKey: fromBase64Url(cred.public_key) as unknown as Uint8Array<ArrayBuffer>,
       counter: Number(cred.counter),
       transports: (cred.transports as AuthenticatorTransport[]) || undefined,
     },
