@@ -27,12 +27,12 @@ export function CartDrawer() {
         side="right"
         className="flex w-full flex-col gap-0 p-0 sm:max-w-md"
       >
-        <SheetHeader className="border-b border-border/60 px-6 py-5">
-          <SheetTitle className="flex items-center gap-2 text-lg font-extrabold">
-            <ShoppingBag className="size-5" />
+        <SheetHeader className="border-b border-border/60 px-4 py-4 md:px-6 md:py-5">
+          <SheetTitle className="flex items-center gap-2 pr-8 text-base font-extrabold md:text-lg">
+            <ShoppingBag className="size-4 md:size-5" />
             আপনার কার্ট
             {items.length > 0 && (
-              <span className="ml-auto rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-bold text-brand">
+              <span className="ml-auto rounded-full bg-brand-soft px-2 py-0.5 text-[11px] font-bold text-brand md:text-xs">
                 {toBanglaNumber(items.length)} টি
               </span>
             )}
