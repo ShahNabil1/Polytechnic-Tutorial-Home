@@ -584,31 +584,12 @@ export function AdminOrderDrawer({
             </Section>
 
             {/* Device / Block */}
-            <Section title="Device & Security" icon={ShieldAlert}>
-              <div className="grid gap-2 sm:grid-cols-3">
-                <BlockCard
-                  icon={Globe}
-                  label="IP Address"
-                  value={order.ip || "—"}
-                  onBlock={() => order.ip && block("ip", order.ip)}
-                />
-                <BlockCard
-                  icon={Fingerprint}
-                  label="Fingerprint"
-                  value={order.device_fingerprint || "—"}
-                  onBlock={() => order.device_fingerprint && block("fingerprint", order.device_fingerprint)}
-                />
-                <BlockCard
-                  icon={Phone}
-                  label="Phone"
-                  value={order.customer_phone}
-                  onBlock={() => block("phone", order.customer_phone)}
-                />
-              </div>
-              <p className="mt-2 text-[11px] text-slate-500">
-                Blocked identifiers cannot place new orders. Manage the full blocklist in settings.
-              </p>
-            </Section>
+            <DeviceSecuritySection
+              order={order}
+              fetchBlockStatus={fetchBlockStatus}
+              bulkBlock={bulkBlock}
+              bulkUnblock={bulkUnblock}
+            />
 
             {/* Internal notes */}
             <Section title="Internal Notes (staff only)" icon={StickyNote}>
