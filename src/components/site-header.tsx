@@ -9,6 +9,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AuthDrawer } from "@/components/auth-drawer";
+import { CartDrawer } from "@/components/cart-drawer";
+import { useCartDrawer } from "@/lib/cart-drawer-store";
 
 type NavItem = { to: string; label: string; hash?: boolean };
 
