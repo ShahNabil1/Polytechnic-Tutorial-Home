@@ -159,6 +159,7 @@ export function AdminProductsManager() {
         data: {
           id: draft.id,
           slug: slugify(draft.slug),
+          sku: draft.sku.trim() || null,
           title: draft.title.trim(),
           subtitle: draft.subtitle.trim() || null,
           description: draft.description,
