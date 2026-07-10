@@ -446,7 +446,7 @@ export function AuthDrawer({
       const { error } = await supabase.auth.updateUser({ password });
       if (error) {
         setLoading(false);
-        setFormError(errMsg(error));
+        setFormError(friendlyPasswordError(error));
         return;
       }
       await supabase.auth.signOut();
