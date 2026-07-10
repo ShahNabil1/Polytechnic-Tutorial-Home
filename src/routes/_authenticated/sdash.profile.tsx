@@ -304,7 +304,7 @@ function ProfilePage() {
           <Field label="পূর্ণ নাম *">
             <input
               type="text" value={form.full_name}
-              onChange={(e) => updateField("full_name", e.target.value)}
+              onChange={(e) => updateField("full_name", toEnglishText(e.target.value))}
               className={inputClass} placeholder="আপনার নাম"
               required disabled={locked}
             />
