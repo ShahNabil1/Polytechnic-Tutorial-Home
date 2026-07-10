@@ -506,7 +506,10 @@ export const searchProductsForOrder = createServerFn({ method: "GET" })
       .select("id, title, price, sku, images, og_image_url, is_online_book")
       .eq("is_active", true)
       .limit(20);
-    if (data.q && data.q.trim()) q = q.ilike("title", `%${data.q.trim()}%`);
+    if (data.q && data.q.trim()) {
+      const term = data.q.trim().replace(/[%,]/g, "");
+      q = q.or(`title.ilike.%${term}%,sku.ilike.%${term}%`);
+    }
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     return (rows ?? []).map((r: any) => ({
