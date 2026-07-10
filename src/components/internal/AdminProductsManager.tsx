@@ -42,6 +42,7 @@ type Draft = {
   stock: string;
   is_active: boolean;
   is_featured: boolean;
+  is_online_book: boolean;
 };
 
 const EMPTY_DRAFT: Draft = {
@@ -60,6 +61,7 @@ const EMPTY_DRAFT: Draft = {
   stock: "",
   is_active: true,
   is_featured: false,
+  is_online_book: false,
 };
 
 function slugify(v: string) {
@@ -134,6 +136,7 @@ export function AdminProductsManager() {
       stock: p.stock != null ? String(p.stock) : "",
       is_active: p.isActive ?? true,
       is_featured: p.featured ?? false,
+      is_online_book: p.isOnlineBook ?? false,
     });
     setEditorOpen(true);
   }
@@ -167,6 +170,7 @@ export function AdminProductsManager() {
           stock: draft.stock ? Number(draft.stock) : null,
           is_active: draft.is_active,
           is_featured: draft.is_featured,
+          is_online_book: draft.is_online_book,
         },
       });
       toast.success(draft.id ? "Product updated" : "Product created");
@@ -630,6 +634,20 @@ function ProductEditor({
                   onChange={(e) => setDraft({ ...draft, is_featured: e.target.checked })}
                 />
                 Featured (show on home page)
+              </label>
+              <label className="flex items-start gap-2 rounded-lg border border-indigo-200 bg-indigo-50/50 p-2.5 text-sm font-semibold text-slate-800">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={draft.is_online_book}
+                  onChange={(e) => setDraft({ ...draft, is_online_book: e.target.checked })}
+                />
+                <span>
+                  Online Book
+                  <span className="mt-0.5 block text-[11px] font-medium text-slate-500">
+                    Digital delivery — checkout skips address, email becomes mandatory.
+                  </span>
+                </span>
               </label>
             </div>
           </div>
