@@ -76,14 +76,14 @@ export function CartDrawer() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, x: 30, transition: { duration: 0.2 } }}
                       transition={{ type: "spring", stiffness: 240, damping: 22 }}
-                      className="mb-3 flex gap-3 rounded-2xl border border-border/70 bg-card p-3 last:mb-0"
+                      className="mb-2.5 flex gap-3 rounded-2xl border border-border/70 bg-card p-2.5 last:mb-0 md:p-3"
                     >
                       <Link
                         to="/product/$slug"
                         params={{ slug: item.slug }}
                         onClick={() => setOpen(false)}
                         className={cn(
-                          "grid size-20 shrink-0 place-items-center overflow-hidden rounded-xl bg-gradient-to-br text-3xl shadow-sm",
+                          "grid size-16 shrink-0 place-items-center overflow-hidden rounded-xl bg-gradient-to-br text-2xl shadow-sm md:size-20 md:text-3xl",
                           !item.image &&
                             (item.coverColor ?? "from-slate-200 to-slate-400"),
                         )}
@@ -98,8 +98,8 @@ export function CartDrawer() {
                           <span>{item.coverEmoji ?? "📦"}</span>
                         )}
                       </Link>
-                      <div className="flex flex-1 flex-col justify-between">
-                        <div>
+                      <div className="flex min-w-0 flex-1 flex-col justify-between">
+                        <div className="min-w-0">
                           <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                             {productTypeLabel(item.type)}
                           </p>
@@ -107,26 +107,26 @@ export function CartDrawer() {
                             to="/product/$slug"
                             params={{ slug: item.slug }}
                             onClick={() => setOpen(false)}
-                            className="mt-0.5 line-clamp-2 text-sm font-extrabold leading-snug hover:text-brand"
+                            className="mt-0.5 line-clamp-2 text-[13px] font-extrabold leading-snug hover:text-brand md:text-sm"
                           >
                             {item.title}
                           </Link>
                         </div>
-                        <div className="mt-1 flex items-center justify-between">
+                        <div className="mt-1.5 flex items-center justify-between gap-2">
                           {isDigital ? (
                             <span className="text-[11px] font-bold text-muted-foreground">
                               ডিজিটাল
                             </span>
                           ) : (
-                            <div className="flex items-center gap-0.5 rounded-lg border border-border">
+                            <div className="flex items-center rounded-lg border border-border">
                               <button
                                 onClick={() =>
                                   setQty(item.productId, item.quantity - 1)
                                 }
-                                className="grid size-7 place-items-center hover:bg-secondary"
+                                className="grid size-8 place-items-center hover:bg-secondary active:bg-secondary/70"
                                 aria-label="কমান"
                               >
-                                <Minus className="size-3" />
+                                <Minus className="size-3.5" />
                               </button>
                               <span className="w-7 text-center text-xs font-extrabold tabular-nums">
                                 {toBanglaNumber(item.quantity)}
@@ -135,20 +135,20 @@ export function CartDrawer() {
                                 onClick={() =>
                                   setQty(item.productId, item.quantity + 1)
                                 }
-                                className="grid size-7 place-items-center hover:bg-secondary"
+                                className="grid size-8 place-items-center hover:bg-secondary active:bg-secondary/70"
                                 aria-label="বাড়ান"
                               >
-                                <Plus className="size-3" />
+                                <Plus className="size-3.5" />
                               </button>
                             </div>
                           )}
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-extrabold tabular-nums">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[13px] font-extrabold tabular-nums md:text-sm">
                               {formatBDT(item.price * item.quantity)}
                             </span>
                             <button
                               onClick={() => remove(item.productId)}
-                              className="grid size-7 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                              className="grid size-8 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                               aria-label="বাদ দিন"
                             >
                               <Trash2 className="size-3.5" />
