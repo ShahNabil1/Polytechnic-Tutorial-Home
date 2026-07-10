@@ -66,7 +66,7 @@ function AuthButton() {
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
-          className="hidden items-center gap-1.5 rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand/90 sm:flex"
+          className="inline-flex items-center gap-1.5 rounded-md bg-brand px-2.5 py-1.5 text-xs font-medium text-brand-foreground transition-colors hover:bg-brand/90 sm:px-3 sm:text-sm"
         >
           <UserIcon className="size-4" />
           সাইন ইন
@@ -76,13 +76,13 @@ function AuthButton() {
     );
   }
   return (
-    <div className="hidden items-center gap-2 sm:flex">
+    <div className="flex items-center gap-2">
       <Link
         to="/sdash"
-        className="inline-flex items-center gap-1.5 rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand/90"
+        className="inline-flex items-center gap-1.5 rounded-md bg-brand px-2.5 py-1.5 text-xs font-medium text-brand-foreground transition-colors hover:bg-brand/90 sm:px-3 sm:text-sm"
       >
         <UserIcon className="size-4" />
-        ড্যাশবোর্ড
+        <span className="hidden xs:inline sm:inline">ড্যাশবোর্ড</span>
       </Link>
       <button
         type="button"
@@ -91,7 +91,7 @@ function AuthButton() {
           toast.success("সাইন আউট হয়েছে");
           navigate({ to: "/" });
         }}
-        className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-secondary"
+        className="hidden items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-secondary sm:inline-flex"
         title={user.email ?? user.phone ?? ""}
       >
         <LogOut className="size-4" />
@@ -101,11 +101,17 @@ function AuthButton() {
   );
 }
 
+
 export function SiteHeader() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const items = useCart((s) => s.items);
   const count = items.reduce((s, i) => s + i.quantity, 0);
   const [open, setOpen] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+
+
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/85 backdrop-blur-md">
@@ -173,9 +179,25 @@ export function SiteHeader() {
                 className="py-3 text-sm text-muted-foreground hover:text-foreground"
               />
             ))}
+            {user && (
+              <button
+                type="button"
+                onClick={async () => {
+                  setOpen(false);
+                  await supabase.auth.signOut();
+                  toast.success("সাইন আউট হয়েছে");
+                  navigate({ to: "/" });
+                }}
+                className="flex items-center gap-2 border-t border-border/60 py-3 text-left text-sm text-destructive"
+              >
+                <LogOut className="size-4" />
+                সাইন আউট
+              </button>
+            )}
           </nav>
         </div>
       )}
+
     </header>
   );
 }
