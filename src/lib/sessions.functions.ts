@@ -49,9 +49,10 @@ export const registerSession = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     if (existing) {
+      // Touch metadata but keep any user-renamed device_label intact.
       await supabaseAdmin
         .from("user_sessions")
-        .update({ last_seen_at: new Date().toISOString(), ip, user_agent: ua, device_label: label })
+        .update({ last_seen_at: new Date().toISOString(), ip, user_agent: ua })
         .eq("id", existing.id);
       return { ok: true as const };
     }
