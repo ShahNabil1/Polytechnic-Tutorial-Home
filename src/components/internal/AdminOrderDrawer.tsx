@@ -97,6 +97,7 @@ export function AdminOrderDrawer({
         address_line: order.address_line ?? "",
         note: order.note ?? "",
       });
+      setDeliveryNote(order.note ?? "");
       setItemDraft(items);
     }
   }, [order?.id]);
@@ -111,17 +112,66 @@ export function AdminOrderDrawer({
     queryKey: ["order-product-search", productQuery],
     queryFn: () => searchProducts({ data: { q: productQuery || undefined } }),
     enabled: showSearch,
+    staleTime: 0,
   });
+
+  // Realtime: refetch product search results when any product changes
+  useEffect(() => {
+    if (!showSearch) return;
+    const channel = supabase
+      .channel(`order-drawer-products-${orderId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "products" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["order-product-search"] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [showSearch, orderId, queryClient]);
 
   async function saveCustomer() {
     try {
-      await upCustomer({ data: { id: orderId, patch: customer } });
+      const { note: _note, ...rest } = customer;
+      await upCustomer({ data: { id: orderId, patch: rest } });
       toast.success("Customer details updated");
+      setIsEditingCustomer(false);
       refetch();
       onChanged?.();
     } catch (e: any) {
       toast.error(e.message || "Failed");
     }
+  }
+
+  async function saveDeliveryNote() {
+    try {
+      await upCustomer({ data: { id: orderId, patch: { note: deliveryNote } } });
+      setCustomer((c: any) => ({ ...c, note: deliveryNote }));
+      toast.success("Delivery note saved");
+      refetch();
+      onChanged?.();
+    } catch (e: any) {
+      toast.error(e.message || "Failed");
+    }
+  }
+
+  function cancelCustomerEdit() {
+    if (!order) return;
+    setCustomer({
+      customer_name: order.customer_name,
+      customer_phone: order.customer_phone,
+      alternative_phone: order.alternative_phone ?? "",
+      customer_email: order.customer_email ?? "",
+      division: order.division ?? "",
+      district: order.district ?? "",
+      thana: order.thana ?? "",
+      address_line: order.address_line ?? "",
+      note: order.note ?? "",
+    });
+    setIsEditingCustomer(false);
   }
 
   async function saveItems() {
