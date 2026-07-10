@@ -148,10 +148,18 @@ function CheckoutPage() {
   return (
     <div className="px-4 py-8 md:px-6 md:py-12">
       <div className="mx-auto max-w-5xl">
-        <h1 className="text-2xl font-extrabold tracking-tight md:text-3xl">গেস্ট চেকআউট</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          কোনো অ্যাকাউন্ট খোলার প্রয়োজন নেই — নিচের তথ্য দিয়ে সরাসরি অর্ডার করুন।
-        </p>
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-brand">
+            Secure Checkout
+          </p>
+          <h1 className="mt-2 text-2xl font-extrabold tracking-tight md:text-3xl">
+            You're one step away from your books
+          </h1>
+          <p className="mt-2 text-sm font-semibold text-muted-foreground">
+            Fill in your details below — no account needed. Pay securely with bKash, Nagad, Rocket or card, and we'll take it from there.
+          </p>
+        </div>
+
 
         <form
           onSubmit={onSubmit}
@@ -160,13 +168,10 @@ function CheckoutPage() {
           <div className="space-y-5">
             <section className="rounded-2xl border border-border bg-card p-5">
               <h2 className="text-base font-extrabold">
-                {isPhysical ? "ডেলিভারি ঠিকানা" : "আপনার তথ্য"}
+                {isPhysical ? "Delivery Address" : "Your Details"}
               </h2>
-              <p className="mt-1 text-[11px] text-muted-foreground">
-                {isPhysical
-                  ? "কুরিয়ার আপনার এই ঠিকানায় বই পৌঁছে দেবে।"
-                  : "পেমেন্টের পর ডাউনলোড লিংক এই ইমেইলে পাঠানো হবে।"}
-              </p>
+
+
 
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <Field label="আপনার নাম" required error={errors.name} className="sm:col-span-2">
