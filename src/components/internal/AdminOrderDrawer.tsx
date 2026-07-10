@@ -67,7 +67,9 @@ export function AdminOrderDrawer({
   const upItems = useServerFn(updateOrderItems);
   const upStatus = useServerFn(updateOrderStatus);
   const addNote = useServerFn(addInternalNote);
-  const addBlock = useServerFn(addBlockedIdentifier);
+  const bulkBlock = useServerFn(bulkBlockIdentifiers);
+  const bulkUnblock = useServerFn(bulkUnblockIdentifiers);
+  const fetchBlockStatus = useServerFn(getBlockStatus);
   const searchProducts = useServerFn(searchProductsForOrder);
 
   const { data, isLoading, refetch } = useQuery({
