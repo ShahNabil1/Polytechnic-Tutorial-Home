@@ -112,8 +112,8 @@ const admin = () => {
 
 let dbClient: postgres.Sql | undefined;
 function db() {
-  const dbUrl = readFirstConfiguredSecret("SUPABASE_DB_URL", "DATABASE_URL");
-  if (!dbUrl) throw new Error("SUPABASE_DB_URL is not configured");
+  const dbUrl = readFirstConfiguredSecret("SB_DB_URL", "SUPABASE_DB_URL", "DATABASE_URL");
+  if (!dbUrl) throw new Error("SB_DB_URL is not configured");
   dbClient ??= postgres(dbUrl, {
     max: 1,
     idle_timeout: 20,
