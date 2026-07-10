@@ -117,6 +117,23 @@ export function SessionsCard() {
         </span>
       </div>
 
+      {!loading && otherCount > 0 && (
+        <div className="mb-3 flex flex-col gap-2 rounded-lg border border-border bg-secondary/30 p-3 sm:flex-row sm:items-center sm:justify-between">
+          <span className="text-xs text-muted-foreground">
+            এই ডিভাইস রেখে বাকি {otherCount} টি সেশন থেকে সাইন আউট করুন।
+          </span>
+          <button
+            type="button"
+            onClick={handleRevokeOthers}
+            disabled={revokingOthers}
+            className="inline-flex items-center justify-center gap-1.5 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:opacity-60"
+          >
+            {revokingOthers ? <Loader2 className="size-3.5 animate-spin" /> : <ShieldOff className="size-3.5" />}
+            অন্য সব ডিভাইস থেকে সাইন আউট
+          </button>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex justify-center py-6">
           <Loader2 className="size-5 animate-spin text-muted-foreground" />
