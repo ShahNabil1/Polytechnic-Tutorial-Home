@@ -59,24 +59,24 @@ export function ProductCard({ product }: { product: Product }) {
       </Link>
       <div className="flex flex-1 flex-col">
         {product.subtitle && (
-          <p className="text-xs font-medium text-muted-foreground">
+          <p className="text-xs font-bold text-muted-foreground">
             {product.subtitle}
           </p>
         )}
         <Link
           to="/product/$slug"
           params={{ slug: product.slug }}
-          className="mt-1 text-base font-semibold leading-snug transition-colors hover:text-brand"
+          className="mt-1 text-base font-extrabold leading-snug transition-colors hover:text-brand"
         >
           {product.title}
         </Link>
         <div className="mt-3 flex items-end justify-between">
           <div>
-            <p className="text-lg font-bold tabular-nums">
+            <p className="text-lg font-extrabold tabular-nums">
               {formatBDT(product.price)}
             </p>
             {product.originalPrice && (
-              <p className="text-xs text-muted-foreground line-through tabular-nums">
+              <p className="text-xs font-semibold text-muted-foreground line-through tabular-nums">
                 {formatBDT(product.originalPrice)}
               </p>
             )}
@@ -84,12 +84,13 @@ export function ProductCard({ product }: { product: Product }) {
           <button
             onClick={() => add(product)}
             className="grid size-10 place-items-center rounded-lg bg-foreground text-background transition-colors hover:bg-brand"
-            aria-label="কার্টে যোগ করুন"
+            aria-label="Add To Cart"
           >
             <Plus className="size-4" />
           </button>
         </div>
       </div>
+
     </motion.div>
   );
 }

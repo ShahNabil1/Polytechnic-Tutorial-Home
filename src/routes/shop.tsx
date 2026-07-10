@@ -73,12 +73,13 @@ function ShopPage() {
     <div className="px-4 py-10 md:px-6 md:py-14">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight md:text-4xl">সকল বইসমূহ</h1>
-          <p className="mt-2 text-muted-foreground">
+          <h1 className="text-3xl font-extrabold tracking-tight md:text-4xl">সকল বইসমূহ</h1>
+          <p className="mt-2 font-semibold text-muted-foreground">
             {type ? productTypeLabel(type as ProductType) : "ফিজিক্যাল বই, ই-বুক এবং সুপার সাজেশন"} —
             আপনার প্রয়োজন অনুযায়ী ফিল্টার করুন।
           </p>
         </div>
+
 
         <div className="mb-8 space-y-5 rounded-2xl border border-border bg-card p-5">
           <FilterRow label="প্রোডাক্ট টাইপ">
@@ -142,18 +143,19 @@ function ShopPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-surface p-16 text-center">
-            <p className="text-lg font-semibold">কোনো ফলাফল পাওয়া যায়নি</p>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="text-lg font-extrabold">কোনো ফলাফল পাওয়া যায়নি</p>
+            <p className="mt-2 text-sm font-medium text-muted-foreground">
               অন্য ফিল্টার চেষ্টা করুন অথবা সব ফিল্টার ক্লিয়ার করুন।
             </p>
             <Link
               to="/shop"
               search={{}}
-              className="mt-4 inline-block text-sm font-semibold text-brand hover:underline"
+              className="mt-4 inline-block text-sm font-bold text-brand hover:underline"
             >
               সব ফিল্টার ক্লিয়ার করুন
             </Link>
           </div>
+
         ) : (
           <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
             {filtered.map((p) => (
@@ -169,7 +171,7 @@ function ShopPage() {
 function FilterRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      <p className="mb-2.5 text-xs font-extrabold uppercase tracking-wider text-muted-foreground">
         {label}
       </p>
       <div className="flex flex-wrap gap-2">{children}</div>
@@ -193,9 +195,9 @@ function FilterChip({
       to={to}
       search={search}
       className={cn(
-        "rounded-full px-4 py-1.5 text-sm font-medium transition-all",
+        "rounded-full px-4 py-1.5 text-sm font-bold transition-all",
         active
-          ? "bg-foreground text-background"
+          ? "bg-foreground text-background shadow-md"
           : "bg-secondary text-secondary-foreground hover:bg-secondary/70",
       )}
     >
@@ -203,3 +205,4 @@ function FilterChip({
     </Link>
   );
 }
+
