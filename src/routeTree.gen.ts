@@ -34,6 +34,7 @@ import { Route as AuthenticatedInternalWorkspaceProfileRouteImport } from './rou
 import { Route as AuthenticatedInternalWorkspaceInstructorsRouteImport } from './routes/_authenticated/_internal.workspace.instructors'
 import { Route as AuthenticatedInternalWorkspaceEmployeesRouteImport } from './routes/_authenticated/_internal.workspace.employees'
 import { Route as AuthenticatedInternalInstructorProfileRouteImport } from './routes/_authenticated/_internal.instructor.profile'
+import { Route as AuthenticatedInternalWorkspaceEcommerceIndexRouteImport } from './routes/_authenticated/_internal.workspace.ecommerce.index'
 
 const TermsOfServiceRoute = TermsOfServiceRouteImport.update({
   id: '/terms-of-service',
@@ -168,6 +169,12 @@ const AuthenticatedInternalInstructorProfileRoute =
     path: '/profile',
     getParentRoute: () => AuthenticatedInternalInstructorRoute,
   } as any)
+const AuthenticatedInternalWorkspaceEcommerceIndexRoute =
+  AuthenticatedInternalWorkspaceEcommerceIndexRouteImport.update({
+    id: '/ecommerce/',
+    path: '/ecommerce/',
+    getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -193,6 +200,7 @@ export interface FileRoutesByFullPath {
   '/api/public/sessions/$action': typeof ApiPublicSessionsActionRoute
   '/instructor/': typeof AuthenticatedInternalInstructorIndexRoute
   '/workspace/': typeof AuthenticatedInternalWorkspaceIndexRoute
+  '/workspace/ecommerce/': typeof AuthenticatedInternalWorkspaceEcommerceIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -215,6 +223,7 @@ export interface FileRoutesByTo {
   '/api/public/sessions/$action': typeof ApiPublicSessionsActionRoute
   '/instructor': typeof AuthenticatedInternalInstructorIndexRoute
   '/workspace': typeof AuthenticatedInternalWorkspaceIndexRoute
+  '/workspace/ecommerce': typeof AuthenticatedInternalWorkspaceEcommerceIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -243,6 +252,7 @@ export interface FileRoutesById {
   '/api/public/sessions/$action': typeof ApiPublicSessionsActionRoute
   '/_authenticated/_internal/instructor/': typeof AuthenticatedInternalInstructorIndexRoute
   '/_authenticated/_internal/workspace/': typeof AuthenticatedInternalWorkspaceIndexRoute
+  '/_authenticated/_internal/workspace/ecommerce/': typeof AuthenticatedInternalWorkspaceEcommerceIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -270,6 +280,7 @@ export interface FileRouteTypes {
     | '/api/public/sessions/$action'
     | '/instructor/'
     | '/workspace/'
+    | '/workspace/ecommerce/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -292,6 +303,7 @@ export interface FileRouteTypes {
     | '/api/public/sessions/$action'
     | '/instructor'
     | '/workspace'
+    | '/workspace/ecommerce'
   id:
     | '__root__'
     | '/'
@@ -319,6 +331,7 @@ export interface FileRouteTypes {
     | '/api/public/sessions/$action'
     | '/_authenticated/_internal/instructor/'
     | '/_authenticated/_internal/workspace/'
+    | '/_authenticated/_internal/workspace/ecommerce/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -511,6 +524,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInternalInstructorProfileRouteImport
       parentRoute: typeof AuthenticatedInternalInstructorRoute
     }
+    '/_authenticated/_internal/workspace/ecommerce/': {
+      id: '/_authenticated/_internal/workspace/ecommerce/'
+      path: '/ecommerce'
+      fullPath: '/workspace/ecommerce/'
+      preLoaderRoute: typeof AuthenticatedInternalWorkspaceEcommerceIndexRouteImport
+      parentRoute: typeof AuthenticatedInternalWorkspaceRoute
+    }
   }
 }
 
@@ -537,6 +557,7 @@ interface AuthenticatedInternalWorkspaceRouteChildren {
   AuthenticatedInternalWorkspaceInstructorsRoute: typeof AuthenticatedInternalWorkspaceInstructorsRoute
   AuthenticatedInternalWorkspaceProfileRoute: typeof AuthenticatedInternalWorkspaceProfileRoute
   AuthenticatedInternalWorkspaceIndexRoute: typeof AuthenticatedInternalWorkspaceIndexRoute
+  AuthenticatedInternalWorkspaceEcommerceIndexRoute: typeof AuthenticatedInternalWorkspaceEcommerceIndexRoute
 }
 
 const AuthenticatedInternalWorkspaceRouteChildren: AuthenticatedInternalWorkspaceRouteChildren =
@@ -549,6 +570,8 @@ const AuthenticatedInternalWorkspaceRouteChildren: AuthenticatedInternalWorkspac
       AuthenticatedInternalWorkspaceProfileRoute,
     AuthenticatedInternalWorkspaceIndexRoute:
       AuthenticatedInternalWorkspaceIndexRoute,
+    AuthenticatedInternalWorkspaceEcommerceIndexRoute:
+      AuthenticatedInternalWorkspaceEcommerceIndexRoute,
   }
 
 const AuthenticatedInternalWorkspaceRouteWithChildren =
