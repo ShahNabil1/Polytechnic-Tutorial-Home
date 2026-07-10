@@ -2,7 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
+import { BD_LOCATIONS } from "@/lib/bd-locations";
+
 import {
   X,
   Loader2,
@@ -140,28 +143,73 @@ export function AdminOrderDrawer({
     };
   }, [showSearch, orderId, queryClient]);
 
+  const [savingCustomer, setSavingCustomer] = useState(false);
+  const [savingNote, setSavingNote] = useState(false);
+  const [custErrors, setCustErrors] = useState<Record<string, string>>({});
+
+  function validateCustomer(): Record<string, string> {
+    const errs: Record<string, string> = {};
+    const name = (customer?.customer_name ?? "").trim();
+    if (name.length < 3) errs.customer_name = "Name must be at least 3 characters";
+    if (!/^01[3-9]\d{8}$/.test(customer?.customer_phone ?? ""))
+      errs.customer_phone = "Enter a valid 11-digit BD phone (01XXXXXXXXX)";
+    if (customer?.alternative_phone && !/^01[3-9]\d{8}$/.test(customer.alternative_phone))
+      errs.alternative_phone = "Alternative phone must also be a valid BD phone";
+    const email = (customer?.customer_email ?? "").trim();
+    if (email) {
+      const em = z.string().email().safeParse(email);
+      if (!em.success) errs.customer_email = "Enter a valid email";
+    }
+    if (!isEbookOnly) {
+      if (!customer?.division) errs.division = "Select division";
+      if (!customer?.district) errs.district = "Select district";
+      if (!customer?.thana) errs.thana = "Select thana / upazila";
+      if ((customer?.address_line ?? "").trim().length < 5)
+        errs.address_line = "Address must be at least 5 characters";
+    }
+    return errs;
+  }
+
   async function saveCustomer() {
+    const errs = validateCustomer();
+    setCustErrors(errs);
+    if (Object.keys(errs).length > 0) {
+      toast.error("Please fix the highlighted fields");
+      return;
+    }
+    setSavingCustomer(true);
     try {
       const { note: _note, ...rest } = customer;
       await upCustomer({ data: { id: orderId, patch: rest } });
-      toast.success("Customer details updated");
+      toast.success("Customer details saved");
       setIsEditingCustomer(false);
+      setCustErrors({});
       refetch();
       onChanged?.();
     } catch (e: any) {
-      toast.error(e.message || "Failed");
+      toast.error(e.message || "Failed to save");
+    } finally {
+      setSavingCustomer(false);
     }
   }
 
   async function saveDeliveryNote() {
+    const note = deliveryNote.trim();
+    if (note.length > 500) {
+      toast.error("Delivery note must be under 500 characters");
+      return;
+    }
+    setSavingNote(true);
     try {
-      await upCustomer({ data: { id: orderId, patch: { note: deliveryNote } } });
-      setCustomer((c: any) => ({ ...c, note: deliveryNote }));
-      toast.success("Delivery note saved");
+      await upCustomer({ data: { id: orderId, patch: { note: note || null } } });
+      setCustomer((c: any) => ({ ...c, note }));
+      toast.success(note ? "Delivery note saved" : "Delivery note cleared");
       refetch();
       onChanged?.();
     } catch (e: any) {
-      toast.error(e.message || "Failed");
+      toast.error(e.message || "Failed to save note");
+    } finally {
+      setSavingNote(false);
     }
   }
 
@@ -360,14 +408,28 @@ export function AdminOrderDrawer({
               action={
                 isEditingCustomer ? (
                   <>
-                    <button onClick={cancelCustomerEdit} className="btn-sm">Cancel</button>
-                    <button onClick={saveCustomer} className="btn-sm-primary">
-                      <Save className="size-3.5" /> Save
+                    <button onClick={cancelCustomerEdit} className="btn-sm" disabled={savingCustomer}>
+                      Cancel
+                    </button>
+                    <button
+                      onClick={saveCustomer}
+                      className="btn-sm-primary disabled:opacity-60"
+                      disabled={savingCustomer}
+                    >
+                      {savingCustomer ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <Save className="size-3.5" />
+                      )}
+                      {savingCustomer ? "Saving…" : "Save"}
                     </button>
                   </>
                 ) : (
                   <button
-                    onClick={() => setIsEditingCustomer(true)}
+                    onClick={() => {
+                      setIsEditingCustomer(true);
+                      setCustErrors({});
+                    }}
                     className="btn-sm"
                     title="Edit customer details"
                   >
@@ -377,43 +439,12 @@ export function AdminOrderDrawer({
               }
             >
               {isEditingCustomer ? (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <TextField label="Name" value={customer.customer_name} onChange={(v) => setCustomer({ ...customer, customer_name: v })} />
-                  <TextField
-                    label="Phone"
-                    value={customer.customer_phone}
-                    onChange={(v) => setCustomer({ ...customer, customer_phone: v.replace(/\D/g, "").slice(0, 11) })}
-                    addonRight={
-                      <a href={`tel:${customer.customer_phone}`} className="text-brand hover:opacity-80" title="Call">
-                        <Phone className="size-4" />
-                      </a>
-                    }
-                  />
-                  <TextField
-                    label="Alternative Phone"
-                    value={customer.alternative_phone}
-                    onChange={(v) => setCustomer({ ...customer, alternative_phone: v.replace(/\D/g, "").slice(0, 15) })}
-                    addonRight={
-                      customer.alternative_phone ? (
-                        <a href={`tel:${customer.alternative_phone}`} className="text-brand hover:opacity-80"><Phone className="size-4" /></a>
-                      ) : undefined
-                    }
-                  />
-                  <TextField
-                    label="Email"
-                    value={customer.customer_email}
-                    onChange={(v) => setCustomer({ ...customer, customer_email: v })}
-                    addonRight={<Mail className="size-4 text-slate-400" />}
-                  />
-                  {!isEbookOnly && (
-                    <>
-                      <TextField label="Division" value={customer.division} onChange={(v) => setCustomer({ ...customer, division: v })} />
-                      <TextField label="District" value={customer.district} onChange={(v) => setCustomer({ ...customer, district: v })} />
-                      <TextField label="Thana / Upazila" value={customer.thana} onChange={(v) => setCustomer({ ...customer, thana: v })} />
-                      <TextField className="sm:col-span-2" label="Address (village / area / house / road)" value={customer.address_line} onChange={(v) => setCustomer({ ...customer, address_line: v })} />
-                    </>
-                  )}
-                </div>
+                <CustomerEditForm
+                  customer={customer}
+                  setCustomer={setCustomer}
+                  errors={custErrors}
+                  isEbookOnly={isEbookOnly}
+                />
               ) : (
                 <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
                   <ReadField label="Name" value={customer.customer_name} />
@@ -454,22 +485,27 @@ export function AdminOrderDrawer({
               action={
                 <button
                   onClick={saveDeliveryNote}
-                  className="btn-sm-primary"
-                  disabled={deliveryNote === (customer.note ?? "")}
+                  className="btn-sm-primary disabled:opacity-60"
+                  disabled={savingNote || deliveryNote === (customer.note ?? "")}
                 >
-                  <Save className="size-3.5" /> Save Note
+                  {savingNote ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Save className="size-3.5" />
+                  )}
+                  {savingNote ? "Saving…" : "Save Note"}
                 </button>
               }
             >
               <textarea
                 value={deliveryNote}
-                onChange={(e) => setDeliveryNote(e.target.value)}
-                placeholder="e.g. Deliver by 3 PM, call before arrival, leave with security…"
+                onChange={(e) => setDeliveryNote(e.target.value.slice(0, 500))}
+                placeholder="Optional — e.g. Deliver by 3 PM, call before arrival, leave with security… (sent to Steadfast when provided)"
                 rows={6}
                 className="min-h-[180px] w-full resize-y rounded-lg border border-slate-200 bg-white p-3 text-sm outline-none focus:border-slate-400"
               />
               <p className="mt-1 text-[11px] text-slate-500">
-                {deliveryNote.length}/500 characters
+                {deliveryNote.length}/500 characters · optional, forwarded to Steadfast when set
               </p>
             </Section>
 
@@ -693,6 +729,7 @@ function TextField({
   className,
   placeholder,
   addonRight,
+  error,
 }: {
   label: string;
   value: string;
@@ -700,13 +737,19 @@ function TextField({
   className?: string;
   placeholder?: string;
   addonRight?: React.ReactNode;
+  error?: string;
 }) {
   return (
     <label className={cn("block", className)}>
       <span className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-slate-500">
         {label}
       </span>
-      <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 focus-within:border-slate-400">
+      <div
+        className={cn(
+          "flex items-center gap-2 rounded-lg border bg-white px-3 py-2 focus-within:border-slate-400",
+          error ? "border-rose-400" : "border-slate-200",
+        )}
+      >
         <input
           value={value ?? ""}
           onChange={(e) => onChange(e.target.value)}
@@ -715,9 +758,13 @@ function TextField({
         />
         {addonRight}
       </div>
+      {error && (
+        <span className="mt-1 block text-[11px] font-semibold text-rose-600">{error}</span>
+      )}
     </label>
   );
 }
+
 
 type BlockKind = "ip" | "fingerprint" | "phone";
 
@@ -888,4 +935,165 @@ function DeviceSecuritySection({
     </Section>
   );
 }
+
+function CustomerEditForm({
+  customer,
+  setCustomer,
+  errors,
+  isEbookOnly,
+}: {
+  customer: any;
+  setCustomer: (v: any) => void;
+  errors: Record<string, string>;
+  isEbookOnly: boolean;
+}) {
+  const districts = useMemo(
+    () => BD_LOCATIONS.find((d) => d.name === customer.division)?.districts ?? [],
+    [customer.division],
+  );
+  const upazilas = useMemo(
+    () => districts.find((d) => d.name === customer.district)?.upazilas ?? [],
+    [districts, customer.district],
+  );
+
+  const selectCls =
+    "w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none focus:border-slate-400";
+  const cls = (hasError: boolean) =>
+    cn(selectCls, hasError ? "border-rose-400" : "border-slate-200");
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      <TextField
+        label="Name *"
+        value={customer.customer_name}
+        onChange={(v) => setCustomer({ ...customer, customer_name: v.slice(0, 100) })}
+        error={errors.customer_name}
+      />
+      <TextField
+        label="Phone *"
+        value={customer.customer_phone}
+        onChange={(v) => setCustomer({ ...customer, customer_phone: v.replace(/\D/g, "").slice(0, 11) })}
+        placeholder="01XXXXXXXXX"
+        error={errors.customer_phone}
+        addonRight={
+          <a href={`tel:${customer.customer_phone}`} className="text-brand hover:opacity-80" title="Call">
+            <Phone className="size-4" />
+          </a>
+        }
+      />
+      <TextField
+        label="Alternative Phone"
+        value={customer.alternative_phone}
+        onChange={(v) => setCustomer({ ...customer, alternative_phone: v.replace(/\D/g, "").slice(0, 11) })}
+        placeholder="Optional"
+        error={errors.alternative_phone}
+        addonRight={
+          customer.alternative_phone ? (
+            <a href={`tel:${customer.alternative_phone}`} className="text-brand hover:opacity-80">
+              <Phone className="size-4" />
+            </a>
+          ) : undefined
+        }
+      />
+      <TextField
+        label="Email"
+        value={customer.customer_email}
+        onChange={(v) => setCustomer({ ...customer, customer_email: v.slice(0, 200) })}
+        placeholder="Optional"
+        error={errors.customer_email}
+        addonRight={<Mail className="size-4 text-slate-400" />}
+      />
+      {!isEbookOnly && (
+        <>
+          <label className="block">
+            <span className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              Division *
+            </span>
+            <select
+              value={customer.division ?? ""}
+              onChange={(e) =>
+                setCustomer({ ...customer, division: e.target.value, district: "", thana: "" })
+              }
+              className={cls(!!errors.division)}
+            >
+              <option value="">Select division…</option>
+              {BD_LOCATIONS.map((d) => (
+                <option key={d.name} value={d.name}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+            {errors.division && (
+              <span className="mt-1 block text-[11px] font-semibold text-rose-600">{errors.division}</span>
+            )}
+          </label>
+
+          <label className="block">
+            <span className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              District *
+            </span>
+            <select
+              value={customer.district ?? ""}
+              onChange={(e) => setCustomer({ ...customer, district: e.target.value, thana: "" })}
+              disabled={!customer.division}
+              className={cn(cls(!!errors.district), "disabled:opacity-50")}
+            >
+              <option value="">Select district…</option>
+              {districts.map((d) => (
+                <option key={d.name} value={d.name}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+            {errors.district && (
+              <span className="mt-1 block text-[11px] font-semibold text-rose-600">{errors.district}</span>
+            )}
+          </label>
+
+          <label className="block sm:col-span-2">
+            <span className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              Thana / Upazila *
+            </span>
+            <select
+              value={customer.thana ?? ""}
+              onChange={(e) => setCustomer({ ...customer, thana: e.target.value })}
+              disabled={!customer.district}
+              className={cn(cls(!!errors.thana), "disabled:opacity-50")}
+            >
+              <option value="">Select thana / upazila…</option>
+              {upazilas.map((u) => (
+                <option key={u} value={u}>
+                  {u}
+                </option>
+              ))}
+            </select>
+            {errors.thana && (
+              <span className="mt-1 block text-[11px] font-semibold text-rose-600">{errors.thana}</span>
+            )}
+          </label>
+
+          <label className="block sm:col-span-2">
+            <span className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              Address (village / area / house / road) *
+            </span>
+            <textarea
+              value={customer.address_line ?? ""}
+              onChange={(e) => setCustomer({ ...customer, address_line: e.target.value.slice(0, 250) })}
+              placeholder="Village, road, landmark…"
+              rows={2}
+              className={cn(
+                "w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none focus:border-slate-400",
+                errors.address_line ? "border-rose-400" : "border-slate-200",
+              )}
+            />
+            {errors.address_line && (
+              <span className="mt-1 block text-[11px] font-semibold text-rose-600">{errors.address_line}</span>
+            )}
+          </label>
+        </>
+      )}
+    </div>
+  );
+}
+
 
