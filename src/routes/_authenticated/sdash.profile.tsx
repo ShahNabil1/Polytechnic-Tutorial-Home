@@ -47,8 +47,10 @@ const EMPTY_FORM: FormState = {
 function ProfilePage() {
   const { user } = useAuth();
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [savedForm, setSavedForm] = useState<FormState>(EMPTY_FORM);
   const [studentId, setStudentId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadPct, setUploadPct] = useState(0);
