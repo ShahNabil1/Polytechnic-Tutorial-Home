@@ -24,6 +24,7 @@ import {
 } from "@/lib/products.functions";
 import type { Product, ProductImage } from "@/lib/products";
 import { formatBDT } from "@/lib/format";
+import { AdminBundlesManager } from "@/components/internal/AdminBundlesManager";
 
 type Draft = {
   id?: string;
@@ -87,6 +88,7 @@ export function AdminProductsManager() {
   const [loading, setLoading] = useState(true);
   const [editorOpen, setEditorOpen] = useState(false);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
+  const [tab, setTab] = useState<"products" | "bundles">("products");
 
   async function refresh() {
     setLoading(true);
@@ -204,20 +206,46 @@ export function AdminProductsManager() {
             E-Commerce
           </p>
           <h1 className="mt-1 font-display text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
-            Products
+            {tab === "products" ? "Products" : "Bundle Products"}
           </h1>
           <p className="mt-2 max-w-xl text-sm font-medium text-slate-500">
-            Add, edit and delete every product that appears on the public shop.
+            {tab === "products"
+              ? "Add, edit and delete every product that appears on the public shop."
+              : "Combine 2 or more existing products into a special bundle with its own price and SEO metadata."}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={openCreate}
-          className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-slate-900/20 hover:bg-slate-800"
-        >
-          <Plus className="size-4" /> Add Product
-        </button>
+        {tab === "products" && (
+          <button
+            type="button"
+            onClick={openCreate}
+            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-slate-900/20 hover:bg-slate-800"
+          >
+            <Plus className="size-4" /> Add Product
+          </button>
+        )}
       </div>
+
+      <div className="flex gap-2 border-b border-slate-200">
+        {(["products", "bundles"] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            className={
+              tab === t
+                ? "border-b-2 border-slate-900 px-4 py-2 text-sm font-bold text-slate-900"
+                : "border-b-2 border-transparent px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-800"
+            }
+          >
+            {t === "products" ? "Products" : "Bundle Products"}
+          </button>
+        ))}
+      </div>
+
+      {tab === "bundles" ? (
+        <AdminBundlesManager products={products} />
+      ) : (
+
 
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         {loading ? (
