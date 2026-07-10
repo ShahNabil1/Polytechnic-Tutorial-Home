@@ -142,6 +142,8 @@ export function AdminIncompleteCheckouts({ search }: { search: string }) {
                       <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-extrabold text-amber-800">
                         {r.attempt_count} attempt{r.attempt_count === 1 ? "" : "s"}
                       </span>
+                      <OutcomeBadge outcome={r.last_outcome} />
+
                     </div>
 
                     {(r.address_line || r.thana || r.district || r.division) && (
