@@ -79,10 +79,10 @@ export function AdminOrdersManager() {
       {isIncomplete ? (
         <AdminIncompleteCheckouts search={search} />
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        <div className="overflow-hidden rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/60 via-white to-sky-50/60 shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              <thead className="bg-gradient-to-r from-indigo-100/70 to-sky-100/70 text-left text-[11px] font-bold uppercase tracking-wider text-indigo-900/70">
                 <tr>
                   <th className="px-4 py-3">Order</th>
                   <th className="px-4 py-3">Created (Asia/Dhaka)</th>
@@ -92,11 +92,11 @@ export function AdminOrdersManager() {
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-indigo-100/70">
                 {isLoading ? (
                   <tr>
                     <td colSpan={6} className="px-4 py-10 text-center">
-                      <Loader2 className="mx-auto size-5 animate-spin text-slate-400" />
+                      <Loader2 className="mx-auto size-5 animate-spin text-indigo-400" />
                     </td>
                   </tr>
                 ) : orders.length === 0 ? (
@@ -107,43 +107,45 @@ export function AdminOrdersManager() {
                   </tr>
                 ) : (
                   orders.map((o: any) => (
-                    <tr key={o.id} className="hover:bg-slate-50">
-                      <td className="px-4 py-3">
+                    <tr key={o.id} className="transition-colors hover:bg-indigo-50/60">
+                      <td className="px-4 py-3.5 align-top">
                         <p className="font-mono text-sm font-extrabold text-slate-900">{o.order_no}</p>
-                        <p className="text-[11px] text-slate-500">
+                        <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-indigo-500">
                           {o.order_type} · {o.payment_status}
                         </p>
                       </td>
-                      <td className="px-4 py-3 text-xs font-semibold text-slate-700">
+                      <td className="px-4 py-3.5 align-top text-xs font-semibold text-slate-700">
                         {formatDhakaDateTime(o.created_at)}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3.5 align-top">
                         <p className="font-semibold text-slate-900">{o.customer_name}</p>
                         <a
                           href={`tel:${o.customer_phone}`}
-                          className="mt-0.5 inline-flex items-center gap-1 font-mono text-xs font-bold text-brand hover:underline"
+                          className="mt-1 inline-flex items-center gap-1 rounded-md bg-brand/10 px-1.5 py-0.5 font-mono text-xs font-bold text-brand hover:bg-brand/15"
                         >
                           <Phone className="size-3" />
                           {o.customer_phone}
                         </a>
                       </td>
-                      <td className="px-4 py-3">
-                        <p className="inline-flex items-center gap-1 font-mono text-[11px] text-slate-600">
-                          <Globe className="size-3" />
-                          {o.ip || "—"}
-                        </p>
-                        <p className="mt-0.5 inline-flex max-w-[180px] items-center gap-1 truncate font-mono text-[11px] text-slate-500">
-                          <Fingerprint className="size-3 shrink-0" />
-                          <span className="truncate">{o.device_fingerprint || "—"}</span>
-                        </p>
+                      <td className="px-4 py-3.5 align-top">
+                        <div className="flex flex-col gap-1">
+                          <span className="inline-flex w-fit items-center gap-1.5 rounded-md bg-sky-100/70 px-2 py-0.5 font-mono text-[11px] font-semibold text-sky-800">
+                            <Globe className="size-3" />
+                            {o.ip || "—"}
+                          </span>
+                          <span className="inline-flex w-fit max-w-[220px] items-center gap-1.5 truncate rounded-md bg-violet-100/60 px-2 py-0.5 font-mono text-[11px] font-semibold text-violet-800">
+                            <Fingerprint className="size-3 shrink-0" />
+                            <span className="truncate">{o.device_fingerprint || "—"}</span>
+                          </span>
+                        </div>
                       </td>
-                      <td className="px-4 py-3 text-right font-mono text-sm font-extrabold text-slate-900">
+                      <td className="px-4 py-3.5 align-top text-right font-mono text-sm font-extrabold text-slate-900">
                         {formatBDT(Number(o.total_bdt))}
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3.5 align-top text-right">
                         <button
                           onClick={() => setOpenId(o.id)}
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-bold text-white hover:bg-slate-800"
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-sky-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:from-indigo-700 hover:to-sky-700"
                         >
                           <Eye className="size-3.5" /> View
                         </button>
