@@ -282,7 +282,9 @@ function CheckoutPage() {
         sessionStorage.setItem("order:last", orderNo);
       } catch {}
       resetIncompleteCapture();
+      clearStashedSnapshot();
       clear();
+
       navigate({
         to: "/checkout/success",
         search: { order: orderNo, digital: isPhysical ? undefined : 1 },
