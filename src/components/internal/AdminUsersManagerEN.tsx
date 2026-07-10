@@ -1,31 +1,55 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Loader2, Search, UserPlus, ShieldOff, ShieldCheck, UserMinus, IdCard } from "lucide-react";
+import {
+  Loader2,
+  UserPlus,
+  ShieldOff,
+  ShieldCheck,
+  UserMinus,
+  IdCard,
+  Eye,
+  EyeOff,
+  RefreshCw,
+} from "lucide-react";
 import {
   listInternalUsers,
-  findUserByPhoneOrEmail,
-  assignInternalRole,
+  createInternalUser,
   revokeInternalRole,
   setInternalUserActive,
   type AdminUserRow,
 } from "@/lib/admin-users.functions";
-import { toEnglishText } from "@/lib/input-filter";
+
+type FormState = {
+  full_name: string;
+  email: string;
+  phone: string;
+  password: string;
+};
+
+const EMPTY_FORM: FormState = { full_name: "", email: "", phone: "", password: "" };
+
+function generatePassword(len = 14) {
+  const chars =
+    "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*";
+  let out = "";
+  const arr = new Uint32Array(len);
+  crypto.getRandomValues(arr);
+  for (let i = 0; i < len; i++) out += chars[arr[i] % chars.length];
+  return out;
+}
 
 export function AdminUsersManagerEN({ role }: { role: "employee" | "instructor" }) {
   const list = useServerFn(listInternalUsers);
-  const findUser = useServerFn(findUserByPhoneOrEmail);
-  const assign = useServerFn(assignInternalRole);
+  const createUser = useServerFn(createInternalUser);
   const revoke = useServerFn(revokeInternalRole);
   const setActive = useServerFn(setInternalUserActive);
 
   const [rows, setRows] = useState<AdminUserRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [query, setQuery] = useState("");
-  const [searching, setSearching] = useState(false);
-  const [candidates, setCandidates] = useState<
-    Array<{ id: string; full_name: string | null; phone: string | null; email: string | null }>
-  >([]);
+  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [showPw, setShowPw] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   async function refresh() {
@@ -43,32 +67,31 @@ export function AdminUsersManagerEN({ role }: { role: "employee" | "instructor" 
     refresh();
   }, [role]);
 
-  async function search() {
-    if (query.trim().length < 3) return toast.error("Enter at least 3 characters");
-    setSearching(true);
-    try {
-      const res = await findUser({ data: { query: query.trim() } });
-      setCandidates(res);
-      if (res.length === 0) toast.info("No users found");
-    } catch (e) {
-      toast.error("Search failed: " + (e instanceof Error ? e.message : String(e)));
-    } finally {
-      setSearching(false);
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.full_name.trim() || !form.email.trim() || !form.phone.trim() || form.password.length < 8) {
+      toast.error("Fill all fields. Password must be at least 8 characters.");
+      return;
     }
-  }
-
-  async function assignUser(userId: string) {
-    setBusyId(userId);
+    setSubmitting(true);
     try {
-      await assign({ data: { user_id: userId, role } });
-      toast.success(role === "employee" ? "Added as employee" : "Added as instructor");
-      setCandidates([]);
-      setQuery("");
+      await createUser({
+        data: {
+          full_name: form.full_name.trim(),
+          email: form.email.trim().toLowerCase(),
+          phone: form.phone.trim(),
+          password: form.password,
+          role,
+        },
+      });
+      toast.success(role === "employee" ? "Employee created" : "Instructor created");
+      setForm(EMPTY_FORM);
+      setShowPw(false);
       await refresh();
-    } catch (e) {
-      toast.error("Failed to add: " + (e instanceof Error ? e.message : String(e)));
+    } catch (err) {
+      toast.error("Create failed: " + (err instanceof Error ? err.message : String(err)));
     } finally {
-      setBusyId(null);
+      setSubmitting(false);
     }
   }
 
@@ -109,64 +132,97 @@ export function AdminUsersManagerEN({ role }: { role: "employee" | "instructor" 
           {labelPlural}
         </h1>
         <p className="mt-1 text-sm font-medium text-slate-500">
-          Assign, revoke and manage {labelPlural.toLowerCase()} access.
+          Create, revoke and manage {labelPlural.toLowerCase()} accounts. Public sign-up is disabled for this role.
         </p>
       </div>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="mb-1 flex items-center gap-2 font-display text-base font-bold tracking-tight">
-          <UserPlus className="size-4 text-indigo-600" /> Add a new {label}
+          <UserPlus className="size-4 text-indigo-600" /> Create a new {label}
         </h2>
-        <p className="mb-3 text-xs font-medium text-slate-500">
-          The user must have signed up already. Search by phone or email and add them.
+        <p className="mb-4 text-xs font-medium text-slate-500">
+          The email you set becomes the primary account ID (used for Google sign-in and 2FA recovery). The user will be asked to change the password and complete their profile on first login.
         </p>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <input
-            value={query}
-            onChange={(e) => setQuery(toEnglishText(e.target.value))}
-            onKeyDown={(e) => e.key === "Enter" && search()}
-            placeholder="Phone (880...) or email"
-            className="flex-1 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500"
-          />
-          <button
-            type="button"
-            onClick={search}
-            disabled={searching}
-            className="inline-flex items-center gap-2 rounded-md bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-60"
-          >
-            {searching ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}
-            Search
-          </button>
-        </div>
-        {candidates.length > 0 && (
-          <ul className="mt-4 divide-y divide-slate-200 rounded-lg border border-slate-200">
-            {candidates.map((c) => (
-              <li key={c.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold text-slate-900">
-                    {c.full_name || "(no name)"}
-                  </div>
-                  <div className="text-xs font-medium text-slate-500">
-                    {c.phone || c.email || c.id}
-                  </div>
-                </div>
+        <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2">
+          <label className="flex flex-col gap-1 text-xs font-semibold text-slate-700">
+            Full name
+            <input
+              value={form.full_name}
+              onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
+              placeholder="Jane Doe"
+              autoComplete="off"
+              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900 outline-none focus:border-indigo-500"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-semibold text-slate-700">
+            Email (primary ID)
+            <input
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+              placeholder="name@example.com"
+              autoComplete="off"
+              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900 outline-none focus:border-indigo-500"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-semibold text-slate-700">
+            Phone
+            <input
+              value={form.phone}
+              onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value.replace(/[^\d+]/g, "") }))}
+              placeholder="8801XXXXXXXXX"
+              autoComplete="off"
+              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900 outline-none focus:border-indigo-500"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-semibold text-slate-700">
+            Initial password
+            <div className="flex items-stretch gap-2">
+              <div className="relative flex-1">
+                <input
+                  type={showPw ? "text" : "password"}
+                  value={form.password}
+                  onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                  placeholder="At least 8 characters"
+                  autoComplete="new-password"
+                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 pr-9 text-sm font-normal text-slate-900 outline-none focus:border-indigo-500"
+                />
                 <button
                   type="button"
-                  onClick={() => assignUser(c.id)}
-                  disabled={busyId === c.id}
-                  className="inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-3 py-1.5 text-xs font-bold text-white hover:bg-slate-800 disabled:opacity-60"
+                  onClick={() => setShowPw((v) => !v)}
+                  className="absolute inset-y-0 right-2 grid place-items-center text-slate-500 hover:text-slate-800"
+                  aria-label={showPw ? "Hide password" : "Show password"}
                 >
-                  {busyId === c.id ? (
-                    <Loader2 className="size-3.5 animate-spin" />
-                  ) : (
-                    <UserPlus className="size-3.5" />
-                  )}
-                  Add
+                  {showPw ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
-              </li>
-            ))}
-          </ul>
-        )}
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setForm((f) => ({ ...f, password: generatePassword() }));
+                  setShowPw(true);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 text-xs font-bold text-slate-700 hover:bg-slate-50"
+              >
+                <RefreshCw className="size-3.5" /> Generate
+              </button>
+            </div>
+          </label>
+          <div className="sm:col-span-2 flex justify-end">
+            <button
+              type="submit"
+              disabled={submitting}
+              className="inline-flex items-center gap-2 rounded-md bg-slate-900 px-5 py-2 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-60"
+            >
+              {submitting ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <UserPlus className="size-4" />
+              )}
+              Create {label}
+            </button>
+          </div>
+        </form>
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -218,7 +274,7 @@ export function AdminUsersManagerEN({ role }: { role: "employee" | "instructor" 
                       )}
                     </div>
                     <div className="text-xs font-medium text-slate-500">
-                      {r.phone || r.email}
+                      {r.email || r.phone}
                     </div>
                   </div>
                 </div>

@@ -203,3 +203,62 @@ export const setInternalUserActive = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+export const createInternalUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        full_name: z.string().trim().min(2).max(120),
+        email: z.string().trim().toLowerCase().email(),
+        phone: z
+          .string()
+          .trim()
+          .regex(/^\+?[0-9]{10,15}$/u, "Invalid phone number"),
+        password: z.string().min(8).max(128),
+        role: z.enum(["employee", "instructor"]),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: isSuperAdmin, error: roleError } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "super_admin",
+    });
+    if (roleError) throw new Error(roleError.message);
+    if (isSuperAdmin !== true) throw new Error("Forbidden: super_admin only");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const phone = data.phone.startsWith("+") ? data.phone.slice(1) : data.phone;
+
+    const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+      email: data.email,
+      phone,
+      password: data.password,
+      email_confirm: true,
+      phone_confirm: true,
+      user_metadata: { full_name: data.full_name },
+    });
+    if (createErr || !created?.user) {
+      throw new Error(createErr?.message || "Failed to create user");
+    }
+    const newUserId = created.user.id;
+
+    // Ensure profile row reflects provided details (trigger inserts a base row).
+    await supabaseAdmin
+      .from("profiles")
+      .update({ full_name: data.full_name, email: data.email, phone } as never)
+      .eq("id", newUserId);
+
+    // Remove default 'student' role assigned by trigger for internal accounts.
+    await supabaseAdmin.from("user_roles").delete().eq("user_id", newUserId).eq("role", "student");
+
+    const { error: assignErr } = await supabaseAdmin
+      .from("user_roles")
+      .insert({ user_id: newUserId, role: data.role, assigned_by: context.userId } as never);
+    if (assignErr && !assignErr.message.includes("duplicate")) {
+      throw new Error(assignErr.message);
+    }
+
+    return { ok: true, user_id: newUserId };
+  });
