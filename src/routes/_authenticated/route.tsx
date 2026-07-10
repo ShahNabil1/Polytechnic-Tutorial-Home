@@ -53,5 +53,10 @@ function AuthenticatedLayout() {
     );
   }
 
-  return <Outlet />;
+  return (
+    <>
+      <Outlet />
+      <SessionEnforcer />
+    </>
+  );
 }
