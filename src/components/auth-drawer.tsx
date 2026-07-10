@@ -334,6 +334,14 @@ export function AuthDrawer({
         }
         setLoading(false);
         toast.success("একাউন্ট তৈরি হয়েছে");
+        if (rememberPasskey && isPasskeySupported()) {
+          try {
+            await registerPasskey();
+            toast.success("Passkey সেভ হয়েছে");
+          } catch (e) {
+            toast.error("Passkey সেভ করা যায়নি: " + errMsg(e));
+          }
+        }
         resetAll();
         onOpenChange(false);
       } else {
