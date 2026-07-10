@@ -117,11 +117,22 @@ export function SessionEnforcer() {
     await supabase.auth.signOut();
   }
 
+  useEffect(() => {
+    if (!choice) return;
+    const prev = document.body.style.overflow;
+    document.body.classList.add("no-scroll");
+    return () => {
+      document.body.classList.remove("no-scroll");
+      document.body.style.overflow = prev;
+    };
+  }, [choice]);
+
   if (!choice) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-contain bg-black/60 p-4" style={{ height: "100dvh" }}>
       <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl">
+
         <h2 className="text-lg font-semibold">২ ডিভাইসের সীমা</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           আপনি ইতোমধ্যে ২ ডিভাইসে সাইন-ইন আছেন। এই ডিভাইসে সাইন-ইন করতে হলে
