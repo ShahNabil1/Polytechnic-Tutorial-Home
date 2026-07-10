@@ -203,6 +203,7 @@ export function SiteHeader() {
         </div>
       )}
 
+      <CartDrawer />
     </header>
   );
 }
