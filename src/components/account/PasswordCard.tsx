@@ -33,26 +33,16 @@ export function PasswordCard() {
     if (next.length < 6) return toast.error("পাসওয়ার্ড কমপক্ষে ৬ ক্যারেক্টার হতে হবে");
     if (next !== confirm) return toast.error("পাসওয়ার্ড দুটো মিলছে না");
 
+    if (hasPassword) {
+      // Step-up: verify current password / passkey via shared dialog.
+      if (!(await ensureReauth())) return;
+    } else if (!phone) {
+      toast.error("পাসওয়ার্ড সেট করার আগে ফোন নাম্বার লিংক করুন");
+      return;
+    }
+
     setSaving(true);
     try {
-      if (hasPassword) {
-        // Reauth first
-        const reauth = phone
-          ? await supabase.auth.signInWithPassword({ phone, password: current })
-          : email
-            ? await supabase.auth.signInWithPassword({ email, password: current })
-            : null;
-        if (!reauth || reauth.error) {
-          toast.error("বর্তমান পাসওয়ার্ড ভুল");
-          setSaving(false);
-          return;
-        }
-      } else if (!phone) {
-        toast.error("পাসওয়ার্ড সেট করার আগে ফোন নাম্বার লিংক করুন");
-        setSaving(false);
-        return;
-      }
-
       const { error } = await supabase.auth.updateUser({ password: next });
       if (error) throw error;
       toast.success(hasPassword ? "পাসওয়ার্ড আপডেট হয়েছে" : "পাসওয়ার্ড সেট হয়েছে");
@@ -60,6 +50,9 @@ export function PasswordCard() {
       setNext("");
       setConfirm("");
       setHasPassword(true);
+      // Password just changed — invalidate stored reauth so the next
+      // sensitive action re-prompts with the new credential.
+      clearReauth();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
     } finally {
