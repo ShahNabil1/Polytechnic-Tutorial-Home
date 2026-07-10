@@ -258,7 +258,7 @@ function CheckoutPage() {
                       <textarea
                         value={form.address}
                         onChange={update("address")}
-                        placeholder="যেমনঃ গ্রাম — বড়বাড়ি, বাসা #১২, রোড #৩, ল্যান্ডমার্কঃ মসজিদের পাশে"
+                        placeholder="বাসা/গ্রাম, রোড, ল্যান্ডমার্ক লিখুন"
                         className="input h-20 resize-none"
                       />
                     </Field>
