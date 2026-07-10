@@ -22,6 +22,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { AlertCircle, CheckCircle2, Eye, EyeOff, KeyRound } from "lucide-react";
+import { isPasskeySupported, registerPasskey, signInWithPasskey } from "@/lib/passkey-client";
 
 type Tab = "login" | "signup";
 type Stage = "form" | "otp" | "reset";
