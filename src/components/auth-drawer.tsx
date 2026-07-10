@@ -155,6 +155,9 @@ export function AuthDrawer({
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [otp, setOtp] = useState("");
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
+  const [mfaChallengeId, setMfaChallengeId] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
