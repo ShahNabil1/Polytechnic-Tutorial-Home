@@ -80,6 +80,9 @@ export function AdminOrderDrawer({
   const [noteBody, setNoteBody] = useState("");
   const [productQuery, setProductQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
+  const [isEditingCustomer, setIsEditingCustomer] = useState(false);
+  const [deliveryNote, setDeliveryNote] = useState("");
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (order) {
