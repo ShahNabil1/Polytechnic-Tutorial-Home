@@ -15,9 +15,15 @@ import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as AboutRouteImport } from './routes/about'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as CheckoutSuccessRouteImport } from './routes/checkout.success'
+import { Route as AuthenticatedSdashRouteImport } from './routes/_authenticated/sdash'
+import { Route as AuthenticatedSdashIndexRouteImport } from './routes/_authenticated/sdash.index'
+import { Route as AuthenticatedSdashShopRouteImport } from './routes/_authenticated/sdash.shop'
+import { Route as AuthenticatedSdashProfileRouteImport } from './routes/_authenticated/sdash.profile'
+import { Route as AuthenticatedSdashCoursesRouteImport } from './routes/_authenticated/sdash.courses'
 
 const TermsOfServiceRoute = TermsOfServiceRouteImport.update({
   id: '/terms-of-service',
@@ -49,6 +55,10 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -64,6 +74,33 @@ const CheckoutSuccessRoute = CheckoutSuccessRouteImport.update({
   path: '/success',
   getParentRoute: () => CheckoutRoute,
 } as any)
+const AuthenticatedSdashRoute = AuthenticatedSdashRouteImport.update({
+  id: '/sdash',
+  path: '/sdash',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSdashIndexRoute = AuthenticatedSdashIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedSdashRoute,
+} as any)
+const AuthenticatedSdashShopRoute = AuthenticatedSdashShopRouteImport.update({
+  id: '/shop',
+  path: '/shop',
+  getParentRoute: () => AuthenticatedSdashRoute,
+} as any)
+const AuthenticatedSdashProfileRoute =
+  AuthenticatedSdashProfileRouteImport.update({
+    id: '/profile',
+    path: '/profile',
+    getParentRoute: () => AuthenticatedSdashRoute,
+  } as any)
+const AuthenticatedSdashCoursesRoute =
+  AuthenticatedSdashCoursesRouteImport.update({
+    id: '/courses',
+    path: '/courses',
+    getParentRoute: () => AuthenticatedSdashRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -73,8 +110,13 @@ export interface FileRoutesByFullPath {
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/shop': typeof ShopRoute
   '/terms-of-service': typeof TermsOfServiceRoute
+  '/sdash': typeof AuthenticatedSdashRouteWithChildren
   '/checkout/success': typeof CheckoutSuccessRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/sdash/courses': typeof AuthenticatedSdashCoursesRoute
+  '/sdash/profile': typeof AuthenticatedSdashProfileRoute
+  '/sdash/shop': typeof AuthenticatedSdashShopRoute
+  '/sdash/': typeof AuthenticatedSdashIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -86,18 +128,28 @@ export interface FileRoutesByTo {
   '/terms-of-service': typeof TermsOfServiceRoute
   '/checkout/success': typeof CheckoutSuccessRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/sdash/courses': typeof AuthenticatedSdashCoursesRoute
+  '/sdash/profile': typeof AuthenticatedSdashProfileRoute
+  '/sdash/shop': typeof AuthenticatedSdashShopRoute
+  '/sdash': typeof AuthenticatedSdashIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/about': typeof AboutRoute
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRouteWithChildren
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/shop': typeof ShopRoute
   '/terms-of-service': typeof TermsOfServiceRoute
+  '/_authenticated/sdash': typeof AuthenticatedSdashRouteWithChildren
   '/checkout/success': typeof CheckoutSuccessRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/_authenticated/sdash/courses': typeof AuthenticatedSdashCoursesRoute
+  '/_authenticated/sdash/profile': typeof AuthenticatedSdashProfileRoute
+  '/_authenticated/sdash/shop': typeof AuthenticatedSdashShopRoute
+  '/_authenticated/sdash/': typeof AuthenticatedSdashIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -109,8 +161,13 @@ export interface FileRouteTypes {
     | '/privacy-policy'
     | '/shop'
     | '/terms-of-service'
+    | '/sdash'
     | '/checkout/success'
     | '/product/$slug'
+    | '/sdash/courses'
+    | '/sdash/profile'
+    | '/sdash/shop'
+    | '/sdash/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -122,21 +179,32 @@ export interface FileRouteTypes {
     | '/terms-of-service'
     | '/checkout/success'
     | '/product/$slug'
+    | '/sdash/courses'
+    | '/sdash/profile'
+    | '/sdash/shop'
+    | '/sdash'
   id:
     | '__root__'
     | '/'
+    | '/_authenticated'
     | '/about'
     | '/cart'
     | '/checkout'
     | '/privacy-policy'
     | '/shop'
     | '/terms-of-service'
+    | '/_authenticated/sdash'
     | '/checkout/success'
     | '/product/$slug'
+    | '/_authenticated/sdash/courses'
+    | '/_authenticated/sdash/profile'
+    | '/_authenticated/sdash/shop'
+    | '/_authenticated/sdash/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
   CartRoute: typeof CartRoute
   CheckoutRoute: typeof CheckoutRouteWithChildren
@@ -190,6 +258,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -211,8 +286,71 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckoutSuccessRouteImport
       parentRoute: typeof CheckoutRoute
     }
+    '/_authenticated/sdash': {
+      id: '/_authenticated/sdash'
+      path: '/sdash'
+      fullPath: '/sdash'
+      preLoaderRoute: typeof AuthenticatedSdashRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/sdash/': {
+      id: '/_authenticated/sdash/'
+      path: '/'
+      fullPath: '/sdash/'
+      preLoaderRoute: typeof AuthenticatedSdashIndexRouteImport
+      parentRoute: typeof AuthenticatedSdashRoute
+    }
+    '/_authenticated/sdash/shop': {
+      id: '/_authenticated/sdash/shop'
+      path: '/shop'
+      fullPath: '/sdash/shop'
+      preLoaderRoute: typeof AuthenticatedSdashShopRouteImport
+      parentRoute: typeof AuthenticatedSdashRoute
+    }
+    '/_authenticated/sdash/profile': {
+      id: '/_authenticated/sdash/profile'
+      path: '/profile'
+      fullPath: '/sdash/profile'
+      preLoaderRoute: typeof AuthenticatedSdashProfileRouteImport
+      parentRoute: typeof AuthenticatedSdashRoute
+    }
+    '/_authenticated/sdash/courses': {
+      id: '/_authenticated/sdash/courses'
+      path: '/courses'
+      fullPath: '/sdash/courses'
+      preLoaderRoute: typeof AuthenticatedSdashCoursesRouteImport
+      parentRoute: typeof AuthenticatedSdashRoute
+    }
   }
 }
+
+interface AuthenticatedSdashRouteChildren {
+  AuthenticatedSdashCoursesRoute: typeof AuthenticatedSdashCoursesRoute
+  AuthenticatedSdashProfileRoute: typeof AuthenticatedSdashProfileRoute
+  AuthenticatedSdashShopRoute: typeof AuthenticatedSdashShopRoute
+  AuthenticatedSdashIndexRoute: typeof AuthenticatedSdashIndexRoute
+}
+
+const AuthenticatedSdashRouteChildren: AuthenticatedSdashRouteChildren = {
+  AuthenticatedSdashCoursesRoute: AuthenticatedSdashCoursesRoute,
+  AuthenticatedSdashProfileRoute: AuthenticatedSdashProfileRoute,
+  AuthenticatedSdashShopRoute: AuthenticatedSdashShopRoute,
+  AuthenticatedSdashIndexRoute: AuthenticatedSdashIndexRoute,
+}
+
+const AuthenticatedSdashRouteWithChildren =
+  AuthenticatedSdashRoute._addFileChildren(AuthenticatedSdashRouteChildren)
+
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedSdashRoute: typeof AuthenticatedSdashRouteWithChildren
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedSdashRoute: AuthenticatedSdashRouteWithChildren,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
 interface CheckoutRouteChildren {
   CheckoutSuccessRoute: typeof CheckoutSuccessRoute
@@ -228,6 +366,7 @@ const CheckoutRouteWithChildren = CheckoutRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
   CartRoute: CartRoute,
   CheckoutRoute: CheckoutRouteWithChildren,
