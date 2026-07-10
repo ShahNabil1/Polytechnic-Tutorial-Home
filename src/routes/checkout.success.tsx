@@ -11,7 +11,16 @@ const searchSchema = z.object({
   digital: z.coerce.number().optional(),
 });
 
-type OrderStatus = "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+type OrderStatus =
+  | "processing"
+  | "ready_to_ship"
+  | "shipped"
+  | "hold"
+  | "delivered"
+  | "cancelled"
+  | "returned"
+  | "incomplete"
+  | "pending";
 
 type OrderSnapshot = {
   orderNo: string;
@@ -46,17 +55,25 @@ type OrderSnapshot = {
 const STATUS_LABEL: Record<OrderStatus, string> = {
   pending: "Pending",
   processing: "Processing",
+  ready_to_ship: "Ready To Ship",
   shipped: "Shipped",
+  hold: "Hold",
   delivered: "Delivered",
   cancelled: "Cancelled",
+  returned: "Returned",
+  incomplete: "Incomplete",
 };
 
 const STATUS_STYLE: Record<OrderStatus, string> = {
   pending: "bg-amber-100 text-amber-800 ring-amber-300",
   processing: "bg-blue-100 text-blue-800 ring-blue-300",
+  ready_to_ship: "bg-violet-100 text-violet-800 ring-violet-300",
   shipped: "bg-indigo-100 text-indigo-800 ring-indigo-300",
+  hold: "bg-amber-100 text-amber-800 ring-amber-300",
   delivered: "bg-emerald-100 text-emerald-800 ring-emerald-300",
   cancelled: "bg-rose-100 text-rose-800 ring-rose-300",
+  returned: "bg-orange-100 text-orange-800 ring-orange-300",
+  incomplete: "bg-slate-100 text-slate-700 ring-slate-300",
 };
 
 export const Route = createFileRoute("/checkout/success")({
