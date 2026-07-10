@@ -137,12 +137,15 @@ function CheckoutPage() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submittedRef.current || submitting) return;
     if (!validate()) return;
+    submittedRef.current = true;
     setSubmitting(true);
     await new Promise((r) => setTimeout(r, 900));
-    const orderNo = `PE-${Date.now().toString().slice(-8)}`;
+    const orderNo = nextOrderId();
     const snapshot = {
       orderNo,
+      status: "pending" as const,
       createdAt: Date.now(),
       customer: { ...form },
       items: items.map((i) => ({
