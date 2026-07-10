@@ -31,7 +31,7 @@ function StudentDashboardLayout() {
     <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 md:flex-row md:px-6 md:py-10">
       {/* Sidebar (desktop) / top tabs (mobile) */}
       <aside className="md:w-56 md:shrink-0">
-        <nav className="flex gap-1 overflow-x-auto md:flex-col md:gap-1">
+        <nav className="grid grid-cols-2 gap-1.5 sm:grid-cols-4 md:flex md:flex-col md:gap-1">
           {TABS.map((tab) => {
             const active = tab.exact ? pathname === tab.to : pathname === tab.to || pathname.startsWith(tab.to + "/");
             const Icon = tab.icon;
@@ -40,19 +40,20 @@ function StudentDashboardLayout() {
                 key={tab.to}
                 to={tab.to}
                 className={cn(
-                  "flex items-center gap-2.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  "flex min-w-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   active
                     ? "bg-brand text-brand-foreground"
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                    : "bg-secondary/60 text-muted-foreground hover:bg-secondary hover:text-foreground md:bg-transparent",
                 )}
               >
-                <Icon className="size-4" />
-                {tab.label}
+                <Icon className="size-4 shrink-0" />
+                <span className="truncate">{tab.label}</span>
               </Link>
             );
           })}
         </nav>
       </aside>
+
 
       <main className="flex-1 min-w-0">
         <Outlet />
