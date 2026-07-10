@@ -277,7 +277,34 @@ function ProductPage() {
           </div>
 
         </div>
+
+        {suggestions.length > 0 && (
+          <section className="mt-16 md:mt-20">
+            <div className="mb-6 flex items-end justify-between gap-4 md:mb-8">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-brand md:text-sm">
+                  আরও দেখুন
+                </p>
+                <h2 className="mt-1 text-xl font-extrabold tracking-tight md:text-2xl lg:text-3xl">
+                  আপনার পছন্দ হতে পারে এমন অন্যান্য বই
+                </h2>
+              </div>
+              <Link
+                to="/shop"
+                className="hidden shrink-0 text-sm font-bold text-muted-foreground underline-offset-4 hover:text-foreground hover:underline sm:inline"
+              >
+                সব বই →
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-5">
+              {suggestions.map((p) => (
+                <ProductCard key={p.id} product={p} />
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </div>
+
   );
 }
