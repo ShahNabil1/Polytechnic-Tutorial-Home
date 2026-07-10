@@ -26,8 +26,7 @@ export async function compressImageIfPossible(file: File, options?: CompressOpti
     return file;
   }
   try {
-    const compressed = await imageCompression(file, options ?? DEFAULT_IMAGE_COMPRESSION);
-    // Ensure it stays a File (browser-image-compression returns Blob sometimes)
+    const compressed: Blob = await imageCompression(file, options ?? DEFAULT_IMAGE_COMPRESSION);
     return compressed instanceof File
       ? compressed
       : new File([compressed], file.name, { type: compressed.type || file.type });
