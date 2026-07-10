@@ -152,141 +152,141 @@ export function AuthDrawer({
         >
           <SheetHeader className="border-b border-border px-5 py-4">
             <SheetTitle className="text-base font-semibold">
-              স্বাগতম
+              PTH এর সাথে শেখা শুরু করি
             </SheetTitle>
           </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto px-6 py-6">
-            <div className="mx-auto flex max-w-sm flex-col">
-              <div className="mb-6 text-center">
-                <div className="mx-auto mb-3 grid size-14 place-items-center rounded-full bg-brand/10 text-brand">
-                  {tab === "login" ? (
-                    <LogIn size={26} strokeWidth={1.8} />
-                  ) : (
-                    <UserPlus size={26} strokeWidth={1.8} />
-                  )}
+          <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-6">
+            <div className="w-full max-w-sm">
+              {/* Auth card */}
+              <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+                <div className="mb-4 text-center">
+                  <h2 className="text-lg font-semibold">
+                    {tab === "login" ? "একাউন্টে লগিন করুন" : "নতুন একাউন্ট তৈরি করুন"}
+                  </h2>
                 </div>
-                <h2 className="text-xl font-bold">
-                  {tab === "login" ? "একাউন্টে লগিন করুন" : "নতুন একাউন্ট তৈরি করুন"}
-                </h2>
-              </div>
 
-              {/* Side-by-side tabs */}
-              <div className="mb-5 grid grid-cols-2 rounded-lg border border-border bg-muted p-1">
-                {(["login", "signup"] as const).map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => {
-                      setTab(t);
-                      setStage("phone");
-                      setOtp("");
-                    }}
-                    className={cn(
-                      "rounded-md py-2 text-sm font-medium transition-colors",
-                      tab === t
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {t === "login" ? "লগিন" : "নতুন একাউন্ট"}
-                  </button>
-                ))}
-              </div>
-
-              {stage === "phone" && (
-                <form className="space-y-4" onSubmit={handleSendOtp}>
-                  {tab === "signup" && (
-                    <div className="space-y-2">
-                      <Label htmlFor="auth-name">পূর্ণ নাম</Label>
-                      <Input
-                        id="auth-name"
-                        placeholder="আপনার নাম"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                      />
-                    </div>
-                  )}
-                  <div className="space-y-2">
-                    <Label htmlFor="auth-phone">ফোন নাম্বার দিন</Label>
-                    <div className="flex overflow-hidden rounded-md border border-input focus-within:ring-2 focus-within:ring-ring">
-                      <span className="flex items-center gap-1.5 border-r border-input bg-muted px-3 text-sm text-muted-foreground">
-                        <svg width="20" height="14" viewBox="0 0 10 6" className="shrink-0 rounded-sm">
-                          <rect width="10" height="6" fill="#006A4E" />
-                          <circle cx="4.5" cy="3" r="2" fill="#F42A41" />
-                        </svg>
-                        +88
-                      </span>
-                      <input
-                        id="auth-phone"
-                        type="tel"
-                        inputMode="numeric"
-                        placeholder="01XXXXXXXXX"
-                        value={phoneRaw}
-                        onChange={(e) => setPhoneRaw(e.target.value)}
-                        required
-                        className="flex-1 bg-transparent px-3 py-2 text-sm outline-none"
-                      />
-                    </div>
-                  </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? "পাঠানো হচ্ছে..." : "এগিয়ে যাই →"}
-                  </Button>
-                </form>
-              )}
-
-              {stage === "otp" && (
-                <form className="space-y-4" onSubmit={handleVerifyOtp}>
-                  <div className="rounded-lg bg-muted/60 p-3 text-sm">
-                    <strong>+88{phoneRaw}</strong> নাম্বারে OTP পাঠানো হয়েছে
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="auth-otp">৬-ডিজিট OTP কোড</Label>
-                    <Input
-                      id="auth-otp"
-                      inputMode="numeric"
-                      maxLength={6}
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                      required
-                      autoFocus
-                    />
-                  </div>
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={loading || otp.length < 4}
-                  >
-                    {loading ? "যাচাই করা হচ্ছে..." : "ভেরিফাই করুন"}
-                  </Button>
-                  <div className="flex items-center justify-between text-xs">
+                {/* Side-by-side tabs */}
+                <div className="mb-4 grid grid-cols-2 rounded-lg border border-border bg-muted p-1">
+                  {(["login", "signup"] as const).map((t) => (
                     <button
+                      key={t}
                       type="button"
                       onClick={() => {
+                        setTab(t);
                         setStage("phone");
                         setOtp("");
                       }}
-                      className="text-muted-foreground hover:text-foreground"
+                      className={cn(
+                        "rounded-md py-2 text-sm font-medium transition-colors",
+                        tab === t
+                          ? "bg-background text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground",
+                      )}
                     >
-                      ← নাম্বার পরিবর্তন
+                      {t === "login" ? "লগিন" : "নতুন একাউন্ট"}
                     </button>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        const { error } = await supabase.auth.signInWithOtp({
-                          phone,
-                          options: { shouldCreateUser: tab === "signup" },
-                        });
-                        if (error) return toast.error(error.message);
-                        toast.success("OTP আবার পাঠানো হয়েছে");
-                      }}
-                      className="text-brand hover:underline"
+                  ))}
+                </div>
+
+                {stage === "phone" && (
+                  <form className="space-y-4" onSubmit={handleSendOtp}>
+                    {tab === "signup" && (
+                      <div className="space-y-2">
+                        <Label htmlFor="auth-name">পূর্ণ নাম</Label>
+                        <Input
+                          id="auth-name"
+                          placeholder="আপনার নাম"
+                          value={fullName}
+                          onChange={(e) => setFullName(e.target.value)}
+                        />
+                      </div>
+                    )}
+                    <div className="space-y-2">
+                      <Label htmlFor="auth-phone">ফোন নাম্বার দিন</Label>
+                      <div className="flex overflow-hidden rounded-md border border-input focus-within:ring-2 focus-within:ring-ring">
+                        <span className="flex items-center gap-1.5 border-r border-input bg-muted px-3 text-sm text-muted-foreground">
+                          <svg width="20" height="14" viewBox="0 0 10 6" className="shrink-0 rounded-sm">
+                            <rect width="10" height="6" fill="#006A4E" />
+                            <circle cx="4.5" cy="3" r="2" fill="#F42A41" />
+                          </svg>
+                          +88
+                        </span>
+                        <input
+                          id="auth-phone"
+                          type="tel"
+                          inputMode="numeric"
+                          placeholder="01XXXXXXXXX"
+                          value={phoneRaw}
+                          onChange={(e) => setPhoneRaw(e.target.value)}
+                          required
+                          className="flex-1 bg-transparent px-3 py-2 text-sm outline-none"
+                        />
+                      </div>
+                    </div>
+                    <Button
+                      type="submit"
+                      className="w-full bg-amber-500 text-amber-950 hover:bg-amber-600"
+                      disabled={loading}
                     >
-                      কোড আবার পাঠান
-                    </button>
-                  </div>
-                </form>
-              )}
+                      {loading ? "পাঠানো হচ্ছে..." : "লগইন"}
+                    </Button>
+                  </form>
+                )}
+
+                {stage === "otp" && (
+                  <form className="space-y-4" onSubmit={handleVerifyOtp}>
+                    <div className="rounded-lg bg-muted/60 p-3 text-sm">
+                      <strong>+88{phoneRaw}</strong> নাম্বারে OTP পাঠানো হয়েছে
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="auth-otp">৬-ডিজিট OTP কোড</Label>
+                      <Input
+                        id="auth-otp"
+                        inputMode="numeric"
+                        maxLength={6}
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                        required
+                        autoFocus
+                      />
+                    </div>
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={loading || otp.length < 4}
+                    >
+                      {loading ? "যাচাই করা হচ্ছে..." : "ভেরিফাই করুন"}
+                    </Button>
+                    <div className="flex items-center justify-between text-xs">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setStage("phone");
+                          setOtp("");
+                        }}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        ← নাম্বার পরিবর্তন
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const { error } = await supabase.auth.signInWithOtp({
+                            phone,
+                            options: { shouldCreateUser: tab === "signup" },
+                          });
+                          if (error) return toast.error(error.message);
+                          toast.success("OTP আবার পাঠানো হয়েছে");
+                        }}
+                        className="text-brand hover:underline"
+                      >
+                        কোড আবার পাঠান
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
 
               {stage === "phone" && (
                 <>
