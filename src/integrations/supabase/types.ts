@@ -181,7 +181,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_passkey_auth_session: {
+        Args: {
+          _ip: string
+          _refresh_token_counter: number
+          _refresh_token_hmac_key: string
+          _user_agent: string
+          _user_id: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

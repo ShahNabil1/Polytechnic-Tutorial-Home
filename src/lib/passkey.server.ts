@@ -8,8 +8,8 @@
 import { SignJWT } from "jose";
 import { getRequest, getRequestHeader } from "@tanstack/react-start/server";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import postgres from "postgres";
 import type { Database } from "@/integrations/supabase/types";
+
 
 type RegistrationResponseJSON = {
   id: string;
