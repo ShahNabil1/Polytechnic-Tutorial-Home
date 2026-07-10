@@ -140,28 +140,73 @@ export function AdminOrderDrawer({
     };
   }, [showSearch, orderId, queryClient]);
 
+  const [savingCustomer, setSavingCustomer] = useState(false);
+  const [savingNote, setSavingNote] = useState(false);
+  const [custErrors, setCustErrors] = useState<Record<string, string>>({});
+
+  function validateCustomer(): Record<string, string> {
+    const errs: Record<string, string> = {};
+    const name = (customer?.customer_name ?? "").trim();
+    if (name.length < 3) errs.customer_name = "Name must be at least 3 characters";
+    if (!/^01[3-9]\d{8}$/.test(customer?.customer_phone ?? ""))
+      errs.customer_phone = "Enter a valid 11-digit BD phone (01XXXXXXXXX)";
+    if (customer?.alternative_phone && !/^01[3-9]\d{8}$/.test(customer.alternative_phone))
+      errs.alternative_phone = "Alternative phone must also be a valid BD phone";
+    const email = (customer?.customer_email ?? "").trim();
+    if (email) {
+      const em = z.string().email().safeParse(email);
+      if (!em.success) errs.customer_email = "Enter a valid email";
+    }
+    if (!isEbookOnly) {
+      if (!customer?.division) errs.division = "Select division";
+      if (!customer?.district) errs.district = "Select district";
+      if (!customer?.thana) errs.thana = "Select thana / upazila";
+      if ((customer?.address_line ?? "").trim().length < 5)
+        errs.address_line = "Address must be at least 5 characters";
+    }
+    return errs;
+  }
+
   async function saveCustomer() {
+    const errs = validateCustomer();
+    setCustErrors(errs);
+    if (Object.keys(errs).length > 0) {
+      toast.error("Please fix the highlighted fields");
+      return;
+    }
+    setSavingCustomer(true);
     try {
       const { note: _note, ...rest } = customer;
       await upCustomer({ data: { id: orderId, patch: rest } });
-      toast.success("Customer details updated");
+      toast.success("Customer details saved");
       setIsEditingCustomer(false);
+      setCustErrors({});
       refetch();
       onChanged?.();
     } catch (e: any) {
-      toast.error(e.message || "Failed");
+      toast.error(e.message || "Failed to save");
+    } finally {
+      setSavingCustomer(false);
     }
   }
 
   async function saveDeliveryNote() {
+    const note = deliveryNote.trim();
+    if (note.length > 500) {
+      toast.error("Delivery note must be under 500 characters");
+      return;
+    }
+    setSavingNote(true);
     try {
-      await upCustomer({ data: { id: orderId, patch: { note: deliveryNote } } });
-      setCustomer((c: any) => ({ ...c, note: deliveryNote }));
-      toast.success("Delivery note saved");
+      await upCustomer({ data: { id: orderId, patch: { note: note || null } } });
+      setCustomer((c: any) => ({ ...c, note }));
+      toast.success(note ? "Delivery note saved" : "Delivery note cleared");
       refetch();
       onChanged?.();
     } catch (e: any) {
-      toast.error(e.message || "Failed");
+      toast.error(e.message || "Failed to save note");
+    } finally {
+      setSavingNote(false);
     }
   }
 
