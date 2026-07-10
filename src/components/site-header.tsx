@@ -1,10 +1,13 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import logoAsset from "@/assets/pth-logo.jpg.asset.json";
-import { ShoppingCart, Menu, X } from "lucide-react";
+import { ShoppingCart, Menu, X, LogOut, User as UserIcon } from "lucide-react";
 import { useState } from "react";
 import { useCart } from "@/lib/cart-store";
 import { toBanglaNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 type NavItem = { to: string; label: string; hash?: boolean };
 
@@ -51,6 +54,38 @@ function NavAnchor({
   );
 }
 
+function AuthButton() {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  if (loading) return null;
+  if (!user) {
+    return (
+      <Link
+        to="/auth"
+        className="hidden items-center gap-1.5 rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand/90 sm:flex"
+      >
+        <UserIcon className="size-4" />
+        সাইন ইন
+      </Link>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={async () => {
+        await supabase.auth.signOut();
+        toast.success("সাইন আউট হয়েছে");
+        navigate({ to: "/" });
+      }}
+      className="hidden items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-secondary sm:flex"
+      title={user.email ?? ""}
+    >
+      <LogOut className="size-4" />
+      সাইন আউট
+    </button>
+  );
+}
+
 export function SiteHeader() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const items = useCart((s) => s.items);
@@ -91,6 +126,7 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <AuthButton />
           <Link
             to="/cart"
             className="relative flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-secondary"
