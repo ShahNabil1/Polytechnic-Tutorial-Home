@@ -82,6 +82,7 @@ function createAdminClient() {
     "SUPABASE_SERVICE_ROLE_KEY",
     "SUPABASE_SECRET_KEY",
     "SUPABASE_SECRET_KEYS",
+    "SB_SERVICE_ROLE_KEY",
   );
 
   if (!supabaseUrl || !serviceKey) {
