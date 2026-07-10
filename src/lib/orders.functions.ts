@@ -264,7 +264,8 @@ export const getAdminOrder = createServerFn({ method: "GET" })
         .maybeSingle();
       profile = p;
     }
-    return { order, items: items ?? [], notes: notes ?? [], history: history ?? [], profile };
+    const orderOut = order ? { ...order, ip: order.ip == null ? null : String(order.ip) } : null;
+    return { order: orderOut, items: items ?? [], notes: notes ?? [], history: history ?? [], profile };
   });
 
 // -------- ADMIN: update customer / order fields --------
