@@ -449,6 +449,7 @@ export function ProfilePage({ role }: { role: AppRole }) {
       <LinkedAccountsCard />
       <PasswordCard />
       <PasskeysCard />
+      {!isStudent && <MfaCard />}
       <SessionsCard />
       <ReauthDialogHost />
 
