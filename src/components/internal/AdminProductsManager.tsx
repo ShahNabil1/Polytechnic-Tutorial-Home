@@ -245,9 +245,9 @@ export function AdminProductsManager() {
       {tab === "bundles" ? (
         <AdminBundlesManager products={products} />
       ) : (
-
-
+        <>
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+
         {loading ? (
           <div className="flex items-center gap-2 p-6 text-sm text-slate-500">
             <Loader2 className="size-4 animate-spin" /> Loading…
@@ -345,10 +345,21 @@ export function AdminProductsManager() {
           onClose={() => setEditorOpen(false)}
           onSave={saveDraft}
         />
+      {editorOpen && (
+        <ProductEditor
+          draft={draft}
+          setDraft={setDraft}
+          categories={cats}
+          onClose={() => setEditorOpen(false)}
+          onSave={saveDraft}
+        />
+      )}
+        </>
       )}
     </div>
   );
 }
+
 
 function ProductEditor({
   draft,
