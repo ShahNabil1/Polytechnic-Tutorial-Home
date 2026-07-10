@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { Plus } from "lucide-react";
+import { Plus, ImageIcon } from "lucide-react";
 import type { Product } from "@/lib/products";
 import { productTypeLabel } from "@/lib/products";
 import { useCart } from "@/lib/cart-store";
@@ -15,6 +15,7 @@ const TYPE_BADGE: Record<Product["type"], string> = {
 
 export function ProductCard({ product }: { product: Product }) {
   const add = useCart((s) => s.add);
+  const cover = product.ogImage || product.images?.[0]?.url;
 
   return (
     <motion.div
@@ -29,19 +30,28 @@ export function ProductCard({ product }: { product: Product }) {
         params={{ slug: product.slug }}
         className="relative mb-4 block overflow-hidden rounded-xl bg-card ring-1 ring-border/60 shadow-sm transition-all group-hover:shadow-md"
       >
-        <div
-          className={cn(
-            "flex aspect-[3/4] w-full items-center justify-center bg-gradient-to-br text-6xl transition-transform duration-500 group-hover:scale-[1.03]",
-            product.coverColor,
-          )}
-          aria-hidden
-        >
-          <span className="drop-shadow-lg">{product.coverEmoji}</span>
-        </div>
+        {cover ? (
+          <img
+            src={cover}
+            alt={product.title}
+            loading="lazy"
+            className="aspect-[3/4] w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+          />
+        ) : (
+          <div
+            className={cn(
+              "flex aspect-[3/4] w-full items-center justify-center bg-gradient-to-br text-6xl transition-transform duration-500 group-hover:scale-[1.03]",
+              product.coverColor ?? "from-slate-200 to-slate-400",
+            )}
+            aria-hidden
+          >
+            <span className="drop-shadow-lg">{product.coverEmoji ?? <ImageIcon className="size-10 text-white/80" />}</span>
+          </div>
+        )}
         <span
           className={cn(
             "absolute right-3 top-3 rounded-md px-2 py-1 text-[10px] font-semibold uppercase tracking-wider ring-1 ring-black/5",
-            TYPE_BADGE[product.type],
+            TYPE_BADGE[product.type] ?? "bg-slate-100 text-slate-700",
           )}
         >
           {productTypeLabel(product.type)}

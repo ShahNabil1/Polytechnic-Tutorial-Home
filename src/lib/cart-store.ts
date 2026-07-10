@@ -8,8 +8,9 @@ export interface CartItem {
   title: string;
   price: number;
   type: Product["type"];
-  coverColor: string;
-  coverEmoji: string;
+  image?: string;
+  coverColor?: string;
+  coverEmoji?: string;
   quantity: number;
 }
 
@@ -29,7 +30,6 @@ export const useCart = create<CartState>()(
         set((state) => {
           const existing = state.items.find((i) => i.productId === product.id);
           if (existing) {
-            // Digital items → max 1
             const isDigital = product.type !== "physical";
             const nextQty = isDigital ? 1 : existing.quantity + qty;
             return {
@@ -38,21 +38,19 @@ export const useCart = create<CartState>()(
               ),
             };
           }
-          return {
-            items: [
-              ...state.items,
-              {
-                productId: product.id,
-                slug: product.slug,
-                title: product.title,
-                price: product.price,
-                type: product.type,
-                coverColor: product.coverColor,
-                coverEmoji: product.coverEmoji,
-                quantity: product.type === "physical" ? qty : 1,
-              },
-            ],
+          const image = product.ogImage || product.images?.[0]?.url;
+          const newItem: CartItem = {
+            productId: product.id,
+            slug: product.slug,
+            title: product.title,
+            price: product.price,
+            type: product.type,
+            quantity: product.type === "physical" ? qty : 1,
           };
+          if (image) newItem.image = image;
+          if (product.coverColor) newItem.coverColor = product.coverColor;
+          if (product.coverEmoji) newItem.coverEmoji = product.coverEmoji;
+          return { items: [...state.items, newItem] };
         }),
       remove: (productId) =>
         set((state) => ({
