@@ -252,6 +252,7 @@ export function AuthDrawer({
                         setTab(t);
                         setStage("phone");
                         setOtp("");
+                        setPhoneError(null);
                       }}
                       className={cn(
                         "rounded-md py-2 text-sm font-medium transition-colors",
@@ -280,7 +281,14 @@ export function AuthDrawer({
                     )}
                     <div className="space-y-2">
                       <Label htmlFor="auth-phone">ফোন নাম্বার দিন</Label>
-                      <div className="flex overflow-hidden rounded-md border border-input focus-within:ring-2 focus-within:ring-ring">
+                      <div
+                        className={cn(
+                          "flex overflow-hidden rounded-md border focus-within:ring-2",
+                          phoneError
+                            ? "border-destructive focus-within:ring-destructive/30"
+                            : "border-input focus-within:ring-ring",
+                        )}
+                      >
                         <span className="flex items-center gap-1.5 border-r border-input bg-muted px-3 text-sm text-muted-foreground">
                           <svg width="20" height="14" viewBox="0 0 10 6" className="shrink-0 rounded-sm">
                             <rect width="10" height="6" fill="#006A4E" />
@@ -294,11 +302,18 @@ export function AuthDrawer({
                           inputMode="numeric"
                           placeholder="01XXXXXXXXX"
                           value={phoneRaw}
-                          onChange={(e) => setPhoneRaw(e.target.value)}
+                          onChange={(e) => handlePhoneChange(e.target.value)}
+                          maxLength={11}
                           required
                           className="flex-1 bg-transparent px-3 py-2 text-sm outline-none"
                         />
                       </div>
+                      {phoneError && (
+                        <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                          <AlertCircle className="mt-0.5 size-3.5 shrink-0" />
+                          <span>{phoneError}</span>
+                        </div>
+                      )}
                     </div>
                     <Button
                       type="submit"
