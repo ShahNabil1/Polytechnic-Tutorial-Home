@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /workspace/
+Disallow: /instructor/
+Disallow: /sdash/
+Disallow: /checkout
+Disallow: /checkout/
+
+Sitemap: https://polytechnictutorial.com/sitemap.xml
