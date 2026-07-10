@@ -141,6 +141,7 @@ export type Database = {
           images: Json
           is_active: boolean
           is_featured: boolean
+          is_online_book: boolean
           meta_description: string | null
           meta_title: string | null
           og_image_url: string | null
@@ -161,6 +162,7 @@ export type Database = {
           images?: Json
           is_active?: boolean
           is_featured?: boolean
+          is_online_book?: boolean
           meta_description?: string | null
           meta_title?: string | null
           og_image_url?: string | null
@@ -181,6 +183,7 @@ export type Database = {
           images?: Json
           is_active?: boolean
           is_featured?: boolean
+          is_online_book?: boolean
           meta_description?: string | null
           meta_title?: string | null
           og_image_url?: string | null

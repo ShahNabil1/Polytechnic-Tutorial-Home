@@ -60,6 +60,7 @@ export interface Product {
   stock?: number | null;
   featured?: boolean;
   isActive?: boolean;
+  isOnlineBook?: boolean;
   // Legacy fields kept optional so cart items persisted before DB migration still render.
   coverColor?: string;
   coverEmoji?: string;
