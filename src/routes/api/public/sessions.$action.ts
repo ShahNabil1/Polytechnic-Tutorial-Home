@@ -76,6 +76,35 @@ function serverSupabase(token: string) {
   });
 }
 
+function readFirstConfiguredSecret(...names: string[]): string | undefined {
+  for (const name of names) {
+    const value = process.env[name];
+    if (!value) continue;
+    return value.split(",").map((part) => part.trim()).find(Boolean) ?? value;
+  }
+  return undefined;
+}
+
+function adminSupabase() {
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const key = readFirstConfiguredSecret(
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "SB_SERVICE_ROLE_KEY",
+    "SUPABASE_SECRET_KEY",
+    "SUPABASE_SECRET_KEYS",
+  );
+  if (!url || !key) throw new Error("Supabase admin config missing");
+
+  return createClient<Database>(url, key, {
+    global: { fetch: createSupabaseFetch(key) },
+    auth: {
+      storage: undefined,
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+}
+
 async function requireAuth(request: Request): Promise<AuthedContext> {
   const authHeader = request.headers.get("authorization") ?? "";
   if (!authHeader.startsWith("Bearer ")) throw new Error("Unauthorized");
@@ -162,7 +191,7 @@ async function register(request: Request, ctx: AuthedContext) {
     .maybeSingle();
   if (existingError) throw new Error(existingError.message);
 
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const supabaseAdmin = adminSupabase();
 
   if (existing) {
     const { error } = await supabaseAdmin
@@ -237,7 +266,7 @@ async function handle(request: Request, action: string) {
         .maybeSingle();
       if (error) throw new Error(error.message);
       if (!data) return json({ alive: false });
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const supabaseAdmin = adminSupabase();
       await supabaseAdmin.from("user_sessions").update({ last_seen_at: new Date().toISOString() }).eq("id", data.id);
       return json({ alive: true });
     }
