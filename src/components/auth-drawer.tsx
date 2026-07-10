@@ -211,7 +211,11 @@ export function AuthDrawer({
                     <Label htmlFor="auth-phone">ফোন নাম্বার দিন</Label>
                     <div className="flex overflow-hidden rounded-md border border-input focus-within:ring-2 focus-within:ring-ring">
                       <span className="flex items-center gap-1.5 border-r border-input bg-muted px-3 text-sm text-muted-foreground">
-                        🇧🇩 +88
+                        <svg width="20" height="14" viewBox="0 0 10 6" className="shrink-0 rounded-sm">
+                          <rect width="10" height="6" fill="#006A4E" />
+                          <circle cx="4.5" cy="3" r="2" fill="#F42A41" />
+                        </svg>
+                        +88
                       </span>
                       <input
                         id="auth-phone"
