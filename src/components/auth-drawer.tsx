@@ -410,8 +410,33 @@ export function AuthDrawer({
     }
   }
 
-  function handlePasskeyLogin() {
-    toast.message("Passkey দিয়ে লগইন খুব শীঘ্রই যোগ হবে");
+  async function handlePasskeyLogin() {
+    setFormError(null);
+    setInfoMsg(null);
+    if (!isPasskeySupported()) {
+      setFormError("এই ব্রাউজারে Passkey সাপোর্ট নেই");
+      return;
+    }
+    if (!isValidBdMobile(phoneRaw)) {
+      setFormError("Passkey দিয়ে লগইন করতে আগে সঠিক ১১ ডিজিটের ফোন নাম্বার দিন");
+      return;
+    }
+    setLoading(true);
+    try {
+      await signInWithPasskey(phone);
+      setLoading(false);
+      toast.success("Passkey দিয়ে সাইন ইন সফল");
+      resetAll();
+      onOpenChange(false);
+    } catch (e) {
+      setLoading(false);
+      const msg = errMsg(e);
+      if (/NotAllowed|cancel|abort/i.test(msg)) {
+        setFormError("Passkey প্রম্পট বাতিল হয়েছে");
+      } else {
+        setFormError(msg);
+      }
+    }
   }
 
   const PhoneField = (
