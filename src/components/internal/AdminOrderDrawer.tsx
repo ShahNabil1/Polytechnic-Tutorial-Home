@@ -229,16 +229,6 @@ export function AdminOrderDrawer({
     }
   }
 
-  async function block(kind: "ip" | "fingerprint" | "phone", value: string) {
-    if (!value) return toast.error("No value to block");
-    const reason = prompt(`Reason for blocking ${kind} "${value}":`) || undefined;
-    try {
-      await addBlock({ data: { kind, value, reason } });
-      toast.success(`${kind.toUpperCase()} blocked`);
-    } catch (e: any) {
-      toast.error(e.message || "Failed");
-    }
-  }
 
   function addProductToDraft(p: { id: string; title: string; price: number; sku: string | null; image: string | null; isOnlineBook: boolean }) {
     setItemDraft((draft) => {
