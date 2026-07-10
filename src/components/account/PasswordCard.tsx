@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { Loader2, Lock, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureReauth, clearReauth } from "@/lib/reauth";
+import { toEnglishPassword, friendlyPasswordError } from "@/lib/input-filter";
 
 export function PasswordCard() {
   const [hasPassword, setHasPassword] = useState<boolean | null>(null);
