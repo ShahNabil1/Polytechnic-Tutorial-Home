@@ -41,6 +41,84 @@ export type Database = {
         }
         Relationships: []
       }
+      incomplete_checkouts: {
+        Row: {
+          address_line: string | null
+          attempt_count: number
+          attempts: Json
+          cart: Json
+          created_at: string
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string
+          district: string | null
+          division: string | null
+          first_attempt_at: string
+          id: string
+          last_attempt_at: string
+          last_fingerprint: string | null
+          last_ip: unknown
+          last_user_agent: string | null
+          shipping_bdt: number
+          signature: string
+          subtotal_bdt: number
+          thana: string | null
+          total_bdt: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          address_line?: string | null
+          attempt_count?: number
+          attempts?: Json
+          cart?: Json
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone: string
+          district?: string | null
+          division?: string | null
+          first_attempt_at?: string
+          id?: string
+          last_attempt_at?: string
+          last_fingerprint?: string | null
+          last_ip?: unknown
+          last_user_agent?: string | null
+          shipping_bdt?: number
+          signature: string
+          subtotal_bdt?: number
+          thana?: string | null
+          total_bdt?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          address_line?: string | null
+          attempt_count?: number
+          attempts?: Json
+          cart?: Json
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string
+          district?: string | null
+          division?: string | null
+          first_attempt_at?: string
+          id?: string
+          last_attempt_at?: string
+          last_fingerprint?: string | null
+          last_ip?: unknown
+          last_user_agent?: string | null
+          shipping_bdt?: number
+          signature?: string
+          subtotal_bdt?: number
+          thana?: string | null
+          total_bdt?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       internal_profiles: {
         Row: {
           address: string | null
