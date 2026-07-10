@@ -68,6 +68,140 @@ export type Database = {
         }
         Relationships: []
       }
+      product_categories: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          kind: Database["public"]["Enums"]["product_category_kind"]
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          kind: Database["public"]["Enums"]["product_category_kind"]
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          kind?: Database["public"]["Enums"]["product_category_kind"]
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      product_subcategories: {
+        Row: {
+          category_id: string
+          product_id: string
+        }
+        Insert: {
+          category_id: string
+          product_id: string
+        }
+        Update: {
+          category_id?: string
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_subcategories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_subcategories_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          compare_price: number | null
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          images: Json
+          is_active: boolean
+          is_featured: boolean
+          meta_description: string | null
+          meta_title: string | null
+          og_image_url: string | null
+          price: number
+          product_type_id: string
+          slug: string
+          stock: number | null
+          subtitle: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          compare_price?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          images?: Json
+          is_active?: boolean
+          is_featured?: boolean
+          meta_description?: string | null
+          meta_title?: string | null
+          og_image_url?: string | null
+          price?: number
+          product_type_id: string
+          slug: string
+          stock?: number | null
+          subtitle?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          compare_price?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          images?: Json
+          is_active?: boolean
+          is_featured?: boolean
+          meta_description?: string | null
+          meta_title?: string | null
+          og_image_url?: string | null
+          price?: number
+          product_type_id?: string
+          slug?: string
+          stock?: number | null
+          subtitle?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_product_type_id_fkey"
+            columns: ["product_type_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -337,6 +471,7 @@ export type Database = {
     }
     Enums: {
       app_role: "student" | "employee" | "instructor" | "super_admin"
+      product_category_kind: "product_type" | "department" | "semester"
       semester_level:
         | "1st"
         | "2nd"
@@ -476,6 +611,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["student", "employee", "instructor", "super_admin"],
+      product_category_kind: ["product_type", "department", "semester"],
       semester_level: [
         "1st",
         "2nd",
