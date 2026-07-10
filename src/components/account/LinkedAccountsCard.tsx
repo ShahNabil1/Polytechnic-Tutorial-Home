@@ -316,33 +316,35 @@ export function LinkedAccountsCard() {
                 >
                   বাতিল
                 </button>
-                {lockedUntil ? (
-                  <span className="text-destructive">
-                    {LOCKOUT_MINUTES} মিনিটের জন্য লকড ({Math.floor(lockRemaining / 60)}:
-                    {String(lockRemaining % 60).padStart(2, "0")})
-                  </span>
-                ) : cooldown > 0 ? (
-                  <span className="text-muted-foreground">
-                    আবার পাঠান ({cooldown}s)
-                  </span>
-                ) : resendCount >= MAX_RESENDS ? (
-                  <button
-                    type="button"
-                    onClick={handleResendPhoneOtp}
-                    className="text-destructive hover:underline"
-                  >
-                    লিমিট পৌঁছেছে
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleResendPhoneOtp}
-                    disabled={phoneLoading}
-                    className="text-brand hover:underline disabled:opacity-60"
-                  >
-                    কোড আবার পাঠান ({MAX_RESENDS - resendCount} বার বাকি)
-                  </button>
-                )}
+                {cooldown > 0 || resendCount > 0 || lockedUntil ? (
+                  lockedUntil ? (
+                    <span className="text-destructive">
+                      {LOCKOUT_MINUTES} মিনিটের জন্য লকড ({Math.floor(lockRemaining / 60)}:
+                      {String(lockRemaining % 60).padStart(2, "0")})
+                    </span>
+                  ) : cooldown > 0 ? (
+                    <span className="text-muted-foreground">
+                      আবার পাঠান ({cooldown}s)
+                    </span>
+                  ) : resendCount >= MAX_RESENDS ? (
+                    <button
+                      type="button"
+                      onClick={handleResendPhoneOtp}
+                      className="text-destructive hover:underline"
+                    >
+                      লিমিট পৌঁছেছে
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleResendPhoneOtp}
+                      disabled={phoneLoading}
+                      className="text-brand hover:underline disabled:opacity-60"
+                    >
+                      কোড আবার পাঠান ({MAX_RESENDS - resendCount} বার বাকি)
+                    </button>
+                  )
+                ) : null}
               </div>
             </div>
           )}
