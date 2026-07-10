@@ -44,11 +44,11 @@ type OrderSnapshot = {
 };
 
 const STATUS_LABEL: Record<OrderStatus, string> = {
-  pending: "পেন্ডিং",
-  processing: "প্রসেসিং",
-  shipped: "শিপড",
-  delivered: "ডেলিভার্ড",
-  cancelled: "ক্যানসেলড",
+  pending: "Pending",
+  processing: "Processing",
+  shipped: "Shipped",
+  delivered: "Delivered",
+  cancelled: "Cancelled",
 };
 
 const STATUS_STYLE: Record<OrderStatus, string> = {
