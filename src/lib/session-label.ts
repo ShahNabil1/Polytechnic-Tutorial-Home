@@ -26,7 +26,7 @@ export const sessionLabelSchema = z
     "শুধু অক্ষর, সংখ্যা, স্পেস এবং - _ . , ' ( ) ব্যবহার করা যাবে",
   )
   // Disallow labels that collapse to only punctuation/whitespace.
-  .refine((v) => /[A-Za-z0-9\u0980-\u09FF]/u.test(v), {
+  .refine((v) => /[A-Za-z0-9]/u.test(v), {
     message: "কমপক্ষে একটি অক্ষর বা সংখ্যা দরকার",
   });
 
