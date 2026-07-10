@@ -474,13 +474,13 @@ export function AuthDrawer({
       setFormError("এই ব্রাউজারে Passkey সাপোর্ট নেই");
       return;
     }
-    if (!isValidBdMobile(phoneRaw)) {
-      setFormError("Passkey দিয়ে লগইন করতে আগে সঠিক ১১ ডিজিটের ফোন নাম্বার দিন");
-      return;
-    }
     setLoading(true);
     try {
-      await passkeyClient.signInWithPasskey(phone);
+      // Discoverable flow — OS/browser picks the resident passkey; no phone
+      // number required. If the user typed a phone, we still pass it as a
+      // hint so allowCredentials can be scoped for older authenticators.
+      const phoneHint = isValidBdMobile(phoneRaw) ? phone : undefined;
+      await passkeyClient.signInWithPasskey(phoneHint);
       setLoading(false);
       toast.success("Passkey দিয়ে সাইন ইন সফল");
       resetAll();
@@ -490,6 +490,8 @@ export function AuthDrawer({
       const msg = errMsg(e);
       if (/NotAllowed|cancel|abort/i.test(msg)) {
         setFormError("Passkey প্রম্পট বাতিল হয়েছে");
+      } else if (/no.*credential|not.*registered|not.*found/i.test(msg)) {
+        setFormError("এই ডিভাইসে কোনো Passkey সেভ করা নেই। প্রথমে পাসওয়ার্ড দিয়ে লগইন করুন।");
       } else {
         setFormError(msg);
       }
