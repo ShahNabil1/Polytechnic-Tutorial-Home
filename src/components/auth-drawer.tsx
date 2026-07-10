@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,10 +21,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { AlertCircle, Eye, EyeOff, KeyRound } from "lucide-react";
+import { AlertCircle, CheckCircle2, Eye, EyeOff, KeyRound } from "lucide-react";
 
 type Tab = "login" | "signup";
-type Stage = "form" | "otp";
+type Stage = "form" | "otp" | "reset";
+type OtpFlow = "signup" | "forgot";
+
+const RESEND_COOLDOWN_SECONDS = 60;
+const MAX_RESENDS = 3;
+const LOCKOUT_MINUTES = 5;
 
 function bnToEnDigits(s: string): string {
   const map: Record<string, string> = {
@@ -67,6 +72,9 @@ export function AuthDrawer({
 }) {
   const [tab, setTab] = useState<Tab>("login");
   const [stage, setStage] = useState<Stage>("form");
+  const [otpFlow, setOtpFlow] = useState<OtpFlow>("signup");
+  const [forgotMode, setForgotMode] = useState(false);
+
   const [phoneRaw, setPhoneRaw] = useState("");
   const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
@@ -74,9 +82,36 @@ export function AuthDrawer({
   const [showPassword, setShowPassword] = useState(false);
   const [rememberPasskey, setRememberPasskey] = useState(true);
   const [otp, setOtp] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [infoMsg, setInfoMsg] = useState<string | null>(null);
+
+  // Resend control
+  const [cooldown, setCooldown] = useState(0);
+  const [resendCount, setResendCount] = useState(0);
+  const [lockedUntil, setLockedUntil] = useState<number | null>(null);
+  const [lockRemaining, setLockRemaining] = useState(0);
+  const tickRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (cooldown <= 0 && lockedUntil === null) return;
+    tickRef.current = window.setInterval(() => {
+      setCooldown((c) => (c > 0 ? c - 1 : 0));
+      if (lockedUntil) {
+        const rem = Math.max(0, Math.ceil((lockedUntil - Date.now()) / 1000));
+        setLockRemaining(rem);
+        if (rem === 0) {
+          setLockedUntil(null);
+          setResendCount(0);
+        }
+      }
+    }, 1000);
+    return () => {
+      if (tickRef.current) window.clearInterval(tickRef.current);
+    };
+  }, [cooldown, lockedUntil]);
 
   const phone = phoneRaw ? normalizePhone(phoneRaw) : "";
   const inProgress =
@@ -94,7 +129,12 @@ export function AuthDrawer({
     setOtp("");
     setStage("form");
     setTab("login");
+    setForgotMode(false);
     setFormError(null);
+    setInfoMsg(null);
+    setCooldown(0);
+    setResendCount(0);
+    setLockedUntil(null);
   }
 
   function switchTab(t: Tab) {
@@ -103,7 +143,9 @@ export function AuthDrawer({
     setOtp("");
     setPassword("");
     setConfirmPassword("");
+    setForgotMode(false);
     setFormError(null);
+    setInfoMsg(null);
   }
 
   function requestClose() {
@@ -123,6 +165,10 @@ export function AuthDrawer({
     if (formError) setFormError(null);
   }
 
+  function startCooldown() {
+    setCooldown(RESEND_COOLDOWN_SECONDS);
+  }
+
   async function handleGoogle() {
     setLoading(true);
     try {
@@ -140,10 +186,10 @@ export function AuthDrawer({
     }
   }
 
-  // Login: phone + password
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setFormError(null);
+    setInfoMsg(null);
     if (!isValidBdMobile(phoneRaw)) {
       setFormError("সঠিক ১১ ডিজিটের নাম্বার দিন (013–019 দিয়ে শুরু)");
       return;
@@ -166,10 +212,6 @@ export function AuthDrawer({
         return;
       }
       toast.success("সাইন ইন সফল");
-      // Passkey save flow (to be implemented in next iteration)
-      if (rememberPasskey) {
-        toast.message("Passkey সেভ ফিচারটি খুব শীঘ্রই আসছে");
-      }
       resetAll();
       onOpenChange(false);
     } catch (err) {
@@ -178,26 +220,15 @@ export function AuthDrawer({
     }
   }
 
-  // Signup: name + phone + password + confirm → Supabase sends OTP
   async function handleSignupStart(e: React.FormEvent) {
     e.preventDefault();
     setFormError(null);
-    if (!fullName.trim()) {
-      setFormError("আপনার পূর্ণ নাম দিন");
-      return;
-    }
-    if (!isValidBdMobile(phoneRaw)) {
-      setFormError("সঠিক ১১ ডিজিটের নাম্বার দিন (013–019 দিয়ে শুরু)");
-      return;
-    }
-    if (password.length < 6) {
-      setFormError("পাসওয়ার্ড কমপক্ষে ৬ ক্যারেক্টার হতে হবে");
-      return;
-    }
-    if (password !== confirmPassword) {
-      setFormError("পাসওয়ার্ড দুটো মিলছে না");
-      return;
-    }
+    setInfoMsg(null);
+    if (!fullName.trim()) return setFormError("আপনার পূর্ণ নাম দিন");
+    if (!isValidBdMobile(phoneRaw)) return setFormError("সঠিক ১১ ডিজিটের নাম্বার দিন (013–019 দিয়ে শুরু)");
+    if (password.length < 6) return setFormError("পাসওয়ার্ড কমপক্ষে ৬ ক্যারেক্টার হতে হবে");
+    if (password !== confirmPassword) return setFormError("পাসওয়ার্ড দুটো মিলছে না");
+
     setLoading(true);
     try {
       const { error } = await supabase.auth.signUp({
@@ -215,8 +246,45 @@ export function AuthDrawer({
         }
         return;
       }
-      toast.success("OTP পাঠানো হয়েছে");
+      setOtpFlow("signup");
       setStage("otp");
+      setInfoMsg("OTP পাঠানো হয়েছে আপনার ফোনে");
+      startCooldown();
+      setResendCount(0);
+    } catch (err) {
+      setLoading(false);
+      setFormError(errMsg(err));
+    }
+  }
+
+  async function handleForgotStart(e: React.FormEvent) {
+    e.preventDefault();
+    setFormError(null);
+    setInfoMsg(null);
+    if (!isValidBdMobile(phoneRaw)) return setFormError("সঠিক ১১ ডিজিটের নাম্বার দিন (013–019 দিয়ে শুরু)");
+
+    setLoading(true);
+    try {
+      // shouldCreateUser: false → only send if account exists
+      const { error } = await supabase.auth.signInWithOtp({
+        phone,
+        options: { shouldCreateUser: false },
+      });
+      setLoading(false);
+      if (error) {
+        const msg = (errMsg(error) || "").toLowerCase();
+        if (msg.includes("signups not allowed") || msg.includes("not found") || msg.includes("user not")) {
+          setFormError("এই নাম্বারে কোনো একাউন্ট নেই");
+        } else {
+          setFormError(errMsg(error));
+        }
+        return;
+      }
+      setOtpFlow("forgot");
+      setStage("otp");
+      setInfoMsg("পাসওয়ার্ড রিসেটের জন্য OTP পাঠানো হয়েছে");
+      startCooldown();
+      setResendCount(0);
     } catch (err) {
       setLoading(false);
       setFormError(errMsg(err));
@@ -226,32 +294,74 @@ export function AuthDrawer({
   async function handleVerifyOtp(e: React.FormEvent) {
     e.preventDefault();
     setFormError(null);
+    setInfoMsg(null);
+    if (otp.length < 4) return setFormError("OTP কোডটি সম্পূর্ণ দিন");
+
     setLoading(true);
     try {
       const { error } = await supabase.auth.verifyOtp({ phone, token: otp, type: "sms" });
       if (error) {
         setLoading(false);
+        const msg = (errMsg(error) || "").toLowerCase();
+        if (msg.includes("invalid") || msg.includes("expired") || msg.includes("token")) {
+          setFormError("OTP কোডটি ভুল অথবা মেয়াদ শেষ। আবার পাঠান।");
+        } else {
+          setFormError(errMsg(error));
+        }
+        return;
+      }
+
+      if (otpFlow === "signup") {
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData.user) {
+          await supabase
+            .from("profiles")
+            .update({
+              phone_verified: true,
+              phone,
+              ...(fullName ? { full_name: fullName } : {}),
+            })
+            .eq("id", userData.user.id);
+        }
+        setLoading(false);
+        toast.success("একাউন্ট তৈরি হয়েছে");
+        resetAll();
+        onOpenChange(false);
+      } else {
+        // forgot flow: verified → move to set-new-password stage
+        setLoading(false);
+        setPassword("");
+        setConfirmPassword("");
+        setStage("reset");
+        setInfoMsg("এখন নতুন পাসওয়ার্ড সেট করুন");
+      }
+    } catch (err) {
+      setLoading(false);
+      setFormError(errMsg(err));
+    }
+  }
+
+  async function handleResetPassword(e: React.FormEvent) {
+    e.preventDefault();
+    setFormError(null);
+    setInfoMsg(null);
+    if (password.length < 6) return setFormError("পাসওয়ার্ড কমপক্ষে ৬ ক্যারেক্টার হতে হবে");
+    if (password !== confirmPassword) return setFormError("পাসওয়ার্ড দুটো মিলছে না");
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) {
+        setLoading(false);
         setFormError(errMsg(error));
         return;
       }
-      const { data: userData } = await supabase.auth.getUser();
-      if (userData.user) {
-        await supabase
-          .from("profiles")
-          .update({
-            phone_verified: true,
-            phone,
-            ...(fullName ? { full_name: fullName } : {}),
-          })
-          .eq("id", userData.user.id);
-      }
+      await supabase.auth.signOut();
       setLoading(false);
-      toast.success("একাউন্ট তৈরি হয়েছে");
-      if (rememberPasskey) {
-        toast.message("Passkey সেভ ফিচারটি খুব শীঘ্রই আসছে");
-      }
+      toast.success("পাসওয়ার্ড আপডেট হয়েছে। এবার নতুন পাসওয়ার্ড দিয়ে লগইন করুন।");
       resetAll();
-      onOpenChange(false);
+      // stay open on login tab
+      setTab("login");
     } catch (err) {
       setLoading(false);
       setFormError(errMsg(err));
@@ -259,12 +369,27 @@ export function AuthDrawer({
   }
 
   async function handleResendOtp() {
+    if (cooldown > 0 || lockedUntil) return;
+    if (resendCount >= MAX_RESENDS) {
+      const until = Date.now() + LOCKOUT_MINUTES * 60 * 1000;
+      setLockedUntil(until);
+      setLockRemaining(LOCKOUT_MINUTES * 60);
+      setFormError(`অনেক বার রিসেন্ড হয়েছে। ${LOCKOUT_MINUTES} মিনিট পর আবার চেষ্টা করুন।`);
+      return;
+    }
+    setFormError(null);
+    setInfoMsg(null);
     try {
       const { error } = await supabase.auth.resend({ type: "sms", phone });
-      if (error) return toast.error(errMsg(error));
-      toast.success("OTP আবার পাঠানো হয়েছে");
+      if (error) {
+        setFormError(errMsg(error));
+        return;
+      }
+      setResendCount((n) => n + 1);
+      startCooldown();
+      setInfoMsg(`OTP আবার পাঠানো হয়েছে (${resendCount + 1}/${MAX_RESENDS})`);
     } catch (err) {
-      toast.error(errMsg(err));
+      setFormError(errMsg(err));
     }
   }
 
@@ -306,41 +431,56 @@ export function AuthDrawer({
     </div>
   );
 
-  const PasswordField = (
-    <div className="space-y-2">
-      <Label htmlFor="auth-password">পাসওয়ার্ড</Label>
-      <div className="relative">
-        <Input
-          id="auth-password"
-          type={showPassword ? "text" : "password"}
-          autoComplete={tab === "login" ? "current-password" : "new-password"}
-          placeholder="••••••••"
-          value={password}
-          onChange={(e) => {
-            setPassword(e.target.value);
-            if (formError) setFormError(null);
-          }}
-          required
-          minLength={6}
-          className="pr-9"
-        />
-        <button
-          type="button"
-          tabIndex={-1}
-          onClick={() => setShowPassword((s) => !s)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-          aria-label={showPassword ? "Hide password" : "Show password"}
-        >
-          {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-        </button>
+  function PasswordFieldEl({ id = "auth-password", label = "পাসওয়ার্ড", value, onChange, autoComplete }: {
+    id?: string;
+    label?: string;
+    value: string;
+    onChange: (v: string) => void;
+    autoComplete: string;
+  }) {
+    return (
+      <div className="space-y-2">
+        <Label htmlFor={id}>{label}</Label>
+        <div className="relative">
+          <Input
+            id={id}
+            type={showPassword ? "text" : "password"}
+            autoComplete={autoComplete}
+            placeholder="••••••••"
+            value={value}
+            onChange={(e) => {
+              onChange(e.target.value);
+              if (formError) setFormError(null);
+            }}
+            required
+            minLength={6}
+            className="pr-9"
+          />
+          <button
+            type="button"
+            tabIndex={-1}
+            onClick={() => setShowPassword((s) => !s)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+          >
+            {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 
   const ErrorBox = formError ? (
     <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
       <AlertCircle className="mt-0.5 size-3.5 shrink-0" />
       <span>{formError}</span>
+    </div>
+  ) : null;
+
+  const InfoBox = infoMsg ? (
+    <div className="flex items-start gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-400">
+      <CheckCircle2 className="mt-0.5 size-3.5 shrink-0" />
+      <span>{infoMsg}</span>
     </div>
   ) : null;
 
@@ -352,9 +492,20 @@ export function AuthDrawer({
         onChange={(e) => setRememberPasskey(e.target.checked)}
         className="size-3.5 rounded border-input accent-amber-500"
       />
-      <span>এই ডিভাইসে Passkey সেভ করে রাখো (পরে সরাসরি Passkey দিয়ে লগইন)</span>
+      <span>এই ডিভাইসে Passkey সেভ করে রাখো</span>
     </label>
   );
+
+  const cardTitle =
+    stage === "reset"
+      ? "নতুন পাসওয়ার্ড সেট করুন"
+      : stage === "otp"
+        ? "ফোন ভেরিফাই করুন"
+        : forgotMode
+          ? "পাসওয়ার্ড রিসেট করুন"
+          : tab === "login"
+            ? "একাউন্টে লগিন করুন"
+            : "নতুন একাউন্ট তৈরি করুন";
 
   return (
     <>
@@ -387,16 +538,10 @@ export function AuthDrawer({
             <div className="w-full max-w-sm">
               <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
                 <div className="mb-4 text-center">
-                  <h2 className="text-lg font-semibold">
-                    {stage === "otp"
-                      ? "ফোন ভেরিফাই করুন"
-                      : tab === "login"
-                        ? "একাউন্টে লগিন করুন"
-                        : "নতুন একাউন্ট তৈরি করুন"}
-                  </h2>
+                  <h2 className="text-lg font-semibold">{cardTitle}</h2>
                 </div>
 
-                {stage === "form" && (
+                {stage === "form" && !forgotMode && (
                   <div className="mb-4 grid grid-cols-2 rounded-lg border border-border bg-muted p-1">
                     {(["login", "signup"] as const).map((t) => (
                       <button
@@ -416,10 +561,29 @@ export function AuthDrawer({
                   </div>
                 )}
 
-                {stage === "form" && tab === "login" && (
+                {/* LOGIN */}
+                {stage === "form" && tab === "login" && !forgotMode && (
                   <form className="space-y-4" onSubmit={handleLogin}>
                     {PhoneField}
-                    {PasswordField}
+                    <PasswordFieldEl
+                      value={password}
+                      onChange={setPassword}
+                      autoComplete="current-password"
+                    />
+                    <div className="flex justify-end -mt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForgotMode(true);
+                          setPassword("");
+                          setFormError(null);
+                          setInfoMsg(null);
+                        }}
+                        className="text-xs text-brand hover:underline"
+                      >
+                        পাসওয়ার্ড ভুলে গেছেন?
+                      </button>
+                    </div>
                     {ErrorBox}
                     {PasskeyToggle}
                     <Button
@@ -442,7 +606,37 @@ export function AuthDrawer({
                   </form>
                 )}
 
-                {stage === "form" && tab === "signup" && (
+                {/* FORGOT PASSWORD - phone entry */}
+                {stage === "form" && forgotMode && (
+                  <form className="space-y-4" onSubmit={handleForgotStart}>
+                    <p className="text-xs text-muted-foreground">
+                      আপনার রেজিস্টার্ড নাম্বার দিন — OTP পাঠিয়ে ভেরিফাই করে নতুন পাসওয়ার্ড সেট করতে পারবেন।
+                    </p>
+                    {PhoneField}
+                    {ErrorBox}
+                    <Button
+                      type="submit"
+                      className="w-full bg-amber-500 text-amber-950 hover:bg-amber-600"
+                      disabled={loading}
+                    >
+                      {loading ? "পাঠানো হচ্ছে..." : "OTP পাঠান"}
+                    </Button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setForgotMode(false);
+                        setFormError(null);
+                        setInfoMsg(null);
+                      }}
+                      className="w-full text-center text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      ← লগইনে ফিরে যান
+                    </button>
+                  </form>
+                )}
+
+                {/* SIGNUP */}
+                {stage === "form" && tab === "signup" && !forgotMode && (
                   <form className="space-y-4" onSubmit={handleSignupStart}>
                     <div className="space-y-2">
                       <Label htmlFor="auth-name">পূর্ণ নাম</Label>
@@ -459,23 +653,18 @@ export function AuthDrawer({
                       />
                     </div>
                     {PhoneField}
-                    {PasswordField}
-                    <div className="space-y-2">
-                      <Label htmlFor="auth-confirm">পাসওয়ার্ড কনফার্ম</Label>
-                      <Input
-                        id="auth-confirm"
-                        type={showPassword ? "text" : "password"}
-                        autoComplete="new-password"
-                        placeholder="••••••••"
-                        value={confirmPassword}
-                        onChange={(e) => {
-                          setConfirmPassword(e.target.value);
-                          if (formError) setFormError(null);
-                        }}
-                        minLength={6}
-                        required
-                      />
-                    </div>
+                    <PasswordFieldEl
+                      value={password}
+                      onChange={setPassword}
+                      autoComplete="new-password"
+                    />
+                    <PasswordFieldEl
+                      id="auth-confirm"
+                      label="পাসওয়ার্ড কনফার্ম"
+                      value={confirmPassword}
+                      onChange={setConfirmPassword}
+                      autoComplete="new-password"
+                    />
                     {ErrorBox}
                     {PasskeyToggle}
                     <Button
@@ -488,11 +677,13 @@ export function AuthDrawer({
                   </form>
                 )}
 
+                {/* OTP */}
                 {stage === "otp" && (
                   <form className="space-y-4" onSubmit={handleVerifyOtp}>
                     <div className="rounded-lg bg-muted/60 p-3 text-sm">
                       <strong>+88{phoneRaw}</strong> নাম্বারে ৬-ডিজিটের OTP পাঠানো হয়েছে
                     </div>
+                    {InfoBox}
                     <div className="space-y-2">
                       <Label htmlFor="auth-otp">OTP কোড</Label>
                       <Input
@@ -512,7 +703,11 @@ export function AuthDrawer({
                       className="w-full bg-amber-500 text-amber-950 hover:bg-amber-600"
                       disabled={loading || otp.length < 4}
                     >
-                      {loading ? "যাচাই করা হচ্ছে..." : "ভেরিফাই ও একাউন্ট তৈরি"}
+                      {loading
+                        ? "যাচাই করা হচ্ছে..."
+                        : otpFlow === "signup"
+                          ? "ভেরিফাই ও একাউন্ট তৈরি"
+                          : "ভেরিফাই করুন"}
                     </Button>
                     <div className="flex items-center justify-between text-xs">
                       <button
@@ -521,24 +716,72 @@ export function AuthDrawer({
                           setStage("form");
                           setOtp("");
                           setFormError(null);
+                          setInfoMsg(null);
                         }}
                         className="text-muted-foreground hover:text-foreground"
                       >
                         ← ফিরে যান
                       </button>
-                      <button
-                        type="button"
-                        onClick={handleResendOtp}
-                        className="text-brand hover:underline"
-                      >
-                        কোড আবার পাঠান
-                      </button>
+                      {lockedUntil ? (
+                        <span className="text-destructive">
+                          {LOCKOUT_MINUTES} মিনিটের জন্য লকড ({Math.floor(lockRemaining / 60)}:
+                          {String(lockRemaining % 60).padStart(2, "0")})
+                        </span>
+                      ) : cooldown > 0 ? (
+                        <span className="text-muted-foreground">
+                          আবার পাঠান ({cooldown}s)
+                        </span>
+                      ) : resendCount >= MAX_RESENDS ? (
+                        <button
+                          type="button"
+                          onClick={handleResendOtp}
+                          className="text-destructive hover:underline"
+                        >
+                          লিমিট পৌঁছেছে
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleResendOtp}
+                          className="text-brand hover:underline"
+                        >
+                          কোড আবার পাঠান ({MAX_RESENDS - resendCount} বার বাকি)
+                        </button>
+                      )}
                     </div>
+                  </form>
+                )}
+
+                {/* RESET PASSWORD */}
+                {stage === "reset" && (
+                  <form className="space-y-4" onSubmit={handleResetPassword}>
+                    {InfoBox}
+                    <PasswordFieldEl
+                      label="নতুন পাসওয়ার্ড"
+                      value={password}
+                      onChange={setPassword}
+                      autoComplete="new-password"
+                    />
+                    <PasswordFieldEl
+                      id="auth-confirm"
+                      label="পাসওয়ার্ড কনফার্ম"
+                      value={confirmPassword}
+                      onChange={setConfirmPassword}
+                      autoComplete="new-password"
+                    />
+                    {ErrorBox}
+                    <Button
+                      type="submit"
+                      className="w-full bg-amber-500 text-amber-950 hover:bg-amber-600"
+                      disabled={loading}
+                    >
+                      {loading ? "সেভ হচ্ছে..." : "পাসওয়ার্ড সেভ করুন"}
+                    </Button>
                   </form>
                 )}
               </div>
 
-              {stage === "form" && (
+              {stage === "form" && !forgotMode && (
                 <>
                   <div className="my-5 flex items-center gap-3">
                     <div className="h-px flex-1 bg-border" />
