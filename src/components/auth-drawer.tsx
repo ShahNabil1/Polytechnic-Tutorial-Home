@@ -26,11 +26,27 @@ import { AlertCircle } from "lucide-react";
 type Tab = "login" | "signup";
 type Stage = "phone" | "otp";
 
+function bnToEnDigits(s: string): string {
+  const map: Record<string, string> = {
+    "০": "0", "১": "1", "২": "2", "৩": "3", "৪": "4",
+    "৫": "5", "৬": "6", "৭": "7", "৮": "8", "৯": "9",
+    "٠": "0", "١": "1", "٢": "2", "٣": "3", "٤": "4",
+    "٥": "5", "٦": "6", "٧": "7", "٨": "8", "٩": "9",
+  };
+  return s.replace(/[০-৯٠-٩]/g, (d) => map[d] ?? d);
+}
+
 function normalizePhone(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
+  const digits = bnToEnDigits(raw).replace(/\D/g, "");
   if (digits.startsWith("88")) return "+" + digits;
   if (digits.startsWith("0")) return "+88" + digits;
   return "+88" + digits;
+}
+
+// BD mobile: 11 digits starting with 013-019
+function isValidBdMobile(raw: string): boolean {
+  const digits = bnToEnDigits(raw).replace(/\D/g, "");
+  return /^01[3-9]\d{8}$/.test(digits);
 }
 
 function errMsg(e: unknown, fallback = "কিছু ভুল হয়েছে, আবার চেষ্টা করুন"): string {
