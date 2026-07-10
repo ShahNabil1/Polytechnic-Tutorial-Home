@@ -7,6 +7,7 @@ import { ORDER_STATUSES, STATUS_LABEL, formatDhakaDateTime, type OrderStatus } f
 import { formatBDT } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { AdminOrderDrawer } from "@/components/internal/AdminOrderDrawer";
+import { AdminIncompleteCheckouts } from "@/components/internal/AdminIncompleteCheckouts";
 
 export function AdminOrdersManager() {
   const [tab, setTab] = useState<OrderStatus>("processing");
