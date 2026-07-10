@@ -417,6 +417,8 @@ async function consumeChallenge(args: {
   purpose: "register" | "authenticate";
   userId?: string | null;
   phone?: string | null;
+  /** When set, matches on the challenge value directly (used by discoverable auth). */
+  challenge?: string;
 }): Promise<string> {
   const client = args.supabase ?? admin();
   let q = client
@@ -426,6 +428,7 @@ async function consumeChallenge(args: {
     .gt("expires_at", new Date().toISOString())
     .order("created_at", { ascending: false })
     .limit(1);
+  if (args.challenge) q = q.eq("challenge", args.challenge);
   if (args.userId) q = q.eq("user_id", args.userId);
   if (args.phone) q = q.eq("phone", args.phone);
   const { data, error } = await q.maybeSingle();
@@ -538,27 +541,40 @@ export async function finishRegistration(args: {
   return { verified: true };
 }
 
-export async function beginAuthentication(phone: string) {
+/**
+ * Begin authentication.
+ *
+ * If `phone` is provided, we scope `allowCredentials` to that user (legacy
+ * flow). If it is omitted, we return an empty `allowCredentials` list — this
+ * is the WebAuthn "discoverable credential" flow. The browser then lets the
+ * OS pick the resident passkey automatically; the user doesn't have to type
+ * a phone number or email first.
+ */
+export async function beginAuthentication(phone?: string | null) {
   const rp = getRpConfig();
-  const userId = await findUserIdByPhone(phone);
 
   let credentials: { credential_id: string; transports: string[] | null }[] = [];
-  if (userId) {
-    const { data } = await admin()
-      .from("webauthn_credentials")
-      .select("credential_id, transports")
-      .eq("user_id", userId);
-    credentials = data ?? [];
+  if (phone) {
+    const userId = await findUserIdByPhone(phone);
+    if (userId) {
+      const { data } = await admin()
+        .from("webauthn_credentials")
+        .select("credential_id, transports")
+        .eq("user_id", userId);
+      credentials = data ?? [];
+    }
   }
 
   const challenge = randomBase64Url();
-  await storeChallenge({ challenge, purpose: "authenticate", phone });
+  await storeChallenge({ challenge, purpose: "authenticate", phone: phone ?? null });
 
   return {
     challenge,
     timeout: CHALLENGE_TTL_SECONDS * 1000,
     rpId: rp.rpID,
-    userVerification: "preferred",
+    // Require verification for discoverable flow so the passkey acts as a
+    // full first-factor sign-in.
+    userVerification: phone ? "preferred" : "required",
     allowCredentials: credentials.map((c) => ({
       id: c.credential_id,
       type: "public-key",
@@ -568,19 +584,33 @@ export async function beginAuthentication(phone: string) {
 }
 
 export async function finishAuthentication(args: {
-  phone: string;
+  phone?: string | null;
   response: AuthenticationResponseJSON;
 }) {
   const rp = getRpConfig();
-  const expectedChallenge = await consumeChallenge({ purpose: "authenticate", phone: args.phone });
 
+  // Look up the credential first — its record tells us which user is
+  // signing in, which is required for the discoverable flow (no phone).
   const { data: cred, error: credErr } = await admin()
     .from("webauthn_credentials")
     .select("id, user_id, credential_id, public_key, counter, transports")
     .eq("credential_id", args.response.id)
     .maybeSingle<CredentialRow>();
   if (credErr) throw new Error(`Credential lookup failed: ${credErr.message}`);
-  if (!cred) throw new Error("এই ডিভাইসের Passkey রেজিস্টার্ড নেই");
+  if (!cred) throw new Error("এই Passkey রেজিস্টার্ড নেই");
+
+  // Decode the returned clientData to read the challenge the authenticator
+  // signed — then match it back to a stored authenticate-challenge row.
+  const clientDataRaw = fromBase64Url(args.response.response.clientDataJSON);
+  const clientDataParsed = JSON.parse(textDecoder.decode(clientDataRaw)) as {
+    challenge?: string;
+  };
+  if (!clientDataParsed.challenge) throw new Error("Missing challenge in client data");
+
+  const expectedChallenge = await consumeChallenge({
+    purpose: "authenticate",
+    challenge: clientDataParsed.challenge,
+  });
 
   const clientDataBytes = parseClientData({
     encoded: args.response.response.clientDataJSON,
