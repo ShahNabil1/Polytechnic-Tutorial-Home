@@ -46,6 +46,7 @@ function CheckoutPage() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const submittedRef = useRef(false);
 
   const isPhysical = hasPhysical(items);
   const isOnline = hasOnlineBook(items);
