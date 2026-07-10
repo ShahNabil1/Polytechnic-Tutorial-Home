@@ -94,11 +94,32 @@ function SuccessPage() {
             অর্ডার সফল হয়েছে!
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            আপনার অর্ডারের জন্য ধন্যবাদ। অর্ডার নম্বর:
+            আপনার অর্ডারের জন্য ধন্যবাদ।
           </p>
-          <p className="mt-1 font-inter text-lg font-bold tracking-wider text-brand">
-            {order}
-          </p>
+
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+            <div className="rounded-xl border border-border bg-surface px-4 py-2 text-left">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Order ID
+              </p>
+              <p className="font-inter text-lg font-extrabold tracking-wider text-brand">
+                {order}
+              </p>
+            </div>
+            <div className="rounded-xl border border-border bg-surface px-4 py-2 text-left">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Status
+              </p>
+              <span
+                className={cn(
+                  "mt-0.5 inline-flex items-center rounded-full px-2.5 py-1 text-xs font-extrabold ring-1",
+                  STATUS_STYLE[(snap?.status ?? "pending") as OrderStatus],
+                )}
+              >
+                {STATUS_LABEL[(snap?.status ?? "pending") as OrderStatus]}
+              </span>
+            </div>
+          </div>
 
           <div className="mt-6 rounded-xl bg-surface p-4 text-left text-sm">
             {isDigital ? (
