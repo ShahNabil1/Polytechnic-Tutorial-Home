@@ -13,11 +13,23 @@ export interface CartItem {
   coverEmoji?: string;
   quantity: number;
   isOnlineBook?: boolean;
+  isBundle?: boolean;
+  bundleSlug?: string;
 }
+
+export type BundleCartInput = {
+  id: string;
+  slug: string;
+  title: string;
+  price: number;
+  image?: string | null;
+  hasPhysical: boolean;
+};
 
 interface CartState {
   items: CartItem[];
   add: (product: Product, qty?: number) => void;
+  addBundle: (bundle: BundleCartInput) => void;
   remove: (productId: string) => void;
   setQty: (productId: string, qty: number) => void;
   clear: () => void;
