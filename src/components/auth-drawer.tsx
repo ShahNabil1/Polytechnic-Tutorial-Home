@@ -74,6 +74,7 @@ export function AuthDrawer({
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   const phone = phoneRaw ? normalizePhone(phoneRaw) : "";
   const inProgress = phoneRaw.length > 0 || otp.length > 0 || fullName.length > 0;
@@ -84,6 +85,7 @@ export function AuthDrawer({
     setOtp("");
     setStage("phone");
     setTab("login");
+    setPhoneError(null);
   }
 
   function requestClose() {
@@ -98,6 +100,13 @@ export function AuthDrawer({
     setConfirmClose(false);
     resetAll();
     onOpenChange(false);
+  }
+
+  function handlePhoneChange(v: string) {
+    // Convert Bangla/Arabic digits to English, keep only digits, cap at 11
+    const digits = bnToEnDigits(v).replace(/\D/g, "").slice(0, 11);
+    setPhoneRaw(digits);
+    if (phoneError) setPhoneError(null);
   }
 
   async function handleGoogle() {
@@ -119,7 +128,19 @@ export function AuthDrawer({
 
   async function handleSendOtp(e: React.FormEvent) {
     e.preventDefault();
-    if (!phoneRaw) return toast.error("ফোন নাম্বার দিন");
+    setPhoneError(null);
+    if (!phoneRaw) {
+      setPhoneError("ফোন নাম্বার দিন");
+      return;
+    }
+    if (!isValidBdMobile(phoneRaw)) {
+      setPhoneError("সঠিক ১১ ডিজিটের নাম্বার দিন (013, 014, 015, 016, 017, 018, 019 দিয়ে শুরু)");
+      return;
+    }
+    if (tab === "signup" && !fullName.trim()) {
+      setPhoneError("আপনার পূর্ণ নাম দিন");
+      return;
+    }
     setLoading(true);
     try {
       const { error } = await supabase.auth.signInWithOtp({
@@ -130,12 +151,26 @@ export function AuthDrawer({
         },
       });
       setLoading(false);
-      if (error) return toast.error(errMsg(error));
+      if (error) {
+        const msg = (errMsg(error) || "").toLowerCase();
+        // No account found for this number (login flow)
+        if (tab === "login" && (msg.includes("signups not allowed") || msg.includes("signup") || msg.includes("not found") || msg.includes("user not"))) {
+          setPhoneError("এই নাম্বারে কোনো একাউন্ট নেই। নতুন একাউন্ট খুলুন অথবা রেজিস্টার্ড নাম্বার দিন।");
+          return;
+        }
+        // Existing account (signup flow)
+        if (tab === "signup" && (msg.includes("already") || msg.includes("registered") || msg.includes("exists"))) {
+          setPhoneError("এই নাম্বারে ইতিমধ্যে একাউন্ট আছে। লগইন ট্যাব থেকে লগইন করুন।");
+          return;
+        }
+        setPhoneError(errMsg(error));
+        return;
+      }
       toast.success("OTP পাঠানো হয়েছে");
       setStage("otp");
     } catch (err) {
       setLoading(false);
-      toast.error(errMsg(err));
+      setPhoneError(errMsg(err));
     }
   }
 
