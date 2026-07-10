@@ -162,9 +162,6 @@ export function CartDrawer() {
               </AnimatePresence>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-3 py-3 md:px-4 md:py-4">
-              {/* items rendered above */}
-            </div>
             <div className="border-t border-border/60 bg-surface/60 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:px-6 md:py-5">
               <div className="mb-3 flex items-center justify-between md:mb-4">
                 <span className="text-xs font-bold text-muted-foreground md:text-sm">
