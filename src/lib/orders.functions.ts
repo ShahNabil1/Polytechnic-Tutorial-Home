@@ -227,7 +227,8 @@ export const listAdminOrders = createServerFn({ method: "GET" })
     const counts: Record<string, number> = {};
     for (const r of countsRaw ?? []) counts[r.status] = (counts[r.status] ?? 0) + 1;
 
-    return { orders: rows ?? [], counts };
+    const orders = (rows ?? []).map((r: any) => ({ ...r, ip: r.ip == null ? null : String(r.ip) }));
+    return { orders, counts };
   });
 
 // -------- ADMIN: get one order --------
