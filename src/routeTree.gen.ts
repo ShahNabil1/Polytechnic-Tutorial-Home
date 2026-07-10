@@ -20,10 +20,15 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as CheckoutSuccessRouteImport } from './routes/checkout.success'
 import { Route as AuthenticatedSdashRouteImport } from './routes/_authenticated/sdash'
+import { Route as AuthenticatedInternalRouteImport } from './routes/_authenticated/_internal'
 import { Route as AuthenticatedSdashIndexRouteImport } from './routes/_authenticated/sdash.index'
 import { Route as AuthenticatedSdashShopRouteImport } from './routes/_authenticated/sdash.shop'
 import { Route as AuthenticatedSdashProfileRouteImport } from './routes/_authenticated/sdash.profile'
 import { Route as AuthenticatedSdashCoursesRouteImport } from './routes/_authenticated/sdash.courses'
+import { Route as AuthenticatedInternalWorkspaceRouteImport } from './routes/_authenticated/_internal.workspace'
+import { Route as AuthenticatedInternalInstructorRouteImport } from './routes/_authenticated/_internal.instructor'
+import { Route as AuthenticatedInternalWorkspaceIndexRouteImport } from './routes/_authenticated/_internal.workspace.index'
+import { Route as AuthenticatedInternalInstructorIndexRouteImport } from './routes/_authenticated/_internal.instructor.index'
 import { Route as ApiPublicSessionsActionRouteImport } from './routes/api/public/sessions.$action'
 
 const TermsOfServiceRoute = TermsOfServiceRouteImport.update({
@@ -80,6 +85,10 @@ const AuthenticatedSdashRoute = AuthenticatedSdashRouteImport.update({
   path: '/sdash',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedInternalRoute = AuthenticatedInternalRouteImport.update({
+  id: '/_internal',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedSdashIndexRoute = AuthenticatedSdashIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -102,6 +111,30 @@ const AuthenticatedSdashCoursesRoute =
     path: '/courses',
     getParentRoute: () => AuthenticatedSdashRoute,
   } as any)
+const AuthenticatedInternalWorkspaceRoute =
+  AuthenticatedInternalWorkspaceRouteImport.update({
+    id: '/workspace',
+    path: '/workspace',
+    getParentRoute: () => AuthenticatedInternalRoute,
+  } as any)
+const AuthenticatedInternalInstructorRoute =
+  AuthenticatedInternalInstructorRouteImport.update({
+    id: '/instructor',
+    path: '/instructor',
+    getParentRoute: () => AuthenticatedInternalRoute,
+  } as any)
+const AuthenticatedInternalWorkspaceIndexRoute =
+  AuthenticatedInternalWorkspaceIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
+  } as any)
+const AuthenticatedInternalInstructorIndexRoute =
+  AuthenticatedInternalInstructorIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedInternalInstructorRoute,
+  } as any)
 const ApiPublicSessionsActionRoute = ApiPublicSessionsActionRouteImport.update({
   id: '/api/public/sessions/$action',
   path: '/api/public/sessions/$action',
@@ -119,11 +152,15 @@ export interface FileRoutesByFullPath {
   '/sdash': typeof AuthenticatedSdashRouteWithChildren
   '/checkout/success': typeof CheckoutSuccessRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/instructor': typeof AuthenticatedInternalInstructorRouteWithChildren
+  '/workspace': typeof AuthenticatedInternalWorkspaceRouteWithChildren
   '/sdash/courses': typeof AuthenticatedSdashCoursesRoute
   '/sdash/profile': typeof AuthenticatedSdashProfileRoute
   '/sdash/shop': typeof AuthenticatedSdashShopRoute
   '/sdash/': typeof AuthenticatedSdashIndexRoute
   '/api/public/sessions/$action': typeof ApiPublicSessionsActionRoute
+  '/instructor/': typeof AuthenticatedInternalInstructorIndexRoute
+  '/workspace/': typeof AuthenticatedInternalWorkspaceIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -140,6 +177,8 @@ export interface FileRoutesByTo {
   '/sdash/shop': typeof AuthenticatedSdashShopRoute
   '/sdash': typeof AuthenticatedSdashIndexRoute
   '/api/public/sessions/$action': typeof ApiPublicSessionsActionRoute
+  '/instructor': typeof AuthenticatedInternalInstructorIndexRoute
+  '/workspace': typeof AuthenticatedInternalWorkspaceIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -151,14 +190,19 @@ export interface FileRoutesById {
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/shop': typeof ShopRoute
   '/terms-of-service': typeof TermsOfServiceRoute
+  '/_authenticated/_internal': typeof AuthenticatedInternalRouteWithChildren
   '/_authenticated/sdash': typeof AuthenticatedSdashRouteWithChildren
   '/checkout/success': typeof CheckoutSuccessRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/_authenticated/_internal/instructor': typeof AuthenticatedInternalInstructorRouteWithChildren
+  '/_authenticated/_internal/workspace': typeof AuthenticatedInternalWorkspaceRouteWithChildren
   '/_authenticated/sdash/courses': typeof AuthenticatedSdashCoursesRoute
   '/_authenticated/sdash/profile': typeof AuthenticatedSdashProfileRoute
   '/_authenticated/sdash/shop': typeof AuthenticatedSdashShopRoute
   '/_authenticated/sdash/': typeof AuthenticatedSdashIndexRoute
   '/api/public/sessions/$action': typeof ApiPublicSessionsActionRoute
+  '/_authenticated/_internal/instructor/': typeof AuthenticatedInternalInstructorIndexRoute
+  '/_authenticated/_internal/workspace/': typeof AuthenticatedInternalWorkspaceIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -173,11 +217,15 @@ export interface FileRouteTypes {
     | '/sdash'
     | '/checkout/success'
     | '/product/$slug'
+    | '/instructor'
+    | '/workspace'
     | '/sdash/courses'
     | '/sdash/profile'
     | '/sdash/shop'
     | '/sdash/'
     | '/api/public/sessions/$action'
+    | '/instructor/'
+    | '/workspace/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -194,6 +242,8 @@ export interface FileRouteTypes {
     | '/sdash/shop'
     | '/sdash'
     | '/api/public/sessions/$action'
+    | '/instructor'
+    | '/workspace'
   id:
     | '__root__'
     | '/'
@@ -204,14 +254,19 @@ export interface FileRouteTypes {
     | '/privacy-policy'
     | '/shop'
     | '/terms-of-service'
+    | '/_authenticated/_internal'
     | '/_authenticated/sdash'
     | '/checkout/success'
     | '/product/$slug'
+    | '/_authenticated/_internal/instructor'
+    | '/_authenticated/_internal/workspace'
     | '/_authenticated/sdash/courses'
     | '/_authenticated/sdash/profile'
     | '/_authenticated/sdash/shop'
     | '/_authenticated/sdash/'
     | '/api/public/sessions/$action'
+    | '/_authenticated/_internal/instructor/'
+    | '/_authenticated/_internal/workspace/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -306,6 +361,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSdashRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/_internal': {
+      id: '/_authenticated/_internal'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedInternalRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/sdash/': {
       id: '/_authenticated/sdash/'
       path: '/'
@@ -334,6 +396,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSdashCoursesRouteImport
       parentRoute: typeof AuthenticatedSdashRoute
     }
+    '/_authenticated/_internal/workspace': {
+      id: '/_authenticated/_internal/workspace'
+      path: '/workspace'
+      fullPath: '/workspace'
+      preLoaderRoute: typeof AuthenticatedInternalWorkspaceRouteImport
+      parentRoute: typeof AuthenticatedInternalRoute
+    }
+    '/_authenticated/_internal/instructor': {
+      id: '/_authenticated/_internal/instructor'
+      path: '/instructor'
+      fullPath: '/instructor'
+      preLoaderRoute: typeof AuthenticatedInternalInstructorRouteImport
+      parentRoute: typeof AuthenticatedInternalRoute
+    }
+    '/_authenticated/_internal/workspace/': {
+      id: '/_authenticated/_internal/workspace/'
+      path: '/'
+      fullPath: '/workspace/'
+      preLoaderRoute: typeof AuthenticatedInternalWorkspaceIndexRouteImport
+      parentRoute: typeof AuthenticatedInternalWorkspaceRoute
+    }
+    '/_authenticated/_internal/instructor/': {
+      id: '/_authenticated/_internal/instructor/'
+      path: '/'
+      fullPath: '/instructor/'
+      preLoaderRoute: typeof AuthenticatedInternalInstructorIndexRouteImport
+      parentRoute: typeof AuthenticatedInternalInstructorRoute
+    }
     '/api/public/sessions/$action': {
       id: '/api/public/sessions/$action'
       path: '/api/public/sessions/$action'
@@ -343,6 +433,53 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AuthenticatedInternalInstructorRouteChildren {
+  AuthenticatedInternalInstructorIndexRoute: typeof AuthenticatedInternalInstructorIndexRoute
+}
+
+const AuthenticatedInternalInstructorRouteChildren: AuthenticatedInternalInstructorRouteChildren =
+  {
+    AuthenticatedInternalInstructorIndexRoute:
+      AuthenticatedInternalInstructorIndexRoute,
+  }
+
+const AuthenticatedInternalInstructorRouteWithChildren =
+  AuthenticatedInternalInstructorRoute._addFileChildren(
+    AuthenticatedInternalInstructorRouteChildren,
+  )
+
+interface AuthenticatedInternalWorkspaceRouteChildren {
+  AuthenticatedInternalWorkspaceIndexRoute: typeof AuthenticatedInternalWorkspaceIndexRoute
+}
+
+const AuthenticatedInternalWorkspaceRouteChildren: AuthenticatedInternalWorkspaceRouteChildren =
+  {
+    AuthenticatedInternalWorkspaceIndexRoute:
+      AuthenticatedInternalWorkspaceIndexRoute,
+  }
+
+const AuthenticatedInternalWorkspaceRouteWithChildren =
+  AuthenticatedInternalWorkspaceRoute._addFileChildren(
+    AuthenticatedInternalWorkspaceRouteChildren,
+  )
+
+interface AuthenticatedInternalRouteChildren {
+  AuthenticatedInternalInstructorRoute: typeof AuthenticatedInternalInstructorRouteWithChildren
+  AuthenticatedInternalWorkspaceRoute: typeof AuthenticatedInternalWorkspaceRouteWithChildren
+}
+
+const AuthenticatedInternalRouteChildren: AuthenticatedInternalRouteChildren = {
+  AuthenticatedInternalInstructorRoute:
+    AuthenticatedInternalInstructorRouteWithChildren,
+  AuthenticatedInternalWorkspaceRoute:
+    AuthenticatedInternalWorkspaceRouteWithChildren,
+}
+
+const AuthenticatedInternalRouteWithChildren =
+  AuthenticatedInternalRoute._addFileChildren(
+    AuthenticatedInternalRouteChildren,
+  )
 
 interface AuthenticatedSdashRouteChildren {
   AuthenticatedSdashCoursesRoute: typeof AuthenticatedSdashCoursesRoute
@@ -362,10 +499,12 @@ const AuthenticatedSdashRouteWithChildren =
   AuthenticatedSdashRoute._addFileChildren(AuthenticatedSdashRouteChildren)
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedInternalRoute: typeof AuthenticatedInternalRouteWithChildren
   AuthenticatedSdashRoute: typeof AuthenticatedSdashRouteWithChildren
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedInternalRoute: AuthenticatedInternalRouteWithChildren,
   AuthenticatedSdashRoute: AuthenticatedSdashRouteWithChildren,
 }
 

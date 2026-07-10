@@ -12,10 +12,15 @@ export const Route = createFileRoute("/_authenticated/_internal/instructor")({
   component: InstructorLayout,
 });
 
-const TABS = [
+const TABS: ReadonlyArray<{
+  to: "/instructor" | "/instructor/profile";
+  label: string;
+  icon: typeof LayoutDashboard;
+  exact?: boolean;
+}> = [
   { to: "/instructor", label: "হোম", icon: LayoutDashboard, exact: true },
   { to: "/instructor/profile", label: "প্রোফাইল", icon: UserIcon },
-] as const;
+];
 
 function InstructorLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });

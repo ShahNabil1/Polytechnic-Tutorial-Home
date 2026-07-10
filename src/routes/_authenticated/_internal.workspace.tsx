@@ -13,15 +13,22 @@ export const Route = createFileRoute("/_authenticated/_internal/workspace")({
   component: WorkspaceLayout,
 });
 
-const BASE_TABS = [
+type WorkspaceTab = {
+  to: "/workspace" | "/workspace/profile" | "/workspace/employees" | "/workspace/instructors";
+  label: string;
+  icon: typeof LayoutDashboard;
+  exact?: boolean;
+};
+
+const BASE_TABS: ReadonlyArray<WorkspaceTab> = [
   { to: "/workspace", label: "হোম", icon: LayoutDashboard, exact: true },
   { to: "/workspace/profile", label: "প্রোফাইল", icon: UserIcon },
-] as const;
+];
 
-const ADMIN_TABS = [
+const ADMIN_TABS: ReadonlyArray<WorkspaceTab> = [
   { to: "/workspace/employees", label: "এমপ্লয়ি", icon: Users },
   { to: "/workspace/instructors", label: "ইন্সট্রাক্টর", icon: GraduationCap },
-] as const;
+];
 
 function WorkspaceLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -41,8 +48,7 @@ function WorkspaceLayout() {
       </header>
       <nav className="mb-6 flex flex-wrap gap-2 border-b">
         {tabs.map((t) => {
-          const active =
-            "exact" in t && t.exact ? pathname === t.to : pathname.startsWith(t.to);
+          const active = t.exact ? pathname === t.to : pathname.startsWith(t.to);
           const Icon = t.icon;
           return (
             <Link
