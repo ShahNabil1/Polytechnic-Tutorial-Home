@@ -10,29 +10,12 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const MAX_DEVICES = 2;
-
 type ClaimsWithSession = {
   session_id?: string;
   sid?: string;
   sub?: string;
   jti?: string;
 };
-
-/**
- * Resolve a stable identifier for the current auth session. Prefers the JWT
- * `session_id` / `sid` claim (which Supabase includes on modern tokens), and
- * falls back to `jti` so we still register a row on older tokens.
- */
-function currentSessionId(claims: unknown): string {
-  const c = (claims ?? {}) as ClaimsWithSession;
-  const id = c.session_id ?? c.sid ?? c.jti;
-  if (!id) {
-    console.error("[sessions] missing session_id claim; keys=", Object.keys(c));
-    throw new Error("Session claim missing (session_id)");
-  }
-  return id;
-}
 
 
 /**
@@ -44,7 +27,13 @@ function currentSessionId(claims: unknown): string {
 export const registerSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const sessionId = currentSessionId(context.claims);
+    const maxDevices = 2;
+    const c = (context.claims ?? {}) as ClaimsWithSession;
+    const sessionId = c.session_id ?? c.sid ?? c.jti;
+    if (!sessionId) {
+      console.error("[sessions] missing session_id claim; keys=", Object.keys(c));
+      throw new Error("Session claim missing (session_id)");
+    }
     const { parseUserAgent, getClientIp, getClientUserAgent, getClientGeo } =
       await import("./sessions.server");
     const ua = getClientUserAgent();
@@ -90,7 +79,7 @@ export const registerSession = createServerFn({ method: "POST" })
       .eq("user_id", context.userId)
       .order("last_seen_at", { ascending: false });
 
-    if ((others?.length ?? 0) >= MAX_DEVICES) {
+    if ((others?.length ?? 0) >= maxDevices) {
       return {
         ok: false as const,
         needsChoice: true as const,
@@ -137,7 +126,12 @@ export const registerSession = createServerFn({ method: "POST" })
 export const listMySessions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const sessionId = currentSessionId(context.claims);
+    const c = (context.claims ?? {}) as ClaimsWithSession;
+    const sessionId = c.session_id ?? c.sid ?? c.jti;
+    if (!sessionId) {
+      console.error("[sessions] missing session_id claim; keys=", Object.keys(c));
+      throw new Error("Session claim missing (session_id)");
+    }
     const { data, error } = await context.supabase
       .from("user_sessions")
       .select(
@@ -207,7 +201,12 @@ export const renameSession = createServerFn({ method: "POST" })
 export const revokeOtherSessions = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const sessionId = currentSessionId(context.claims);
+    const c = (context.claims ?? {}) as ClaimsWithSession;
+    const sessionId = c.session_id ?? c.sid ?? c.jti;
+    if (!sessionId) {
+      console.error("[sessions] missing session_id claim; keys=", Object.keys(c));
+      throw new Error("Session claim missing (session_id)");
+    }
     const { data, error } = await context.supabase
       .from("user_sessions")
       .delete()
@@ -225,7 +224,12 @@ export const revokeOtherSessions = createServerFn({ method: "POST" })
 export const pingSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const sessionId = currentSessionId(context.claims);
+    const c = (context.claims ?? {}) as ClaimsWithSession;
+    const sessionId = c.session_id ?? c.sid ?? c.jti;
+    if (!sessionId) {
+      console.error("[sessions] missing session_id claim; keys=", Object.keys(c));
+      throw new Error("Session claim missing (session_id)");
+    }
     const { data } = await context.supabase
       .from("user_sessions")
       .select("id")
