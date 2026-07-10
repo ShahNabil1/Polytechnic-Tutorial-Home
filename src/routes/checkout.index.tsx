@@ -416,7 +416,22 @@ function CheckoutPage() {
           outline: none;
           box-shadow: inset 0 0 0 1px var(--color-border);
           transition: box-shadow 0.15s;
-        }
+}
+
+async function sha256Hex(input: string): Promise<string> {
+  try {
+    if (typeof crypto !== "undefined" && crypto.subtle) {
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+      return Array.from(new Uint8Array(buf))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+    }
+  } catch {}
+  // Fallback: cheap non-cryptographic hash — still stable per identical input.
+  let h = 0;
+  for (let i = 0; i < input.length; i++) h = (h * 31 + input.charCodeAt(i)) | 0;
+  return `f${(h >>> 0).toString(16)}`;
+}
         .input:focus { box-shadow: inset 0 0 0 2px var(--color-brand); }
       `}</style>
     </div>
