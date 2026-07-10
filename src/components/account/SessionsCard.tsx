@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Monitor, Smartphone, Tablet, LogOut, Shield, Pencil, Check, X, ShieldOff, MapPin, Globe } from "lucide-react";
 import { ensureReauth } from "@/lib/reauth";
+import { toEnglishText } from "@/lib/input-filter";
 import { SESSION_LABEL_MAX, validateSessionLabel } from "@/lib/session-label";
 import {
   listTrackedSessions,
