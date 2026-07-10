@@ -86,13 +86,18 @@ export function AuthDrawer({
 
   async function handleGoogle() {
     setLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/` },
-    });
-    if (error) {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: `${window.location.origin}/` },
+      });
+      if (error) {
+        setLoading(false);
+        toast.error(errMsg(error));
+      }
+    } catch (e) {
       setLoading(false);
-      toast.error(error.message);
+      toast.error(errMsg(e));
     }
   }
 
@@ -100,45 +105,54 @@ export function AuthDrawer({
     e.preventDefault();
     if (!phoneRaw) return toast.error("ফোন নাম্বার দিন");
     setLoading(true);
-    const { error } = await supabase.auth.signInWithOtp({
-      phone,
-      options: {
-        // signup only when on the signup tab; login should not create new users
-        shouldCreateUser: tab === "signup",
-        data: tab === "signup" ? { full_name: fullName } : undefined,
-      },
-    });
-    setLoading(false);
-    if (error) return toast.error(error.message);
-    toast.success("OTP পাঠানো হয়েছে");
-    setStage("otp");
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        phone,
+        options: {
+          shouldCreateUser: tab === "signup",
+          data: tab === "signup" ? { full_name: fullName } : undefined,
+        },
+      });
+      setLoading(false);
+      if (error) return toast.error(errMsg(error));
+      toast.success("OTP পাঠানো হয়েছে");
+      setStage("otp");
+    } catch (err) {
+      setLoading(false);
+      toast.error(errMsg(err));
+    }
   }
 
   async function handleVerifyOtp(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.verifyOtp({ phone, token: otp, type: "sms" });
-    if (error) {
+    try {
+      const { error } = await supabase.auth.verifyOtp({ phone, token: otp, type: "sms" });
+      if (error) {
+        setLoading(false);
+        return toast.error(errMsg(error));
+      }
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData.user) {
+        await supabase
+          .from("profiles")
+          .update({
+            phone_verified: true,
+            phone,
+            ...(fullName ? { full_name: fullName } : {}),
+          })
+          .eq("id", userData.user.id);
+      }
       setLoading(false);
-      return toast.error(error.message);
+      toast.success(tab === "signup" ? "একাউন্ট তৈরি হয়েছে" : "সাইন ইন সফল");
+      resetAll();
+      onOpenChange(false);
+    } catch (err) {
+      setLoading(false);
+      toast.error(errMsg(err));
     }
-    // Mark verified in profile if signup
-    const { data: userData } = await supabase.auth.getUser();
-    if (userData.user) {
-      await supabase
-        .from("profiles")
-        .update({
-          phone_verified: true,
-          phone,
-          ...(fullName ? { full_name: fullName } : {}),
-        })
-        .eq("id", userData.user.id);
-    }
-    setLoading(false);
-    toast.success(tab === "signup" ? "একাউন্ট তৈরি হয়েছে" : "সাইন ইন সফল");
-    resetAll();
-    onOpenChange(false);
   }
+
 
   return (
     <>
