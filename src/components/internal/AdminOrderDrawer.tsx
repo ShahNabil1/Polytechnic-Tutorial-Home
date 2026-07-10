@@ -25,6 +25,9 @@ import {
   Package as PackageIcon,
   Pencil,
   Truck,
+  ShieldCheck,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 import {
   getAdminOrder,
@@ -32,8 +35,10 @@ import {
   updateOrderItems,
   updateOrderStatus,
   addInternalNote,
-  addBlockedIdentifier,
   searchProductsForOrder,
+  bulkBlockIdentifiers,
+  bulkUnblockIdentifiers,
+  getBlockStatus,
 } from "@/lib/orders.functions";
 import {
   ORDER_STATUSES,
@@ -62,7 +67,9 @@ export function AdminOrderDrawer({
   const upItems = useServerFn(updateOrderItems);
   const upStatus = useServerFn(updateOrderStatus);
   const addNote = useServerFn(addInternalNote);
-  const addBlock = useServerFn(addBlockedIdentifier);
+  const bulkBlock = useServerFn(bulkBlockIdentifiers);
+  const bulkUnblock = useServerFn(bulkUnblockIdentifiers);
+  const fetchBlockStatus = useServerFn(getBlockStatus);
   const searchProducts = useServerFn(searchProductsForOrder);
 
   const { data, isLoading, refetch } = useQuery({
@@ -222,16 +229,6 @@ export function AdminOrderDrawer({
     }
   }
 
-  async function block(kind: "ip" | "fingerprint" | "phone", value: string) {
-    if (!value) return toast.error("No value to block");
-    const reason = prompt(`Reason for blocking ${kind} "${value}":`) || undefined;
-    try {
-      await addBlock({ data: { kind, value, reason } });
-      toast.success(`${kind.toUpperCase()} blocked`);
-    } catch (e: any) {
-      toast.error(e.message || "Failed");
-    }
-  }
 
   function addProductToDraft(p: { id: string; title: string; price: number; sku: string | null; image: string | null; isOnlineBook: boolean }) {
     setItemDraft((draft) => {
@@ -587,31 +584,12 @@ export function AdminOrderDrawer({
             </Section>
 
             {/* Device / Block */}
-            <Section title="Device & Security" icon={ShieldAlert}>
-              <div className="grid gap-2 sm:grid-cols-3">
-                <BlockCard
-                  icon={Globe}
-                  label="IP Address"
-                  value={order.ip || "—"}
-                  onBlock={() => order.ip && block("ip", order.ip)}
-                />
-                <BlockCard
-                  icon={Fingerprint}
-                  label="Fingerprint"
-                  value={order.device_fingerprint || "—"}
-                  onBlock={() => order.device_fingerprint && block("fingerprint", order.device_fingerprint)}
-                />
-                <BlockCard
-                  icon={Phone}
-                  label="Phone"
-                  value={order.customer_phone}
-                  onBlock={() => block("phone", order.customer_phone)}
-                />
-              </div>
-              <p className="mt-2 text-[11px] text-slate-500">
-                Blocked identifiers cannot place new orders. Manage the full blocklist in settings.
-              </p>
-            </Section>
+            <DeviceSecuritySection
+              order={order}
+              fetchBlockStatus={fetchBlockStatus}
+              bulkBlock={bulkBlock}
+              bulkUnblock={bulkUnblock}
+            />
 
             {/* Internal notes */}
             <Section title="Internal Notes (staff only)" icon={StickyNote}>
@@ -741,29 +719,173 @@ function TextField({
   );
 }
 
-function BlockCard({
-  icon: Icon,
-  label,
-  value,
-  onBlock,
+type BlockKind = "ip" | "fingerprint" | "phone";
+
+function DeviceSecuritySection({
+  order,
+  fetchBlockStatus,
+  bulkBlock,
+  bulkUnblock,
 }: {
-  icon: any;
-  label: string;
-  value: string;
-  onBlock: () => void;
+  order: Order;
+  fetchBlockStatus: (a: { data: { items: Array<{ kind: BlockKind; value: string }> } }) => Promise<any>;
+  bulkBlock: (a: { data: { items: Array<{ kind: BlockKind; value: string }>; reason?: string } }) => Promise<any>;
+  bulkUnblock: (a: { data: { items: Array<{ kind: BlockKind; value: string }> } }) => Promise<any>;
 }) {
+  const identifiers = useMemo(
+    () =>
+      (
+        [
+          { kind: "ip" as const, label: "IP Address", icon: Globe, value: order.ip || "" },
+          { kind: "fingerprint" as const, label: "Fingerprint", icon: Fingerprint, value: order.device_fingerprint || "" },
+          { kind: "phone" as const, label: "Phone", icon: Phone, value: order.customer_phone || "" },
+        ] as const
+      ).filter((i) => !!i.value),
+    [order.ip, order.device_fingerprint, order.customer_phone],
+  );
+
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
+
+  const statusQuery = useQuery({
+    queryKey: ["order-block-status", order.id, identifiers.map((i) => `${i.kind}:${i.value}`).join("|")],
+    queryFn: () => fetchBlockStatus({ data: { items: identifiers.map((i) => ({ kind: i.kind, value: i.value })) } }),
+    enabled: identifiers.length > 0,
+    staleTime: 0,
+  });
+
+  const blockedSet = useMemo(() => {
+    const rows = (statusQuery.data ?? []) as Array<{ kind: BlockKind; value: string }>;
+    return new Set(rows.map((r) => `${r.kind}:${r.value}`));
+  }, [statusQuery.data]);
+
+  const keyOf = (kind: BlockKind, value: string) => `${kind}:${value}`;
+  const toggle = (k: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
+      return next;
+    });
+  };
+  const selectAll = () => setSelected(new Set(identifiers.map((i) => keyOf(i.kind, i.value))));
+  const clearSel = () => setSelected(new Set());
+
+  const selectedItems = identifiers.filter((i) => selected.has(keyOf(i.kind, i.value)));
+  const anySelected = selectedItems.length > 0;
+  const selectedToBlock = selectedItems.filter((i) => !blockedSet.has(keyOf(i.kind, i.value)));
+  const selectedToUnblock = selectedItems.filter((i) => blockedSet.has(keyOf(i.kind, i.value)));
+
+  async function doBlock() {
+    if (!selectedToBlock.length) return;
+    const reason = prompt(`Reason for blocking ${selectedToBlock.length} identifier(s):`) || undefined;
+    setBusy(true);
+    try {
+      await bulkBlock({ data: { items: selectedToBlock.map((i) => ({ kind: i.kind, value: i.value })), reason } });
+      toast.success(`Blocked ${selectedToBlock.length} identifier(s)`);
+      clearSel();
+      statusQuery.refetch();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to block");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function doUnblock() {
+    if (!selectedToUnblock.length) return;
+    if (!confirm(`Unblock ${selectedToUnblock.length} identifier(s)?`)) return;
+    setBusy(true);
+    try {
+      await bulkUnblock({ data: { items: selectedToUnblock.map((i) => ({ kind: i.kind, value: i.value })) } });
+      toast.success(`Unblocked ${selectedToUnblock.length} identifier(s)`);
+      clearSel();
+      statusQuery.refetch();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to unblock");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-2">
-      <p className="flex items-center gap-1 text-[10px] font-bold uppercase text-slate-500">
-        <Icon className="size-3" /> {label}
+    <Section
+      title="Device & Security"
+      icon={ShieldAlert}
+      action={
+        <>
+          <button
+            onClick={selected.size === identifiers.length ? clearSel : selectAll}
+            className="btn-sm"
+            disabled={identifiers.length === 0}
+          >
+            {selected.size === identifiers.length ? "Clear" : "Select all"}
+          </button>
+          <button
+            onClick={doBlock}
+            disabled={busy || selectedToBlock.length === 0}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-2.5 py-1.5 text-xs font-bold text-white disabled:opacity-40 hover:bg-rose-700"
+          >
+            <Ban className="size-3.5" /> Block {selectedToBlock.length || ""}
+          </button>
+          <button
+            onClick={doUnblock}
+            disabled={busy || selectedToUnblock.length === 0}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-bold text-white disabled:opacity-40 hover:bg-emerald-700"
+          >
+            <ShieldCheck className="size-3.5" /> Unblock {selectedToUnblock.length || ""}
+          </button>
+        </>
+      }
+    >
+      {identifiers.length === 0 ? (
+        <p className="text-xs text-slate-500">No identifiers to block for this order.</p>
+      ) : (
+        <div className="grid gap-2 sm:grid-cols-3">
+          {identifiers.map(({ kind, label, icon: Icon, value }) => {
+            const k = keyOf(kind, value);
+            const isSelected = selected.has(k);
+            const isBlocked = blockedSet.has(k);
+            return (
+              <button
+                key={k}
+                type="button"
+                onClick={() => toggle(k)}
+                className={cn(
+                  "group flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-colors",
+                  isSelected
+                    ? "border-indigo-400 bg-indigo-50 ring-2 ring-indigo-300"
+                    : isBlocked
+                      ? "border-rose-200 bg-rose-50/60 hover:bg-rose-50"
+                      : "border-slate-200 bg-white hover:bg-slate-50",
+                )}
+              >
+                <div className="flex w-full items-center justify-between">
+                  <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                    <Icon className="size-3" /> {label}
+                  </span>
+                  <span className={cn("shrink-0", isSelected ? "text-indigo-600" : "text-slate-300")}>
+                    {isSelected ? <CheckSquare className="size-4" /> : <Square className="size-4" />}
+                  </span>
+                </div>
+                <p className="w-full break-all font-mono text-xs font-semibold text-slate-900">{value}</p>
+                <span
+                  className={cn(
+                    "mt-0.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-extrabold",
+                    isBlocked ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700",
+                  )}
+                >
+                  {isBlocked ? "Blocked" : "Active"}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+      <p className="mt-3 text-[11px] text-slate-500">
+        Select any combination and use Block or Unblock. Blocked identifiers cannot place new orders — enforced server-side at checkout.
       </p>
-      <p className="mt-0.5 truncate font-mono text-xs">{value}</p>
-      <button
-        onClick={onBlock}
-        className="mt-2 inline-flex items-center gap-1 rounded bg-rose-50 px-2 py-1 text-[10px] font-bold text-rose-700 hover:bg-rose-100"
-      >
-        <Ban className="size-3" /> Block
-      </button>
-    </div>
+    </Section>
   );
 }
+

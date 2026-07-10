@@ -494,6 +494,80 @@ export const listBlockedIdentifiers = createServerFn({ method: "GET" })
     return data ?? [];
   });
 
+const BlockItem = z.object({
+  kind: z.enum(["ip", "fingerprint", "phone"]),
+  value: z.string().min(1).max(200),
+});
+
+// Returns which of the supplied (kind,value) pairs are currently blocked.
+export const getBlockStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ items: z.array(BlockItem).min(1).max(20) }).parse(d))
+  .handler(async ({ data, context }) => {
+    await ensureStaff(context);
+    const filter = data.items
+      .map((c) => `and(kind.eq.${c.kind},value.eq."${c.value.replace(/"/g, '')}")`)
+      .join(",");
+    const { data: rows, error } = await context.supabase
+      .from("blocked_identifiers")
+      .select("id, kind, value, reason, created_at")
+      .or(filter);
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+// Atomic bulk block — upserts on (kind,value) so duplicates are safe.
+export const bulkBlockIdentifiers = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        items: z.array(BlockItem).min(1).max(20),
+        reason: z.string().max(500).optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureStaff(context);
+    const rows = data.items.map((it) => ({
+      kind: it.kind,
+      value: it.value,
+      reason: data.reason ?? null,
+      blocked_by: context.userId,
+    }));
+    const { error } = await context.supabase
+      .from("blocked_identifiers")
+      .upsert(rows as any, { onConflict: "kind,value", ignoreDuplicates: false });
+    if (error) throw new Error(error.message);
+    return { ok: true, count: rows.length };
+  });
+
+// Atomic bulk unblock by (kind,value) pairs.
+export const bulkUnblockIdentifiers = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ items: z.array(BlockItem).min(1).max(20) }).parse(d))
+  .handler(async ({ data, context }) => {
+    await ensureStaff(context);
+    // Group deletes per-kind for a scalable IN() query on values.
+    const byKind = new Map<string, string[]>();
+    for (const it of data.items) {
+      const arr = byKind.get(it.kind) ?? [];
+      arr.push(it.value);
+      byKind.set(it.kind, arr);
+    }
+    let total = 0;
+    for (const [kind, values] of byKind) {
+      const { error, count } = await context.supabase
+        .from("blocked_identifiers")
+        .delete({ count: "exact" })
+        .eq("kind", kind)
+        .in("value", values);
+      if (error) throw new Error(error.message);
+      total += count ?? 0;
+    }
+    return { ok: true, count: total };
+  });
+
 // -------- Simple product search for the "add product" combobox in the drawer --------
 
 export const searchProductsForOrder = createServerFn({ method: "GET" })
