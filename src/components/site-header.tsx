@@ -1,10 +1,13 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import logoAsset from "@/assets/pth-logo.jpg.asset.json";
-import { ShoppingCart, Menu, X } from "lucide-react";
+import { ShoppingCart, Menu, X, LogOut, User as UserIcon } from "lucide-react";
 import { useState } from "react";
 import { useCart } from "@/lib/cart-store";
 import { toBanglaNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 type NavItem = { to: string; label: string; hash?: boolean };
 
