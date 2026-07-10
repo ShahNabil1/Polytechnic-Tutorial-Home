@@ -12,7 +12,7 @@ const ALLOWED_MIME = new Set([
 ]);
 
 const InputSchema = z.object({
-  folder: z.enum(["avatars", "profile", "uploads", "docs"]).default("uploads"),
+  folder: z.enum(["avatars", "profile", "uploads", "docs", "internal-docs"]).default("uploads"),
   filename: z.string().min(1).max(200),
   contentType: z.string().min(1).max(120),
   size: z.number().int().positive().max(15 * 1024 * 1024), // 15 MB hard cap
