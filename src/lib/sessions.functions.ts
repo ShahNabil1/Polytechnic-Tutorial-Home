@@ -121,6 +121,25 @@ export const revokeSession = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+const RenameSchema = z.object({
+  id: z.string().uuid(),
+  label: z.string().trim().min(1, "নাম দিন").max(60, "সর্বোচ্চ ৬০ অক্ষর"),
+});
+
+/** Rename a session's device label. */
+export const renameSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => RenameSchema.parse(input))
+  .handler(async ({ context, data }) => {
+    const { error } = await context.supabase
+      .from("user_sessions")
+      .update({ device_label: data.label })
+      .eq("id", data.id)
+      .eq("user_id", context.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
 /**
  * Heartbeat. Returns { alive: true } if the current session row exists,
  * { alive: false } if it was revoked → client should signOut.
