@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { Loader2, Monitor, LogOut, Shield, Pencil, Check, X, ShieldOff } from "lucide-react";
 import { listMySessions, revokeSession, renameSession, revokeOtherSessions } from "@/lib/sessions.functions";
 import { ensureReauth } from "@/lib/reauth";
+import { SESSION_LABEL_MAX, validateSessionLabel } from "@/lib/session-label";
 
 type Session = Awaited<ReturnType<typeof listMySessions>>[number];
 
@@ -79,10 +80,13 @@ export function SessionsCard() {
     setEditingId(null);
     setDraft("");
   }
+  const draftError = editingId ? validateSessionLabel(draft) : null;
+
   async function saveEdit(id: string) {
     const label = draft.trim();
-    if (!label) {
-      toast.error("নাম দিন");
+    const err = validateSessionLabel(label);
+    if (err) {
+      toast.error(err);
       return;
     }
     setSaving(true);
@@ -149,19 +153,31 @@ export function SessionsCard() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       {isEditing ? (
-                        <input
-                          autoFocus
-                          type="text"
-                          value={draft}
-                          onChange={(e) => setDraft(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") saveEdit(s.id);
-                            if (e.key === "Escape") cancelEdit();
-                          }}
-                          maxLength={60}
-                          placeholder="যেমন: My Laptop"
-                          className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1 text-sm outline-none focus:border-brand"
-                        />
+                        <div className="flex min-w-0 flex-1 flex-col gap-1">
+                          <input
+                            autoFocus
+                            type="text"
+                            value={draft}
+                            onChange={(e) => setDraft(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && !draftError) saveEdit(s.id);
+                              if (e.key === "Escape") cancelEdit();
+                            }}
+                            maxLength={SESSION_LABEL_MAX}
+                            placeholder="যেমন: My Laptop"
+                            aria-invalid={!!draftError}
+                            className={`min-w-0 flex-1 rounded-md border bg-background px-2 py-1 text-sm outline-none ${
+                              draftError ? "border-destructive focus:border-destructive" : "border-border focus:border-brand"
+                            }`}
+                          />
+                          {draftError ? (
+                            <span className="text-[11px] text-destructive">{draftError}</span>
+                          ) : (
+                            <span className="text-[11px] text-muted-foreground">
+                              {draft.trim().length}/{SESSION_LABEL_MAX}
+                            </span>
+                          )}
+                        </div>
                       ) : (
                         <>
                           <span className="truncate text-sm font-medium">{s.device_label || "Unknown"}</span>
@@ -192,7 +208,7 @@ export function SessionsCard() {
                     <button
                       type="button"
                       onClick={() => saveEdit(s.id)}
-                      disabled={saving}
+                      disabled={saving || !!draftError}
                       className="inline-flex items-center gap-1 rounded-md border border-brand/40 px-2 py-1 text-xs text-brand hover:bg-brand/10 disabled:opacity-60"
                     >
                       {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
