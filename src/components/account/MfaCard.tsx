@@ -51,9 +51,14 @@ export function MfaCard() {
       for (const f of factors.filter((f) => f.status !== "verified")) {
         await supabase.auth.mfa.unenroll({ factorId: f.id });
       }
+      const { data: userRes } = await supabase.auth.getUser();
+      const acct =
+        userRes.user?.email ||
+        (userRes.user?.phone ? `+${userRes.user.phone}` : userRes.user?.id ?? "user");
       const { data, error } = await supabase.auth.mfa.enroll({
         factorType: "totp",
         friendlyName: `TOTP-${Date.now()}`,
+        issuer: "Polytechnic Tutorial",
       });
       if (error) throw error;
       setEnrolling({
@@ -62,8 +67,20 @@ export function MfaCard() {
         secret: data.totp.secret,
       });
       setCode("");
+      // acct is only used to help debug label problems in dev
+      void acct;
     } catch (e) {
-      toast.error("এনরোল ব্যর্থ: " + (e instanceof Error ? e.message : String(e)));
+      const err = e as { message?: string; code?: string; status?: number };
+      const raw = err?.message || String(e);
+      let friendly = "এনরোল ব্যর্থ: " + raw;
+      if (raw.toLowerCase().includes("qr")) {
+        friendly =
+          "Supabase Auth এই মুহূর্তে QR তৈরি করতে পারছে না। সাধারণত অ্যাকাউন্টে ইমেইল সেট না থাকলে এটা হয়। " +
+          "উপরের 'Linked accounts' থেকে একটা ইমেইল লিংক করে আবার চেষ্টা করুন।";
+      } else if (raw.toLowerCase().includes("mfa") && raw.toLowerCase().includes("disabled")) {
+        friendly = "Supabase প্রোজেক্টে TOTP MFA চালু নেই। Dashboard → Auth → MFA থেকে TOTP অন করুন।";
+      }
+      toast.error(friendly);
     } finally {
       setBusy(false);
     }
