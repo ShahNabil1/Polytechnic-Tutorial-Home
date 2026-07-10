@@ -122,9 +122,11 @@ export const revokeSession = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+import { sessionLabelSchema } from "./session-label";
+
 const RenameSchema = z.object({
   id: z.string().uuid(),
-  label: z.string().trim().min(1, "নাম দিন").max(60, "সর্বোচ্চ ৬০ অক্ষর"),
+  label: sessionLabelSchema,
 });
 
 /** Rename a session's device label. */
