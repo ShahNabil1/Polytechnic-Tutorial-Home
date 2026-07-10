@@ -7,7 +7,8 @@
  */
 import { SignJWT } from "jose";
 import { getRequest, getRequestHeader } from "@tanstack/react-start/server";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 
 type RegistrationResponseJSON = {
   id: string;
@@ -41,7 +42,69 @@ const ACCESS_TOKEN_TTL_SECONDS = 60 * 60;
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
 
-const admin = () => supabaseAdmin;
+function isNewSupabaseApiKey(value: string): boolean {
+  return value.startsWith("sb_publishable_") || value.startsWith("sb_secret_");
+}
+
+function createSupabaseFetch(supabaseKey: string): typeof fetch {
+  return (input, init) => {
+    const headers = new Headers(
+      typeof Request !== "undefined" && input instanceof Request ? input.headers : undefined,
+    );
+
+    if (init?.headers) {
+      new Headers(init.headers).forEach((value, key) => headers.set(key, value));
+    }
+
+    if (isNewSupabaseApiKey(supabaseKey) && headers.get("Authorization") === `Bearer ${supabaseKey}`) {
+      headers.delete("Authorization");
+    }
+
+    headers.set("apikey", supabaseKey);
+    return fetch(input, { ...init, headers });
+  };
+}
+
+function readFirstConfiguredSecret(...names: string[]): string | undefined {
+  for (const name of names) {
+    const value = process.env[name];
+    if (!value) continue;
+    return value.split(",").map((part) => part.trim()).find(Boolean) ?? value;
+  }
+  return undefined;
+}
+
+function createAdminClient() {
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const serviceKey = readFirstConfiguredSecret(
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "SUPABASE_SECRET_KEY",
+    "SUPABASE_SECRET_KEYS",
+  );
+
+  if (!supabaseUrl || !serviceKey) {
+    const missing = [
+      ...(!supabaseUrl ? ["SUPABASE_URL"] : []),
+      ...(!serviceKey ? ["SUPABASE_SERVICE_ROLE_KEY"] : []),
+    ];
+    throw new Error(`Missing Supabase environment variable(s): ${missing.join(", ")}`);
+  }
+
+  return createClient<Database>(supabaseUrl, serviceKey, {
+    global: { fetch: createSupabaseFetch(serviceKey) },
+    auth: {
+      storage: undefined,
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+}
+
+let adminClient: ReturnType<typeof createAdminClient> | undefined;
+const admin = () => {
+  adminClient ??= createAdminClient();
+  return adminClient;
+};
 
 export function getRpConfig() {
   const origin =

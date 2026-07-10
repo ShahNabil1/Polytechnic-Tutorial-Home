@@ -67,6 +67,57 @@ function getPasskeyClient() {
   return import("@/lib/passkey-client");
 }
 
+function PasswordFieldEl({
+  id = "auth-password",
+  label = "পাসওয়ার্ড",
+  value,
+  onChange,
+  autoComplete,
+  showPassword,
+  onToggleVisibility,
+  onClearError,
+}: {
+  id?: string;
+  label?: string;
+  value: string;
+  onChange: (v: string) => void;
+  autoComplete: string;
+  showPassword: boolean;
+  onToggleVisibility: () => void;
+  onClearError: () => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id}>{label}</Label>
+      <div className="relative">
+        <Input
+          id={id}
+          type={showPassword ? "text" : "password"}
+          autoComplete={autoComplete}
+          placeholder="••••••••"
+          value={value}
+          onChange={(e) => {
+            onChange(e.target.value);
+            onClearError();
+          }}
+          required
+          minLength={6}
+          className="pr-9"
+        />
+        <button
+          type="button"
+          tabIndex={-1}
+          onClick={onToggleVisibility}
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          aria-label={showPassword ? "Hide password" : "Show password"}
+        >
+          {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function AuthDrawer({
   open,
   onOpenChange,
@@ -479,44 +530,9 @@ export function AuthDrawer({
     </div>
   );
 
-  function PasswordFieldEl({ id = "auth-password", label = "পাসওয়ার্ড", value, onChange, autoComplete }: {
-    id?: string;
-    label?: string;
-    value: string;
-    onChange: (v: string) => void;
-    autoComplete: string;
-  }) {
-    return (
-      <div className="space-y-2">
-        <Label htmlFor={id}>{label}</Label>
-        <div className="relative">
-          <Input
-            id={id}
-            type={showPassword ? "text" : "password"}
-            autoComplete={autoComplete}
-            placeholder="••••••••"
-            value={value}
-            onChange={(e) => {
-              onChange(e.target.value);
-              if (formError) setFormError(null);
-            }}
-            required
-            minLength={6}
-            className="pr-9"
-          />
-          <button
-            type="button"
-            tabIndex={-1}
-            onClick={() => setShowPassword((s) => !s)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            aria-label={showPassword ? "Hide password" : "Show password"}
-          >
-            {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const clearFormError = () => {
+    if (formError) setFormError(null);
+  };
 
   const ErrorBox = formError ? (
     <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
@@ -617,6 +633,9 @@ export function AuthDrawer({
                       value={password}
                       onChange={setPassword}
                       autoComplete="current-password"
+                      showPassword={showPassword}
+                      onToggleVisibility={() => setShowPassword((s) => !s)}
+                      onClearError={clearFormError}
                     />
                     <div className="flex justify-end -mt-2">
                       <button
@@ -705,6 +724,9 @@ export function AuthDrawer({
                       value={password}
                       onChange={setPassword}
                       autoComplete="new-password"
+                      showPassword={showPassword}
+                      onToggleVisibility={() => setShowPassword((s) => !s)}
+                      onClearError={clearFormError}
                     />
                     <PasswordFieldEl
                       id="auth-confirm"
@@ -712,6 +734,9 @@ export function AuthDrawer({
                       value={confirmPassword}
                       onChange={setConfirmPassword}
                       autoComplete="new-password"
+                      showPassword={showPassword}
+                      onToggleVisibility={() => setShowPassword((s) => !s)}
+                      onClearError={clearFormError}
                     />
                     {ErrorBox}
                     {PasskeyToggle}
@@ -809,6 +834,9 @@ export function AuthDrawer({
                       value={password}
                       onChange={setPassword}
                       autoComplete="new-password"
+                      showPassword={showPassword}
+                      onToggleVisibility={() => setShowPassword((s) => !s)}
+                      onClearError={clearFormError}
                     />
                     <PasswordFieldEl
                       id="auth-confirm"
@@ -816,6 +844,9 @@ export function AuthDrawer({
                       value={confirmPassword}
                       onChange={setConfirmPassword}
                       autoComplete="new-password"
+                      showPassword={showPassword}
+                      onToggleVisibility={() => setShowPassword((s) => !s)}
+                      onClearError={clearFormError}
                     />
                     {ErrorBox}
                     <Button
