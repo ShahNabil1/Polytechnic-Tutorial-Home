@@ -313,7 +313,7 @@ function ProfilePage() {
           <Field label="ইনস্টিটিউট নাম *">
             <input
               type="text" value={form.institute_name}
-              onChange={(e) => updateField("institute_name", e.target.value)}
+              onChange={(e) => updateField("institute_name", toEnglishText(e.target.value))}
               className={inputClass}
               placeholder="যেমনঃ Dhaka Polytechnic Institute"
               required disabled={locked}
