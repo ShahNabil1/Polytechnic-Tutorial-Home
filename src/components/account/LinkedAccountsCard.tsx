@@ -35,6 +35,42 @@ export function LinkedAccountsCard() {
   const [otp, setOtp] = useState("");
   const [phoneLoading, setPhoneLoading] = useState(false);
 
+  // Resend / cooldown / lockout — mirrors auth-drawer.
+  const [cooldown, setCooldown] = useState(0);
+  const [resendCount, setResendCount] = useState(0);
+  const [lockedUntil, setLockedUntil] = useState<number | null>(null);
+  const [lockRemaining, setLockRemaining] = useState(0);
+  const tickRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (cooldown <= 0 && lockedUntil === null) return;
+    tickRef.current = window.setInterval(() => {
+      setCooldown((c) => (c > 0 ? c - 1 : 0));
+      if (lockedUntil) {
+        const rem = Math.max(0, Math.ceil((lockedUntil - Date.now()) / 1000));
+        setLockRemaining(rem);
+        if (rem === 0) {
+          setLockedUntil(null);
+          setResendCount(0);
+        }
+      }
+    }, 1000);
+    return () => {
+      if (tickRef.current) window.clearInterval(tickRef.current);
+    };
+  }, [cooldown, lockedUntil]);
+
+  function startCooldown() {
+    setCooldown(RESEND_COOLDOWN_SECONDS);
+  }
+  function resetOtpControls() {
+    setCooldown(0);
+    setResendCount(0);
+    setLockedUntil(null);
+    setLockRemaining(0);
+  }
+
+
   async function refresh() {
     const { data } = await supabase.auth.getUserIdentities();
     setIdentities(data?.identities ?? []);
