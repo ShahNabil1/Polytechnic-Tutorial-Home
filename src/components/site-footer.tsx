@@ -52,14 +52,14 @@ export function SiteFooter() {
               </Link>
             </li>
             <li>
-              <a href="#" className="hover:text-foreground">
-                যোগাযোগ
-              </a>
+              <Link to="/terms-of-service" className="hover:text-foreground">
+                শর্তাবলী
+              </Link>
             </li>
             <li>
-              <a href="#" className="hover:text-foreground">
-                শর্তাবলী
-              </a>
+              <Link to="/privacy-policy" className="hover:text-foreground">
+                গোপনীয়তা নীতি
+              </Link>
             </li>
           </ul>
         </div>
