@@ -110,19 +110,6 @@ const admin = () => {
   return adminClient;
 };
 
-let dbClient: postgres.Sql | undefined;
-function db() {
-  const dbUrl = readFirstConfiguredSecret("SB_DB_URL", "SUPABASE_DB_URL", "DATABASE_URL");
-  if (!dbUrl) throw new Error("SB_DB_URL is not configured");
-  dbClient ??= postgres(dbUrl, {
-    max: 1,
-    idle_timeout: 20,
-    connect_timeout: 10,
-    prepare: false,
-    ssl: "require",
-  });
-  return dbClient;
-}
 
 export function getRpConfig() {
   const origin =
