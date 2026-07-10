@@ -256,11 +256,15 @@ function CheckoutPage() {
                   <div key={i.productId} className="flex gap-3">
                     <div
                       className={cn(
-                        "grid size-12 shrink-0 place-items-center rounded-lg bg-gradient-to-br text-xl",
-                        i.coverColor,
+                        "grid size-12 shrink-0 place-items-center overflow-hidden rounded-lg bg-gradient-to-br text-xl",
+                        !i.image && (i.coverColor ?? "from-slate-200 to-slate-400"),
                       )}
                     >
-                      {i.coverEmoji}
+                      {i.image ? (
+                        <img src={i.image} alt={i.title} className="h-full w-full object-cover" />
+                      ) : (
+                        i.coverEmoji ?? "📦"
+                      )}
                     </div>
                     <div className="flex flex-1 flex-col text-sm">
                       <p className="line-clamp-1 font-medium">{i.title}</p>

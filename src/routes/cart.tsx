@@ -67,11 +67,15 @@ function CartPage() {
                     to="/product/$slug"
                     params={{ slug: item.slug }}
                     className={cn(
-                      "grid size-24 shrink-0 place-items-center rounded-xl bg-gradient-to-br text-4xl shadow-sm",
-                      item.coverColor,
+                      "grid size-24 shrink-0 place-items-center overflow-hidden rounded-xl bg-gradient-to-br text-4xl shadow-sm",
+                      !item.image && (item.coverColor ?? "from-slate-200 to-slate-400"),
                     )}
                   >
-                    <span>{item.coverEmoji}</span>
+                    {item.image ? (
+                      <img src={item.image} alt={item.title} className="h-full w-full object-cover" />
+                    ) : (
+                      <span>{item.coverEmoji ?? "📦"}</span>
+                    )}
                   </Link>
                   <div className="flex flex-1 flex-col justify-between">
                     <div>
