@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Monitor, LogOut, Shield, Pencil, Check, X } from "lucide-react";
-import { listMySessions, revokeSession, renameSession } from "@/lib/sessions.functions";
+import { Loader2, Monitor, LogOut, Shield, Pencil, Check, X, ShieldOff } from "lucide-react";
+import { listMySessions, revokeSession, renameSession, revokeOtherSessions } from "@/lib/sessions.functions";
+import { ensureReauth } from "@/lib/reauth";
 
 type Session = Awaited<ReturnType<typeof listMySessions>>[number];
 
@@ -18,9 +19,12 @@ export function SessionsCard() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [revoking, setRevoking] = useState<string | null>(null);
+  const [revokingOthers, setRevokingOthers] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const otherCount = sessions.filter((s) => !s.is_current).length;
 
   async function refresh() {
     try {
@@ -48,6 +52,22 @@ export function SessionsCard() {
       toast.error("রিভোক করা যায়নি: " + (e instanceof Error ? e.message : String(e)));
     } finally {
       setRevoking(null);
+    }
+  }
+
+  async function handleRevokeOthers() {
+    if (otherCount === 0) return;
+    if (!confirm(`অন্য ${otherCount} টা ডিভাইস থেকে সাইন আউট করবেন?`)) return;
+    if (!(await ensureReauth())) return;
+    setRevokingOthers(true);
+    try {
+      const r = await revokeOtherSessions();
+      toast.success(`${r.revoked} টি সেশন সাইন আউট করা হয়েছে`);
+      await refresh();
+    } catch (e) {
+      toast.error("রিভোক করা যায়নি: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setRevokingOthers(false);
     }
   }
 
@@ -96,6 +116,23 @@ export function SessionsCard() {
           {sessions.length}/2
         </span>
       </div>
+
+      {!loading && otherCount > 0 && (
+        <div className="mb-3 flex flex-col gap-2 rounded-lg border border-border bg-secondary/30 p-3 sm:flex-row sm:items-center sm:justify-between">
+          <span className="text-xs text-muted-foreground">
+            এই ডিভাইস রেখে বাকি {otherCount} টি সেশন থেকে সাইন আউট করুন।
+          </span>
+          <button
+            type="button"
+            onClick={handleRevokeOthers}
+            disabled={revokingOthers}
+            className="inline-flex items-center justify-center gap-1.5 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:opacity-60"
+          >
+            {revokingOthers ? <Loader2 className="size-3.5 animate-spin" /> : <ShieldOff className="size-3.5" />}
+            অন্য সব ডিভাইস থেকে সাইন আউট
+          </button>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-6">
