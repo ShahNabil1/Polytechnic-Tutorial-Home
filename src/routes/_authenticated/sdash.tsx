@@ -1,6 +1,10 @@
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, BookOpen, ShoppingBag, User as UserIcon } from "lucide-react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
+import { fetchMyProfile, getMissingProfileFields, type ProfileRow } from "@/lib/profile";
+import { ProfileCompletenessBanner } from "@/components/account/ProfileCompletenessBanner";
 
 export const Route = createFileRoute("/_authenticated/sdash")({
   head: () => ({
@@ -26,10 +30,21 @@ const TABS: ReadonlyArray<{
 
 function StudentDashboardLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { user } = useAuth();
+  const [profile, setProfile] = useState<ProfileRow | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    fetchMyProfile(user.id).then((p) => { if (!cancelled) setProfile(p); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [user, pathname]);
+
+  const missing = getMissingProfileFields(profile);
+  const onProfilePage = pathname === "/sdash/profile";
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 md:flex-row md:px-6 md:py-10">
-      {/* Sidebar (desktop) / top tabs (mobile) */}
       <aside className="md:w-56 md:shrink-0">
         <nav className="grid grid-cols-2 gap-1.5 sm:grid-cols-4 md:flex md:flex-col md:gap-1">
           {TABS.map((tab) => {
@@ -54,8 +69,8 @@ function StudentDashboardLayout() {
         </nav>
       </aside>
 
-
       <main className="flex-1 min-w-0">
+        <ProfileCompletenessBanner missing={missing} showOnProfilePage={onProfilePage} />
         <Outlet />
       </main>
     </div>
