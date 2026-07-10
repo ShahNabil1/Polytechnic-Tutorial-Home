@@ -36,14 +36,20 @@ export async function registerPasskey(deviceName?: string) {
   return { ok: true };
 }
 
-/** Sign in using a passkey. Sets Supabase session on success. */
-export async function signInWithPasskey(phone: string) {
+/**
+ * Sign in with a passkey.
+ *
+ * Discoverable (usernameless) by default — the browser/OS picks a resident
+ * passkey and the user only sees the native prompt. Pass a phone number
+ * only for the legacy phone-scoped flow.
+ */
+export async function signInWithPasskey(phone?: string) {
   if (!isPasskeySupported()) throw new Error("এই ব্রাউজারে Passkey সাপোর্ট নেই");
-  const options = await getPasskeyAuthOptions({ data: { phone } });
+  const options = await getPasskeyAuthOptions({ data: { phone: phone ?? null } });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const asseResp = await startAuthentication({ optionsJSON: options as any });
   const tokens = await verifyPasskeyAuthentication({
-    data: { phone, response: asseResp },
+    data: { phone: phone ?? null, response: asseResp },
   });
   const { error } = await supabase.auth.setSession({
     access_token: tokens.access_token,
