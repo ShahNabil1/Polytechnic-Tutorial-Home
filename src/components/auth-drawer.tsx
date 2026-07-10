@@ -206,8 +206,8 @@ export function AuthDrawer({
                   <div className="space-y-2">
                     <Label htmlFor="auth-phone">ফোন নাম্বার দিন</Label>
                     <div className="flex overflow-hidden rounded-md border border-input focus-within:ring-2 focus-within:ring-ring">
-                      <span className="flex items-center border-r border-input bg-muted px-3 text-sm text-muted-foreground">
-                        +88
+                      <span className="flex items-center gap-1.5 border-r border-input bg-muted px-3 text-sm text-muted-foreground">
+                        🇧🇩 +88
                       </span>
                       <input
                         id="auth-phone"
