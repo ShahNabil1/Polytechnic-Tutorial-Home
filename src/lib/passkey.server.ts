@@ -357,7 +357,7 @@ async function issueSupabaseSession(userId: string) {
 
   const accessToken = await new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
-    .sign(new TextEncoder().encode(secret));
+    .sign(new TextEncoder().encode(secret) as unknown as Uint8Array);
 
   return {
     access_token: accessToken,
