@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsOfServiceRouteImport } from './routes/terms-of-service'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ShopRouteImport } from './routes/shop'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as AboutRouteImport } from './routes/about'
@@ -18,6 +19,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as CheckoutIndexRouteImport } from './routes/checkout.index'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as CheckoutSuccessRouteImport } from './routes/checkout.success'
+import { Route as BundleSlugRouteImport } from './routes/bundle.$slug'
 import { Route as AuthenticatedSdashRouteImport } from './routes/_authenticated/sdash'
 import { Route as AuthenticatedInternalRouteImport } from './routes/_authenticated/_internal'
 import { Route as AuthenticatedSdashIndexRouteImport } from './routes/_authenticated/sdash.index'
@@ -42,6 +44,11 @@ import { Route as AuthenticatedInternalWorkspaceEcommerceCategoriesRouteImport }
 const TermsOfServiceRoute = TermsOfServiceRouteImport.update({
   id: '/terms-of-service',
   path: '/terms-of-service',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ShopRoute = ShopRouteImport.update({
@@ -81,6 +88,11 @@ const ProductSlugRoute = ProductSlugRouteImport.update({
 const CheckoutSuccessRoute = CheckoutSuccessRouteImport.update({
   id: '/checkout/success',
   path: '/checkout/success',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BundleSlugRoute = BundleSlugRouteImport.update({
+  id: '/bundle/$slug',
+  path: '/bundle/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedSdashRoute = AuthenticatedSdashRouteImport.update({
@@ -203,8 +215,10 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/shop': typeof ShopRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms-of-service': typeof TermsOfServiceRoute
   '/sdash': typeof AuthenticatedSdashRouteWithChildren
+  '/bundle/$slug': typeof BundleSlugRoute
   '/checkout/success': typeof CheckoutSuccessRoute
   '/product/$slug': typeof ProductSlugRoute
   '/checkout/': typeof CheckoutIndexRoute
@@ -232,7 +246,9 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/shop': typeof ShopRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms-of-service': typeof TermsOfServiceRoute
+  '/bundle/$slug': typeof BundleSlugRoute
   '/checkout/success': typeof CheckoutSuccessRoute
   '/product/$slug': typeof ProductSlugRoute
   '/checkout': typeof CheckoutIndexRoute
@@ -260,9 +276,11 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/shop': typeof ShopRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms-of-service': typeof TermsOfServiceRoute
   '/_authenticated/_internal': typeof AuthenticatedInternalRouteWithChildren
   '/_authenticated/sdash': typeof AuthenticatedSdashRouteWithChildren
+  '/bundle/$slug': typeof BundleSlugRoute
   '/checkout/success': typeof CheckoutSuccessRoute
   '/product/$slug': typeof ProductSlugRoute
   '/checkout/': typeof CheckoutIndexRoute
@@ -292,8 +310,10 @@ export interface FileRouteTypes {
     | '/about'
     | '/privacy-policy'
     | '/shop'
+    | '/sitemap.xml'
     | '/terms-of-service'
     | '/sdash'
+    | '/bundle/$slug'
     | '/checkout/success'
     | '/product/$slug'
     | '/checkout/'
@@ -321,7 +341,9 @@ export interface FileRouteTypes {
     | '/about'
     | '/privacy-policy'
     | '/shop'
+    | '/sitemap.xml'
     | '/terms-of-service'
+    | '/bundle/$slug'
     | '/checkout/success'
     | '/product/$slug'
     | '/checkout'
@@ -348,9 +370,11 @@ export interface FileRouteTypes {
     | '/about'
     | '/privacy-policy'
     | '/shop'
+    | '/sitemap.xml'
     | '/terms-of-service'
     | '/_authenticated/_internal'
     | '/_authenticated/sdash'
+    | '/bundle/$slug'
     | '/checkout/success'
     | '/product/$slug'
     | '/checkout/'
@@ -380,7 +404,9 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   ShopRoute: typeof ShopRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsOfServiceRoute: typeof TermsOfServiceRoute
+  BundleSlugRoute: typeof BundleSlugRoute
   CheckoutSuccessRoute: typeof CheckoutSuccessRoute
   ProductSlugRoute: typeof ProductSlugRoute
   CheckoutIndexRoute: typeof CheckoutIndexRoute
@@ -394,6 +420,13 @@ declare module '@tanstack/react-router' {
       path: '/terms-of-service'
       fullPath: '/terms-of-service'
       preLoaderRoute: typeof TermsOfServiceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/shop': {
@@ -450,6 +483,13 @@ declare module '@tanstack/react-router' {
       path: '/checkout/success'
       fullPath: '/checkout/success'
       preLoaderRoute: typeof CheckoutSuccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bundle/$slug': {
+      id: '/bundle/$slug'
+      path: '/bundle/$slug'
+      fullPath: '/bundle/$slug'
+      preLoaderRoute: typeof BundleSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/sdash': {
@@ -705,7 +745,9 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
   ShopRoute: ShopRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsOfServiceRoute: TermsOfServiceRoute,
+  BundleSlugRoute: BundleSlugRoute,
   CheckoutSuccessRoute: CheckoutSuccessRoute,
   ProductSlugRoute: ProductSlugRoute,
   CheckoutIndexRoute: CheckoutIndexRoute,

@@ -226,7 +226,7 @@ function BundlePage() {
         <section className="mt-12 md:mt-16">
           <h2 className="mb-4 text-lg font-extrabold md:text-xl">এই বান্ডেলে যা যা আছে</h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {bundle.items.map((it) => (
+            {bundle.items.map((it: typeof bundle.items[number]) => (
               <Link
                 key={it.productId}
                 to="/product/$slug"
