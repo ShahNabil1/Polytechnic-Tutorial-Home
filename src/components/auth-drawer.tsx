@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, LogIn, UserPlus } from "lucide-react";
 
 type Tab = "login" | "signup";
 type Stage = "phone" | "otp";
