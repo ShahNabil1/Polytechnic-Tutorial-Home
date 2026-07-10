@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { verifyPasswordReauth } from "@/lib/reauth.functions";
 import { getPasskeyAuthOptions, verifyPasskeyAuthentication, listMyPasskeys } from "@/lib/passkey.functions";
 import { markReauthed, registerReauthDialog, setReauthMethodsAvailable } from "@/lib/reauth";
+import { toEnglishPassword } from "@/lib/input-filter";
 
 /**
  * Modal host for step-up reauth. Mount once inside the profile page.
