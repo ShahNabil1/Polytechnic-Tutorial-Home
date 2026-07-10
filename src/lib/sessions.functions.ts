@@ -45,12 +45,14 @@ export const registerSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const sessionId = currentSessionId(context.claims);
-    const { parseUserAgent, getClientIp, getClientUserAgent } = await import("./sessions.server");
+    const { parseUserAgent, getClientIp, getClientUserAgent, getClientGeo } =
+      await import("./sessions.server");
     const ua = getClientUserAgent();
     const ip = getClientIp();
-    const label = parseUserAgent(ua);
+    const parsed = parseUserAgent(ua);
+    const geo = getClientGeo();
 
-    // Already registered? Touch last_seen.
+    // Already registered? Touch last_seen + refresh geo/device metadata.
     const { data: existing } = await context.supabase
       .from("user_sessions")
       .select("id")
@@ -63,7 +65,20 @@ export const registerSession = createServerFn({ method: "POST" })
       // Touch metadata but keep any user-renamed device_label intact.
       await supabaseAdmin
         .from("user_sessions")
-        .update({ last_seen_at: new Date().toISOString(), ip, user_agent: ua })
+        .update({
+          last_seen_at: new Date().toISOString(),
+          ip,
+          user_agent: ua,
+          browser: parsed.browser,
+          os: parsed.os,
+          device_type: parsed.device_type,
+          country: geo.country,
+          region: geo.region,
+          city: geo.city,
+          timezone: geo.timezone,
+          latitude: geo.latitude,
+          longitude: geo.longitude,
+        })
         .eq("id", existing.id);
       return { ok: true as const };
     }
@@ -88,9 +103,18 @@ export const registerSession = createServerFn({ method: "POST" })
       .insert({
         user_id: context.userId,
         session_token_hash: sessionId,
-        device_label: label,
+        device_label: parsed.label,
         ip,
         user_agent: ua,
+        browser: parsed.browser,
+        os: parsed.os,
+        device_type: parsed.device_type,
+        country: geo.country,
+        region: geo.region,
+        city: geo.city,
+        timezone: geo.timezone,
+        latitude: geo.latitude,
+        longitude: geo.longitude,
       })
       .select("id")
       .single();
@@ -98,19 +122,27 @@ export const registerSession = createServerFn({ method: "POST" })
       console.error("[sessions] insert failed", error);
       throw new Error(error.message);
     }
-    console.log("[sessions] registered", { id: inserted?.id, user_id: context.userId, label, ip });
+    console.log("[sessions] registered", {
+      id: inserted?.id,
+      user_id: context.userId,
+      label: parsed.label,
+      ip,
+      geo,
+    });
 
     return { ok: true as const };
   });
 
-/** List the user's active sessions. Marks the current one. */
+/** List the user's active sessions with real device + geo metadata. */
 export const listMySessions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const sessionId = currentSessionId(context.claims);
     const { data, error } = await context.supabase
       .from("user_sessions")
-      .select("id, device_label, ip, user_agent, created_at, last_seen_at, session_token_hash")
+      .select(
+        "id, device_label, ip, user_agent, browser, os, device_type, country, region, city, timezone, latitude, longitude, created_at, last_seen_at, session_token_hash",
+      )
       .eq("user_id", context.userId)
       .order("last_seen_at", { ascending: false });
     if (error) throw new Error(error.message);
@@ -119,6 +151,15 @@ export const listMySessions = createServerFn({ method: "GET" })
       device_label: row.device_label,
       ip: row.ip,
       user_agent: row.user_agent,
+      browser: row.browser,
+      os: row.os,
+      device_type: row.device_type,
+      country: row.country,
+      region: row.region,
+      city: row.city,
+      timezone: row.timezone,
+      latitude: row.latitude,
+      longitude: row.longitude,
       created_at: row.created_at,
       last_seen_at: row.last_seen_at,
       is_current: row.session_token_hash === sessionId,

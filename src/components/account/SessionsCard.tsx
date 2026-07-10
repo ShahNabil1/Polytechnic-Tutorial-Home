@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Monitor, LogOut, Shield, Pencil, Check, X, ShieldOff } from "lucide-react";
+import { Loader2, Monitor, Smartphone, Tablet, LogOut, Shield, Pencil, Check, X, ShieldOff, MapPin, Globe } from "lucide-react";
 import { listMySessions, revokeSession, renameSession, revokeOtherSessions } from "@/lib/sessions.functions";
 import { ensureReauth } from "@/lib/reauth";
 import { SESSION_LABEL_MAX, validateSessionLabel } from "@/lib/session-label";
@@ -14,6 +14,17 @@ function relTime(iso: string): string {
   if (diff < 3600) return `${Math.floor(diff / 60)} মিনিট আগে`;
   if (diff < 86400) return `${Math.floor(diff / 3600)} ঘণ্টা আগে`;
   return `${Math.floor(diff / 86400)} দিন আগে`;
+}
+
+function locationText(s: Session): string {
+  const parts = [s.city, s.region, s.country].filter(Boolean);
+  return parts.length ? parts.join(", ") : "অজানা লোকেশন";
+}
+
+function DeviceIcon({ type }: { type: string | null }) {
+  if (type === "mobile") return <Smartphone className="mt-0.5 size-4 shrink-0 text-muted-foreground" />;
+  if (type === "tablet") return <Tablet className="mt-0.5 size-4 shrink-0 text-muted-foreground" />;
+  return <Monitor className="mt-0.5 size-4 shrink-0 text-muted-foreground" />;
 }
 
 export function SessionsCard() {
@@ -149,7 +160,7 @@ export function SessionsCard() {
             return (
               <li key={s.id} className="flex items-center justify-between gap-3 px-3 py-3">
                 <div className="flex min-w-0 flex-1 items-start gap-3">
-                  <Monitor className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                  <DeviceIcon type={s.device_type} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       {isEditing ? (
@@ -198,8 +209,27 @@ export function SessionsCard() {
                         </>
                       )}
                     </div>
-                    <div className="mt-1 text-[11px] text-muted-foreground">
-                      IP: {s.ip || "unknown"} · সর্বশেষ {relTime(s.last_seen_at)}
+                    <div className="mt-1 space-y-0.5 text-[11px] text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                        {(s.browser || s.os) && (
+                          <span>{[s.browser, s.os].filter(Boolean).join(" · ")}</span>
+                        )}
+                        {s.device_type && (
+                          <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] uppercase tracking-wide">
+                            {s.device_type}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                        <span className="inline-flex items-center gap-1">
+                          <Globe className="size-3" /> IP {s.ip || "unknown"}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <MapPin className="size-3" /> {locationText(s)}
+                        </span>
+                        {s.timezone && <span>· {s.timezone}</span>}
+                      </div>
+                      <div>সর্বশেষ {relTime(s.last_seen_at)}</div>
                     </div>
                   </div>
                 </div>

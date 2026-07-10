@@ -49,32 +49,59 @@ export type Database = {
       }
       user_sessions: {
         Row: {
+          browser: string | null
+          city: string | null
+          country: string | null
           created_at: string
           device_label: string | null
+          device_type: string | null
           id: string
           ip: string | null
           last_seen_at: string
+          latitude: number | null
+          longitude: number | null
+          os: string | null
+          region: string | null
           session_token_hash: string
+          timezone: string | null
           user_agent: string | null
           user_id: string
         }
         Insert: {
+          browser?: string | null
+          city?: string | null
+          country?: string | null
           created_at?: string
           device_label?: string | null
+          device_type?: string | null
           id?: string
           ip?: string | null
           last_seen_at?: string
+          latitude?: number | null
+          longitude?: number | null
+          os?: string | null
+          region?: string | null
           session_token_hash: string
+          timezone?: string | null
           user_agent?: string | null
           user_id: string
         }
         Update: {
+          browser?: string | null
+          city?: string | null
+          country?: string | null
           created_at?: string
           device_label?: string | null
+          device_type?: string | null
           id?: string
           ip?: string | null
           last_seen_at?: string
+          latitude?: number | null
+          longitude?: number | null
+          os?: string | null
+          region?: string | null
           session_token_hash?: string
+          timezone?: string | null
           user_agent?: string | null
           user_id?: string
         }
