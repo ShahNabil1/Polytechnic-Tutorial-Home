@@ -248,7 +248,7 @@ function ProfilePage() {
             isComplete && (
               <button
                 type="button"
-                onClick={() => setEditMode(false)}
+                onClick={handleCancelEdit}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary"
               >
                 <X className="size-3.5" /> বাতিল
