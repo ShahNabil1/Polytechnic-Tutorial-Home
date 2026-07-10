@@ -43,12 +43,11 @@ export const getMyInternalProfile = createServerFn({ method: "GET" })
 export const syncMyPrimaryAuthEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: isInternal, error: roleError } = await context.supabase.rpc("has_permission", {
+    const { data: primaryRole, error: roleError } = await context.supabase.rpc("get_primary_role", {
       _user_id: context.userId,
-      _permission: "internal.access",
     });
     if (roleError) throw new Error(roleError.message);
-    if (isInternal !== true) throw new Error("Forbidden");
+    if (!["employee", "instructor", "super_admin"].includes(String(primaryRole))) throw new Error("Forbidden");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: authUser, error: userError } = await supabaseAdmin.auth.admin.getUserById(context.userId);
