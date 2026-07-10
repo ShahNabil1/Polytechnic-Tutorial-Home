@@ -26,7 +26,7 @@ import { checkPhoneAvailability } from "@/lib/auth.functions";
 import { toEnglishText, toEnglishPassword, friendlyPasswordError } from "@/lib/input-filter";
 
 type Tab = "login" | "signup";
-type Stage = "form" | "otp" | "reset";
+type Stage = "form" | "otp" | "mfa" | "reset";
 type OtpFlow = "signup" | "forgot";
 
 const RESEND_COOLDOWN_SECONDS = 60;
@@ -155,6 +155,9 @@ export function AuthDrawer({
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [otp, setOtp] = useState("");
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
+  const [mfaChallengeId, setMfaChallengeId] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
@@ -200,6 +203,9 @@ export function AuthDrawer({
     setPassword("");
     setConfirmPassword("");
     setOtp("");
+    setMfaCode("");
+    setMfaFactorId(null);
+    setMfaChallengeId(null);
     setStage("form");
     setTab("login");
     setForgotMode(false);
@@ -421,13 +427,72 @@ export function AuthDrawer({
         resetAll();
         onOpenChange(false);
       } else {
-        // forgot flow: verified → move to set-new-password stage
+        // forgot flow: phone OTP verified.
+        // If this account has a verified TOTP factor (staff / super admin),
+        // require the 2FA code before allowing password reset.
+        try {
+          const { data: factors } = await supabase.auth.mfa.listFactors();
+          const totp = (factors?.totp ?? []).find((f) => f.status === "verified");
+          if (totp) {
+            const { data: chal, error: cErr } = await supabase.auth.mfa.challenge({
+              factorId: totp.id,
+            });
+            if (cErr) throw cErr;
+            setMfaFactorId(totp.id);
+            setMfaChallengeId(chal.id);
+            setMfaCode("");
+            setLoading(false);
+            setStage("mfa");
+            setInfoMsg("আপনার Authenticator অ্যাপ থেকে ৬-ডিজিট 2FA কোড দিন");
+            return;
+          }
+        } catch (mfaErr) {
+          setLoading(false);
+          setFormError("2FA যাচাই শুরু করা যায়নি: " + errMsg(mfaErr));
+          return;
+        }
         setLoading(false);
         setPassword("");
         setConfirmPassword("");
         setStage("reset");
         setInfoMsg("এখন নতুন পাসওয়ার্ড সেট করুন");
       }
+    } catch (err) {
+      setLoading(false);
+      setFormError(errMsg(err));
+    }
+  }
+
+  async function handleVerifyMfaOtp(e: React.FormEvent) {
+    e.preventDefault();
+    setFormError(null);
+    setInfoMsg(null);
+    if (!mfaFactorId || !mfaChallengeId) {
+      setFormError("2FA সেশন হারিয়ে গেছে, আবার চেষ্টা করুন");
+      setStage("form");
+      return;
+    }
+    if (mfaCode.length !== 6) return setFormError("৬ ডিজিটের 2FA কোড দিন");
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.mfa.verify({
+        factorId: mfaFactorId,
+        challengeId: mfaChallengeId,
+        code: mfaCode,
+      });
+      if (error) {
+        setLoading(false);
+        setFormError("2FA কোড ভুল বা মেয়াদ শেষ");
+        return;
+      }
+      setLoading(false);
+      setMfaCode("");
+      setMfaFactorId(null);
+      setMfaChallengeId(null);
+      setPassword("");
+      setConfirmPassword("");
+      setStage("reset");
+      setInfoMsg("2FA যাচাই সফল। এখন নতুন পাসওয়ার্ড সেট করুন");
     } catch (err) {
       setLoading(false);
       setFormError(errMsg(err));
@@ -573,7 +638,9 @@ export function AuthDrawer({
   const cardTitle =
     stage === "reset"
       ? "নতুন পাসওয়ার্ড সেট করুন"
-      : stage === "otp"
+      : stage === "mfa"
+        ? "টু-ফ্যাক্টর কোড দিন"
+        : stage === "otp"
         ? "ফোন ভেরিফাই করুন"
         : forgotMode
           ? "পাসওয়ার্ড রিসেট করুন"
@@ -829,6 +896,52 @@ export function AuthDrawer({
                           কোড আবার পাঠান ({MAX_RESENDS - resendCount} বার বাকি)
                         </button>
                       )}
+                    </div>
+                  </form>
+                )}
+
+                {/* MFA (2FA) — forgot-password gate for staff/admin */}
+                {stage === "mfa" && (
+                  <form className="space-y-4" onSubmit={handleVerifyMfaOtp}>
+                    <div className="rounded-lg bg-muted/60 p-3 text-sm">
+                      আপনার একাউন্টে টু-ফ্যাক্টর অথেন্টিকেশন চালু আছে। পাসওয়ার্ড রিসেট করার
+                      আগে Authenticator অ্যাপ থেকে ৬-ডিজিট কোড দিন।
+                    </div>
+                    {InfoBox}
+                    <div className="space-y-2">
+                      <Label htmlFor="auth-mfa">২FA কোড</Label>
+                      <Input
+                        id="auth-mfa"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        maxLength={6}
+                        value={mfaCode}
+                        onChange={(e) =>
+                          setMfaCode(bnToEnDigits(e.target.value).replace(/\D/g, "").slice(0, 6))
+                        }
+                        required
+                        autoFocus
+                      />
+                    </div>
+                    {ErrorBox}
+                    <Button
+                      type="submit"
+                      className="w-full bg-amber-500 text-amber-950 hover:bg-amber-600"
+                      disabled={loading || mfaCode.length !== 6}
+                    >
+                      {loading ? "যাচাই করা হচ্ছে..." : "ভেরিফাই করুন"}
+                    </Button>
+                    <div className="text-center text-xs">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await supabase.auth.signOut();
+                          resetAll();
+                        }}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        ← বাতিল করে সাইন আউট
+                      </button>
                     </div>
                   </form>
                 )}
