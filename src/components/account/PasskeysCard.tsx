@@ -58,6 +58,7 @@ export function PasskeysCard() {
 
   async function handleRemove(id: string, name: string | null) {
     if (!confirm(`"${name || "এই Passkey"}" রিমুভ করবেন?`)) return;
+    if (!(await ensureReauth())) return;
     try {
       await deleteMyPasskey({ data: { id } });
       toast.success("Passkey রিমুভ হয়েছে");
