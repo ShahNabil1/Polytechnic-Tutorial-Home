@@ -58,6 +58,7 @@ export type Database = {
           last_attempt_at: string
           last_fingerprint: string | null
           last_ip: unknown
+          last_outcome: string
           last_user_agent: string | null
           shipping_bdt: number
           signature: string
@@ -83,6 +84,7 @@ export type Database = {
           last_attempt_at?: string
           last_fingerprint?: string | null
           last_ip?: unknown
+          last_outcome?: string
           last_user_agent?: string | null
           shipping_bdt?: number
           signature: string
@@ -108,6 +110,7 @@ export type Database = {
           last_attempt_at?: string
           last_fingerprint?: string | null
           last_ip?: unknown
+          last_outcome?: string
           last_user_agent?: string | null
           shipping_bdt?: number
           signature?: string
@@ -916,6 +919,29 @@ export type Database = {
         Returns: boolean
       }
       next_order_no: { Args: never; Returns: string }
+      record_incomplete_attempt: {
+        Args: {
+          _address_line: string
+          _cart: Json
+          _customer_email: string
+          _customer_name: string
+          _customer_phone: string
+          _district: string
+          _division: string
+          _fingerprint: string
+          _gateway_ref: string
+          _ip: string
+          _outcome: string
+          _shipping: number
+          _signature: string
+          _subtotal: number
+          _thana: string
+          _total: number
+          _user_agent: string
+          _user_id: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "student" | "employee" | "instructor" | "super_admin"

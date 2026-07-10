@@ -22,7 +22,14 @@ import { formatDhakaDateTime } from "@/lib/orders";
 import { formatBDT } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-type Attempt = { at: string; ip?: string | null; fingerprint?: string | null; user_agent?: string | null };
+type Attempt = {
+  at: string;
+  ip?: string | null;
+  fingerprint?: string | null;
+  user_agent?: string | null;
+  outcome?: string | null;
+  gateway_ref?: string | null;
+};
 type Row = {
   id: string;
   customer_name: string | null;
@@ -39,11 +46,31 @@ type Row = {
   last_ip: string | null;
   last_user_agent: string | null;
   last_fingerprint: string | null;
+  last_outcome: string | null;
   attempts: Attempt[];
   attempt_count: number;
   first_attempt_at: string;
   last_attempt_at: string;
 };
+
+const OUTCOME_STYLE: Record<string, string> = {
+  abandoned: "bg-slate-100 text-slate-700",
+  pending: "bg-amber-100 text-amber-800",
+  cancelled: "bg-rose-100 text-rose-800",
+  failed: "bg-red-100 text-red-800",
+  timeout: "bg-orange-100 text-orange-800",
+};
+
+function OutcomeBadge({ outcome }: { outcome?: string | null }) {
+  const key = (outcome || "abandoned").toLowerCase();
+  const cls = OUTCOME_STYLE[key] ?? OUTCOME_STYLE.abandoned;
+  return (
+    <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider", cls)}>
+      {key}
+    </span>
+  );
+}
+
 
 export function AdminIncompleteCheckouts({ search }: { search: string }) {
   const fetchList = useServerFn(listAdminIncompleteCheckouts);
@@ -115,6 +142,8 @@ export function AdminIncompleteCheckouts({ search }: { search: string }) {
                       <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-extrabold text-amber-800">
                         {r.attempt_count} attempt{r.attempt_count === 1 ? "" : "s"}
                       </span>
+                      <OutcomeBadge outcome={r.last_outcome} />
+
                     </div>
 
                     {(r.address_line || r.thana || r.district || r.division) && (
@@ -177,6 +206,12 @@ export function AdminIncompleteCheckouts({ search }: { search: string }) {
                           <span className="font-mono font-bold text-slate-800">
                             {formatDhakaDateTime(a.at)}
                           </span>
+                          <OutcomeBadge outcome={a.outcome} />
+                          {a.gateway_ref && (
+                            <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-600">
+                              ref: {a.gateway_ref}
+                            </span>
+                          )}
                           {a.ip && (
                             <span className="inline-flex items-center gap-1 font-mono text-slate-500">
                               <Globe className="size-3" />
@@ -190,6 +225,7 @@ export function AdminIncompleteCheckouts({ search }: { search: string }) {
                             </span>
                           )}
                         </li>
+
                       ))}
                     </ul>
                   </div>

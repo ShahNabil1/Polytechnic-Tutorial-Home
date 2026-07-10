@@ -19,6 +19,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as CheckoutIndexRouteImport } from './routes/checkout.index'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as CheckoutSuccessRouteImport } from './routes/checkout.success'
+import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as BundleSlugRouteImport } from './routes/bundle.$slug'
 import { Route as AuthenticatedSdashRouteImport } from './routes/_authenticated/sdash'
 import { Route as AuthenticatedInternalRouteImport } from './routes/_authenticated/_internal'
@@ -88,6 +89,11 @@ const ProductSlugRoute = ProductSlugRouteImport.update({
 const CheckoutSuccessRoute = CheckoutSuccessRouteImport.update({
   id: '/checkout/success',
   path: '/checkout/success',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
+  id: '/checkout/return',
+  path: '/checkout/return',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BundleSlugRoute = BundleSlugRouteImport.update({
@@ -219,6 +225,7 @@ export interface FileRoutesByFullPath {
   '/terms-of-service': typeof TermsOfServiceRoute
   '/sdash': typeof AuthenticatedSdashRouteWithChildren
   '/bundle/$slug': typeof BundleSlugRoute
+  '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/success': typeof CheckoutSuccessRoute
   '/product/$slug': typeof ProductSlugRoute
   '/checkout/': typeof CheckoutIndexRoute
@@ -249,6 +256,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms-of-service': typeof TermsOfServiceRoute
   '/bundle/$slug': typeof BundleSlugRoute
+  '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/success': typeof CheckoutSuccessRoute
   '/product/$slug': typeof ProductSlugRoute
   '/checkout': typeof CheckoutIndexRoute
@@ -281,6 +289,7 @@ export interface FileRoutesById {
   '/_authenticated/_internal': typeof AuthenticatedInternalRouteWithChildren
   '/_authenticated/sdash': typeof AuthenticatedSdashRouteWithChildren
   '/bundle/$slug': typeof BundleSlugRoute
+  '/checkout/return': typeof CheckoutReturnRoute
   '/checkout/success': typeof CheckoutSuccessRoute
   '/product/$slug': typeof ProductSlugRoute
   '/checkout/': typeof CheckoutIndexRoute
@@ -314,6 +323,7 @@ export interface FileRouteTypes {
     | '/terms-of-service'
     | '/sdash'
     | '/bundle/$slug'
+    | '/checkout/return'
     | '/checkout/success'
     | '/product/$slug'
     | '/checkout/'
@@ -344,6 +354,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms-of-service'
     | '/bundle/$slug'
+    | '/checkout/return'
     | '/checkout/success'
     | '/product/$slug'
     | '/checkout'
@@ -375,6 +386,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_internal'
     | '/_authenticated/sdash'
     | '/bundle/$slug'
+    | '/checkout/return'
     | '/checkout/success'
     | '/product/$slug'
     | '/checkout/'
@@ -407,6 +419,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsOfServiceRoute: typeof TermsOfServiceRoute
   BundleSlugRoute: typeof BundleSlugRoute
+  CheckoutReturnRoute: typeof CheckoutReturnRoute
   CheckoutSuccessRoute: typeof CheckoutSuccessRoute
   ProductSlugRoute: typeof ProductSlugRoute
   CheckoutIndexRoute: typeof CheckoutIndexRoute
@@ -483,6 +496,13 @@ declare module '@tanstack/react-router' {
       path: '/checkout/success'
       fullPath: '/checkout/success'
       preLoaderRoute: typeof CheckoutSuccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout/return': {
+      id: '/checkout/return'
+      path: '/checkout/return'
+      fullPath: '/checkout/return'
+      preLoaderRoute: typeof CheckoutReturnRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/bundle/$slug': {
@@ -748,6 +768,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsOfServiceRoute: TermsOfServiceRoute,
   BundleSlugRoute: BundleSlugRoute,
+  CheckoutReturnRoute: CheckoutReturnRoute,
   CheckoutSuccessRoute: CheckoutSuccessRoute,
   ProductSlugRoute: ProductSlugRoute,
   CheckoutIndexRoute: CheckoutIndexRoute,

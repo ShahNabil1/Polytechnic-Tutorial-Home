@@ -535,6 +535,15 @@ function computeSignature(
   return `${phone}|${dhakaDayKey()}|${sig}`;
 }
 
+export const CHECKOUT_OUTCOMES = [
+  "abandoned",
+  "pending",
+  "cancelled",
+  "failed",
+  "timeout",
+] as const;
+export type CheckoutOutcome = (typeof CHECKOUT_OUTCOMES)[number];
+
 const IncompleteInput = z.object({
   customer: z.object({
     name: z.string().max(120).optional().or(z.literal("")),
@@ -564,6 +573,8 @@ const IncompleteInput = z.object({
   }),
   fingerprint: z.string().max(80).optional().or(z.literal("")),
   userId: z.string().uuid().optional().nullable(),
+  outcome: z.enum(CHECKOUT_OUTCOMES).optional(),
+  gatewayRef: z.string().max(120).optional().or(z.literal("")),
 });
 
 export const captureIncompleteCheckout = createServerFn({ method: "POST" })
@@ -577,112 +588,49 @@ export const captureIncompleteCheckout = createServerFn({ method: "POST" })
       ua = getRequestHeader("user-agent") || "";
     } catch {}
 
-    // Skip capture if this phone already has a confirmed order today (avoid noise).
-    const { data: existingOrder } = await sb
-      .from("orders")
-      .select("id")
-      .eq("customer_phone", data.customer.phone)
-      .limit(1);
-    if (existingOrder && existingOrder.length) return { ok: true, skipped: true };
+    // Skip capture if this phone already has a confirmed order today (avoid noise) — unless
+    // we're specifically recording a gateway outcome (cancelled/failed/timeout).
+    if (!data.outcome || data.outcome === "abandoned") {
+      const { data: existingOrder } = await sb
+        .from("orders")
+        .select("id")
+        .eq("customer_phone", data.customer.phone)
+        .limit(1);
+      if (existingOrder && existingOrder.length) return { ok: true, skipped: true };
+    }
 
     const signature = computeSignature(
       data.customer.phone,
       data.items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
     );
-    const nowIso = new Date().toISOString();
-    const attemptEntry = {
-      at: nowIso,
-      ip: ip || null,
-      fingerprint: data.fingerprint || null,
-      user_agent: ua || null,
-    };
 
-    // Try to fetch existing row for this signature.
-    const { data: existing } = await sb
-      .from("incomplete_checkouts")
-      .select("id, attempts, attempt_count")
-      .eq("signature", signature)
-      .maybeSingle();
-
-    if (existing) {
-      const attempts = Array.isArray(existing.attempts) ? existing.attempts : [];
-      // Cap attempts array to last 50 to keep row size sane.
-      const nextAttempts = [...attempts, attemptEntry].slice(-50);
-      const { error } = await sb
-        .from("incomplete_checkouts")
-        .update({
-          attempts: nextAttempts,
-          attempt_count: (existing.attempt_count ?? 0) + 1,
-          last_attempt_at: nowIso,
-          customer_name: data.customer.name || null,
-          customer_email: data.customer.email || null,
-          division: data.customer.division || null,
-          district: data.customer.district || null,
-          thana: data.customer.upazila || null,
-          address_line: data.customer.address || null,
-          subtotal_bdt: data.totals.subtotal,
-          shipping_bdt: data.totals.shipping,
-          total_bdt: data.totals.total,
-          last_ip: ip || null,
-          last_user_agent: ua || null,
-          last_fingerprint: data.fingerprint || null,
-          cart: data.items as any,
-          user_id: data.userId ?? null,
-        } as any)
-        .eq("id", existing.id);
-      if (error) throw new Error(error.message);
-      return { ok: true, id: existing.id, attempt_count: (existing.attempt_count ?? 0) + 1 };
-    }
-
-    const { data: inserted, error } = await sb
-      .from("incomplete_checkouts")
-      .insert({
-        signature,
-        user_id: data.userId ?? null,
-        customer_name: data.customer.name || null,
-        customer_phone: data.customer.phone,
-        customer_email: data.customer.email || null,
-        division: data.customer.division || null,
-        district: data.customer.district || null,
-        thana: data.customer.upazila || null,
-        address_line: data.customer.address || null,
-        cart: data.items as any,
-        subtotal_bdt: data.totals.subtotal,
-        shipping_bdt: data.totals.shipping,
-        total_bdt: data.totals.total,
-        last_ip: ip || null,
-        last_user_agent: ua || null,
-        last_fingerprint: data.fingerprint || null,
-        attempts: [attemptEntry] as any,
-        attempt_count: 1,
-        first_attempt_at: nowIso,
-        last_attempt_at: nowIso,
-      } as any)
-      .select("id")
-      .single();
-    if (error) {
-      // Race on unique signature — retry as update
-      const { data: again } = await sb
-        .from("incomplete_checkouts")
-        .select("id, attempts, attempt_count")
-        .eq("signature", signature)
-        .maybeSingle();
-      if (again) {
-        const attempts = Array.isArray(again.attempts) ? again.attempts : [];
-        await sb
-          .from("incomplete_checkouts")
-          .update({
-            attempts: [...attempts, attemptEntry].slice(-50),
-            attempt_count: (again.attempt_count ?? 0) + 1,
-            last_attempt_at: nowIso,
-          } as any)
-          .eq("id", again.id);
-        return { ok: true, id: again.id };
-      }
-      throw new Error(error.message);
-    }
-    return { ok: true, id: inserted.id, attempt_count: 1 };
+    // Atomic upsert + attempt append via SECURITY DEFINER RPC.
+    // The unique constraint on `signature` + ON CONFLICT DO UPDATE in the function
+    // guarantees no duplicate rows even under concurrent requests.
+    const { data: rowId, error } = await sb.rpc("record_incomplete_attempt", {
+      _signature: signature,
+      _user_id: data.userId ?? null,
+      _customer_name: data.customer.name || "",
+      _customer_phone: data.customer.phone,
+      _customer_email: data.customer.email || "",
+      _division: data.customer.division || "",
+      _district: data.customer.district || "",
+      _thana: data.customer.upazila || "",
+      _address_line: data.customer.address || "",
+      _cart: data.items as any,
+      _subtotal: data.totals.subtotal,
+      _shipping: data.totals.shipping,
+      _total: data.totals.total,
+      _ip: ip || "",
+      _user_agent: ua || "",
+      _fingerprint: data.fingerprint || "",
+      _outcome: data.outcome || "abandoned",
+      _gateway_ref: data.gatewayRef || "",
+    } as any);
+    if (error) throw new Error(error.message);
+    return { ok: true, id: rowId as unknown as string };
   });
+
 
 export const listAdminIncompleteCheckouts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
