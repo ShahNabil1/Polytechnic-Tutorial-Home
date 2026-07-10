@@ -19,9 +19,12 @@ export function SessionsCard() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [revoking, setRevoking] = useState<string | null>(null);
+  const [revokingOthers, setRevokingOthers] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const otherCount = sessions.filter((s) => !s.is_current).length;
 
   async function refresh() {
     try {
