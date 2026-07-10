@@ -136,6 +136,20 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const hideFooter = pathname === "/sdash" || pathname.startsWith("/sdash/");
+  const isInternalApp =
+    pathname === "/workspace" ||
+    pathname.startsWith("/workspace/") ||
+    pathname === "/instructor" ||
+    pathname.startsWith("/instructor/");
+
+  if (isInternalApp) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <Outlet />
+        <Toaster richColors position="top-center" />
+      </QueryClientProvider>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
