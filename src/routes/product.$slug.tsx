@@ -111,20 +111,20 @@ function ProductPage() {
   };
 
   return (
-    <div className="px-4 py-10 md:px-6 md:py-14">
+    <div className="px-4 pb-24 pt-6 md:px-6 md:pb-14 md:pt-10">
       <div className="mx-auto max-w-6xl">
         <Link
           to="/shop"
-          className="mb-6 inline-flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground"
+          className="mb-4 inline-flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground md:mb-6"
         >
           <ArrowLeft className="size-4" />
           সব বই দেখুন
         </Link>
 
 
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-          <div>
-            <div className="relative overflow-hidden rounded-3xl bg-slate-100 shadow-xl ring-1 ring-border">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-10">
+          <div className="mx-auto w-full max-w-[260px] sm:max-w-sm lg:max-w-none">
+            <div className="relative overflow-hidden rounded-2xl bg-slate-100 shadow-xl ring-1 ring-border lg:rounded-3xl">
               <div className="relative aspect-[3/4] w-full">
                 {current ? (
                   <img
@@ -142,7 +142,7 @@ function ProductPage() {
                     {product.coverEmoji ?? <ImageIcon className="size-24 text-white/70" />}
                   </div>
                 )}
-                <span className="absolute right-4 top-4 rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-foreground ring-1 ring-black/5">
+                <span className="absolute right-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-foreground ring-1 ring-black/5 md:right-4 md:top-4 md:px-3 md:py-1.5 md:text-xs">
                   {productTypeLabel(product.type)}
                 </span>
 
@@ -151,18 +151,18 @@ function ProductPage() {
                     <button
                       type="button"
                       onClick={() => setIdx((i) => (i - 1 + images.length) % images.length)}
-                      className="absolute left-3 top-1/2 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-slate-800 shadow ring-1 ring-black/5 hover:bg-white"
+                      className="absolute left-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-slate-800 shadow ring-1 ring-black/5 hover:bg-white md:left-3 md:size-10"
                       aria-label="Previous image"
                     >
-                      <ChevronLeft className="size-5" />
+                      <ChevronLeft className="size-4 md:size-5" />
                     </button>
                     <button
                       type="button"
                       onClick={() => setIdx((i) => (i + 1) % images.length)}
-                      className="absolute right-3 top-1/2 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-slate-800 shadow ring-1 ring-black/5 hover:bg-white"
+                      className="absolute right-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-slate-800 shadow ring-1 ring-black/5 hover:bg-white md:right-3 md:size-10"
                       aria-label="Next image"
                     >
-                      <ChevronRight className="size-5" />
+                      <ChevronRight className="size-4 md:size-5" />
                     </button>
                   </>
                 )}
@@ -176,7 +176,7 @@ function ProductPage() {
                     type="button"
                     onClick={() => setIdx(i)}
                     className={cn(
-                      "size-16 shrink-0 overflow-hidden rounded-lg border-2 transition-all",
+                      "size-12 shrink-0 overflow-hidden rounded-lg border-2 transition-all md:size-16",
                       i === idx ? "border-brand" : "border-transparent opacity-70 hover:opacity-100",
                     )}
                     aria-label={`Show image ${i + 1}`}
@@ -190,50 +190,41 @@ function ProductPage() {
 
           <div className="flex flex-col">
             {product.subtitle && (
-              <p className="text-sm font-bold text-muted-foreground">{product.subtitle}</p>
+              <p className="order-1 text-sm font-bold text-muted-foreground">{product.subtitle}</p>
             )}
-            <h1 className="mt-2 text-3xl font-extrabold tracking-tight md:text-4xl">
+            <h1 className="order-2 mt-1 text-2xl font-extrabold tracking-tight sm:text-3xl md:mt-2 md:text-4xl">
               {product.title}
             </h1>
 
-            <div className="mt-5 flex items-baseline gap-3">
-              <span className="text-3xl font-extrabold tabular-nums">{formatBDT(product.price)}</span>
+            <div className="order-3 mt-4 flex items-baseline gap-3 md:mt-5">
+              <span className="text-2xl font-extrabold tabular-nums md:text-3xl">{formatBDT(product.price)}</span>
               {product.originalPrice && (
-                <span className="text-lg font-semibold text-muted-foreground line-through tabular-nums">
+                <span className="text-base font-semibold text-muted-foreground line-through tabular-nums md:text-lg">
                   {formatBDT(product.originalPrice)}
                 </span>
               )}
             </div>
 
             {product.stock !== undefined && product.stock !== null && product.stock > 0 && (
-              <p className="mt-2 text-sm font-bold text-brand">
+              <p className="order-4 mt-2 text-sm font-bold text-brand">
                 <Check className="mr-1 inline size-4" />
                 স্টকে আছে ({product.stock}+ কপি)
               </p>
             )}
 
-            <div className="mt-6 border-t border-border pt-6">
-              <h3 className="mb-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
-                বিবরণ
-              </h3>
-              <p className="whitespace-pre-line text-base font-medium leading-relaxed text-foreground/90">
-                {product.description}
-              </p>
-            </div>
-
-            <div className="mt-8 grid grid-cols-2 gap-3">
+            <div className="order-5 mt-5 grid grid-cols-2 gap-2.5 md:mt-8 md:gap-3 lg:order-7">
               <button
                 onClick={() => add(product)}
-                className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-2xl border-2 border-foreground/90 bg-background px-6 py-4 text-base font-extrabold tracking-wide text-foreground shadow-[0_6px_0_-1px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-0.5 hover:bg-foreground hover:text-background active:translate-y-0"
+                className="group relative inline-flex items-center justify-center gap-1.5 overflow-hidden rounded-xl border-2 border-foreground/90 bg-background px-3 py-3 text-sm font-extrabold tracking-wide text-foreground shadow-[0_6px_0_-1px_rgba(0,0,0,0.08)] transition-all hover:-translate-y-0.5 hover:bg-foreground hover:text-background active:translate-y-0 md:gap-2 md:rounded-2xl md:px-6 md:py-4 md:text-base"
               >
-                <ShoppingCart className="size-5" />
+                <ShoppingCart className="size-4 md:size-5" />
                 {inCart ? "Added To Cart" : "Add To Cart"}
               </button>
               <button
                 onClick={handleBuyNow}
-                className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-br from-brand via-brand to-brand/80 px-6 py-4 text-base font-extrabold tracking-wide text-brand-foreground shadow-lg shadow-brand/30 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-brand/40 active:translate-y-0"
+                className="group relative inline-flex items-center justify-center gap-1.5 overflow-hidden rounded-xl bg-gradient-to-br from-brand via-brand to-brand/80 px-3 py-3 text-sm font-extrabold tracking-wide text-brand-foreground shadow-lg shadow-brand/30 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-brand/40 active:translate-y-0 md:gap-2 md:rounded-2xl md:px-6 md:py-4 md:text-base"
               >
-                <Zap className="size-5 fill-current" />
+                <Zap className="size-4 fill-current md:size-5" />
                 Buy Now
               </button>
             </div>
@@ -242,14 +233,23 @@ function ProductPage() {
               href={waLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 inline-flex w-full items-center justify-center gap-3 rounded-2xl bg-[#25D366] px-6 py-4 text-base font-extrabold tracking-wide text-white shadow-lg shadow-[#25D366]/25 transition-all hover:-translate-y-0.5 hover:bg-[#1ebe57] hover:shadow-xl hover:shadow-[#25D366]/40 active:translate-y-0"
+              className="order-6 mt-2.5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#25D366] px-4 py-3 text-sm font-extrabold tracking-wide text-white shadow-lg shadow-[#25D366]/25 transition-all hover:-translate-y-0.5 hover:bg-[#1ebe57] hover:shadow-xl hover:shadow-[#25D366]/40 active:translate-y-0 md:mt-3 md:gap-3 md:rounded-2xl md:px-6 md:py-4 md:text-base lg:order-8"
             >
-              <WhatsAppIcon className="size-6" />
+              <WhatsAppIcon className="size-5 md:size-6" />
               Order On Whatsapp
             </a>
 
+            <div className="order-7 mt-6 border-t border-border pt-6 lg:order-5">
+              <h3 className="mb-2 text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                বিবরণ
+              </h3>
+              <p className="whitespace-pre-line text-base font-medium leading-relaxed text-foreground/90">
+                {product.description}
+              </p>
+            </div>
+
             {isDigital && (
-              <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-900">
+              <div className="order-8 mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-900 lg:order-9">
                 <p className="font-extrabold">📥 ইনস্ট্যান্ট ডাউনলোড</p>
                 <p className="mt-1">
                   পেমেন্ট সম্পন্ন হওয়ার পরপরই সিকিউর ডাউনলোড লিংক আপনার ইমেইলে পাঠানো হবে।
