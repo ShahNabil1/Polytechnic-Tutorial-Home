@@ -144,6 +144,45 @@ function CheckoutPage() {
 
   const createOrderFn = useServerFn(createOrder);
 
+  // ---- Incomplete checkout capture ----
+  // Fire once the phone becomes a valid 11-digit BD number, and on subsequent form changes.
+  const phoneValid = /^01[3-9]\d{8}$/.test(form.phone);
+  useEffect(() => {
+    if (!phoneValid || items.length === 0 || submittedRef.current) return;
+    queueIncompleteCapture({
+      customer: {
+        name: form.name || "",
+        phone: form.phone,
+        email: form.email || "",
+        division: form.division || "",
+        district: form.district || "",
+        upazila: form.upazila || "",
+        address: form.address || "",
+      },
+      items: items.map((i) => ({
+        productId: i.productId,
+        title: i.title,
+        unitPrice: i.price,
+        quantity: i.quantity,
+        image: i.image || "",
+      })),
+      totals: { subtotal, shipping, total },
+    });
+  }, [phoneValid, form, items, subtotal, shipping, total]);
+
+  // Flush on tab close / navigation away.
+  useEffect(() => {
+    const onLeave = () => {
+      if (!submittedRef.current && phoneValid) flushIncompleteCaptureNow();
+    };
+    window.addEventListener("pagehide", onLeave);
+    window.addEventListener("beforeunload", onLeave);
+    return () => {
+      window.removeEventListener("pagehide", onLeave);
+      window.removeEventListener("beforeunload", onLeave);
+    };
+  }, [phoneValid]);
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (submittedRef.current || submitting) return;
