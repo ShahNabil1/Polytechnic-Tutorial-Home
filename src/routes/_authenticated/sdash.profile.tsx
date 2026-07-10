@@ -128,6 +128,7 @@ function ProfilePage() {
       <PasswordCard />
       <PasskeysCard />
       <SessionsCard />
+      <ReauthDialogHost />
     </div>
   );
 }
