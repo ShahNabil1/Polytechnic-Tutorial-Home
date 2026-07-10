@@ -168,13 +168,10 @@ function CheckoutPage() {
           <div className="space-y-5">
             <section className="rounded-2xl border border-border bg-card p-5">
               <h2 className="text-base font-extrabold">
-                {isPhysical ? "ডেলিভারি ঠিকানা" : "আপনার তথ্য"}
+                {isPhysical ? "Delivery Address" : "Your Details"}
               </h2>
-              <p className="mt-1 text-[11px] text-muted-foreground">
-                {isPhysical
-                  ? "কুরিয়ার আপনার এই ঠিকানায় বই পৌঁছে দেবে।"
-                  : "পেমেন্টের পর ডাউনলোড লিংক এই ইমেইলে পাঠানো হবে।"}
-              </p>
+
+
 
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <Field label="আপনার নাম" required error={errors.name} className="sm:col-span-2">
