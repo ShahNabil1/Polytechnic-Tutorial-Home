@@ -2,15 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-async function ensureSuperAdmin(supabase: any, userId: string) {
-  const { data, error } = await supabase.rpc("has_role", {
-    _user_id: userId,
-    _role: "super_admin",
-  });
-  if (error) throw new Error(error.message);
-  if (data !== true) throw new Error("Forbidden: super_admin only");
-}
-
 export type AdminUserRow = {
   user_id: string;
   full_name: string | null;
@@ -26,7 +17,12 @@ export type AdminUserRow = {
 export const listInternalUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    await ensureSuperAdmin(context.supabase, context.userId);
+    const { data: isSuperAdmin, error: roleError } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "super_admin",
+    });
+    if (roleError) throw new Error(roleError.message);
+    if (isSuperAdmin !== true) throw new Error("Forbidden: super_admin only");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error } = await supabaseAdmin
       .from("user_roles")
@@ -101,7 +97,12 @@ export const findUserByPhoneOrEmail = createServerFn({ method: "POST" })
     z.object({ query: z.string().min(3).max(120) }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context.supabase, context.userId);
+    const { data: isSuperAdmin, error: roleError } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "super_admin",
+    });
+    if (roleError) throw new Error(roleError.message);
+    if (isSuperAdmin !== true) throw new Error("Forbidden: super_admin only");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const q = data.query.trim();
     const { data: rows, error } = await supabaseAdmin
@@ -122,7 +123,12 @@ export const assignInternalRole = createServerFn({ method: "POST" })
     }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context.supabase, context.userId);
+    const { data: isSuperAdmin, error: roleError } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "super_admin",
+    });
+    if (roleError) throw new Error(roleError.message);
+    if (isSuperAdmin !== true) throw new Error("Forbidden: super_admin only");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(data.user_id);
     const user = authUser.user as any;
@@ -161,7 +167,12 @@ export const revokeInternalRole = createServerFn({ method: "POST" })
     }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context.supabase, context.userId);
+    const { data: isSuperAdmin, error: roleError } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "super_admin",
+    });
+    if (roleError) throw new Error(roleError.message);
+    if (isSuperAdmin !== true) throw new Error("Forbidden: super_admin only");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("user_roles")
@@ -178,7 +189,12 @@ export const setInternalUserActive = createServerFn({ method: "POST" })
     z.object({ user_id: z.string().uuid(), is_active: z.boolean() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context.supabase, context.userId);
+    const { data: isSuperAdmin, error: roleError } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "super_admin",
+    });
+    if (roleError) throw new Error(roleError.message);
+    if (isSuperAdmin !== true) throw new Error("Forbidden: super_admin only");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("internal_profiles")
