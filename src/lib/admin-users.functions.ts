@@ -35,6 +35,36 @@ export const listInternalUsers = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     const userIds = Array.from(new Set((rows ?? []).map((r: any) => r.user_id)));
     if (userIds.length === 0) return [] as AdminUserRow[];
+    const syncedEmails = new Map<string, string>();
+    await Promise.all(
+      userIds.map(async (userId) => {
+        try {
+          const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(userId);
+          const user = authUser.user as any;
+          const currentEmail = typeof user?.email === "string" ? user.email.trim().toLowerCase() : "";
+          const metadataEmail =
+            typeof user?.user_metadata?.email === "string" ? user.user_metadata.email.trim().toLowerCase() : "";
+          const identityEmail =
+            (user?.identities ?? [])
+              .map((identity: any) => identity?.identity_data?.email || identity?.email)
+              .find((email: unknown) => typeof email === "string" && email.includes("@"))
+              ?.trim()
+              .toLowerCase() ?? "";
+          const email = currentEmail || metadataEmail || identityEmail;
+          if (!email || !z.string().email().safeParse(email).success) return;
+          if (!currentEmail) {
+            await supabaseAdmin.auth.admin.updateUserById(userId, {
+              email,
+              email_confirm: true,
+            } as never);
+          }
+          await supabaseAdmin.from("profiles").update({ email } as never).eq("id", userId);
+          syncedEmails.set(userId, email);
+        } catch {
+          // Do not block the admin list if a single account cannot be synced.
+        }
+      }),
+    );
     const [{ data: profs }, { data: internals }] = await Promise.all([
       supabaseAdmin.from("profiles").select("id, full_name, phone, email, avatar_url").in("id", userIds),
       supabaseAdmin.from("internal_profiles").select("user_id, display_id, is_active, mfa_enrolled").in("user_id", userIds),
@@ -55,7 +85,7 @@ export const listInternalUsers = createServerFn({ method: "GET" })
         user_id: id,
         full_name: p.full_name ?? null,
         phone: p.phone ?? null,
-        email: p.email ?? null,
+        email: p.email ?? syncedEmails.get(id) ?? null,
         avatar_url: p.avatar_url ?? null,
         role: byUser.get(id) as AdminUserRow["role"],
         display_id: i.display_id ?? null,
@@ -94,6 +124,27 @@ export const assignInternalRole = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await ensureSuperAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(data.user_id);
+    const user = authUser.user as any;
+    const currentEmail = typeof user?.email === "string" ? user.email.trim().toLowerCase() : "";
+    const metadataEmail =
+      typeof user?.user_metadata?.email === "string" ? user.user_metadata.email.trim().toLowerCase() : "";
+    const identityEmail =
+      (user?.identities ?? [])
+        .map((identity: any) => identity?.identity_data?.email || identity?.email)
+        .find((email: unknown) => typeof email === "string" && email.includes("@"))
+        ?.trim()
+        .toLowerCase() ?? "";
+    const email = currentEmail || metadataEmail || identityEmail;
+    if (email && z.string().email().safeParse(email).success) {
+      if (!currentEmail) {
+        await supabaseAdmin.auth.admin.updateUserById(data.user_id, {
+          email,
+          email_confirm: true,
+        } as never);
+      }
+      await supabaseAdmin.from("profiles").update({ email } as never).eq("id", data.user_id);
+    }
     const { error } = await supabaseAdmin
       .from("user_roles")
       .insert({ user_id: data.user_id, role: data.role, assigned_by: context.userId } as never);
