@@ -26,11 +26,27 @@ import { AlertCircle } from "lucide-react";
 type Tab = "login" | "signup";
 type Stage = "phone" | "otp";
 
+function bnToEnDigits(s: string): string {
+  const map: Record<string, string> = {
+    "০": "0", "১": "1", "২": "2", "৩": "3", "৪": "4",
+    "৫": "5", "৬": "6", "৭": "7", "৮": "8", "৯": "9",
+    "٠": "0", "١": "1", "٢": "2", "٣": "3", "٤": "4",
+    "٥": "5", "٦": "6", "٧": "7", "٨": "8", "٩": "9",
+  };
+  return s.replace(/[০-৯٠-٩]/g, (d) => map[d] ?? d);
+}
+
 function normalizePhone(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
+  const digits = bnToEnDigits(raw).replace(/\D/g, "");
   if (digits.startsWith("88")) return "+" + digits;
   if (digits.startsWith("0")) return "+88" + digits;
   return "+88" + digits;
+}
+
+// BD mobile: 11 digits starting with 013-019
+function isValidBdMobile(raw: string): boolean {
+  const digits = bnToEnDigits(raw).replace(/\D/g, "");
+  return /^01[3-9]\d{8}$/.test(digits);
 }
 
 function errMsg(e: unknown, fallback = "কিছু ভুল হয়েছে, আবার চেষ্টা করুন"): string {
@@ -58,6 +74,7 @@ export function AuthDrawer({
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   const phone = phoneRaw ? normalizePhone(phoneRaw) : "";
   const inProgress = phoneRaw.length > 0 || otp.length > 0 || fullName.length > 0;
@@ -68,6 +85,7 @@ export function AuthDrawer({
     setOtp("");
     setStage("phone");
     setTab("login");
+    setPhoneError(null);
   }
 
   function requestClose() {
@@ -82,6 +100,13 @@ export function AuthDrawer({
     setConfirmClose(false);
     resetAll();
     onOpenChange(false);
+  }
+
+  function handlePhoneChange(v: string) {
+    // Convert Bangla/Arabic digits to English, keep only digits, cap at 11
+    const digits = bnToEnDigits(v).replace(/\D/g, "").slice(0, 11);
+    setPhoneRaw(digits);
+    if (phoneError) setPhoneError(null);
   }
 
   async function handleGoogle() {
@@ -103,7 +128,19 @@ export function AuthDrawer({
 
   async function handleSendOtp(e: React.FormEvent) {
     e.preventDefault();
-    if (!phoneRaw) return toast.error("ফোন নাম্বার দিন");
+    setPhoneError(null);
+    if (!phoneRaw) {
+      setPhoneError("ফোন নাম্বার দিন");
+      return;
+    }
+    if (!isValidBdMobile(phoneRaw)) {
+      setPhoneError("সঠিক ১১ ডিজিটের নাম্বার দিন (013, 014, 015, 016, 017, 018, 019 দিয়ে শুরু)");
+      return;
+    }
+    if (tab === "signup" && !fullName.trim()) {
+      setPhoneError("আপনার পূর্ণ নাম দিন");
+      return;
+    }
     setLoading(true);
     try {
       const { error } = await supabase.auth.signInWithOtp({
@@ -114,12 +151,26 @@ export function AuthDrawer({
         },
       });
       setLoading(false);
-      if (error) return toast.error(errMsg(error));
+      if (error) {
+        const msg = (errMsg(error) || "").toLowerCase();
+        // No account found for this number (login flow)
+        if (tab === "login" && (msg.includes("signups not allowed") || msg.includes("signup") || msg.includes("not found") || msg.includes("user not"))) {
+          setPhoneError("এই নাম্বারে কোনো একাউন্ট নেই। নতুন একাউন্ট খুলুন অথবা রেজিস্টার্ড নাম্বার দিন।");
+          return;
+        }
+        // Existing account (signup flow)
+        if (tab === "signup" && (msg.includes("already") || msg.includes("registered") || msg.includes("exists"))) {
+          setPhoneError("এই নাম্বারে ইতিমধ্যে একাউন্ট আছে। লগইন ট্যাব থেকে লগইন করুন।");
+          return;
+        }
+        setPhoneError(errMsg(error));
+        return;
+      }
       toast.success("OTP পাঠানো হয়েছে");
       setStage("otp");
     } catch (err) {
       setLoading(false);
-      toast.error(errMsg(err));
+      setPhoneError(errMsg(err));
     }
   }
 
@@ -201,6 +252,7 @@ export function AuthDrawer({
                         setTab(t);
                         setStage("phone");
                         setOtp("");
+                        setPhoneError(null);
                       }}
                       className={cn(
                         "rounded-md py-2 text-sm font-medium transition-colors",
@@ -229,7 +281,14 @@ export function AuthDrawer({
                     )}
                     <div className="space-y-2">
                       <Label htmlFor="auth-phone">ফোন নাম্বার দিন</Label>
-                      <div className="flex overflow-hidden rounded-md border border-input focus-within:ring-2 focus-within:ring-ring">
+                      <div
+                        className={cn(
+                          "flex overflow-hidden rounded-md border focus-within:ring-2",
+                          phoneError
+                            ? "border-destructive focus-within:ring-destructive/30"
+                            : "border-input focus-within:ring-ring",
+                        )}
+                      >
                         <span className="flex items-center gap-1.5 border-r border-input bg-muted px-3 text-sm text-muted-foreground">
                           <svg width="20" height="14" viewBox="0 0 10 6" className="shrink-0 rounded-sm">
                             <rect width="10" height="6" fill="#006A4E" />
@@ -243,11 +302,18 @@ export function AuthDrawer({
                           inputMode="numeric"
                           placeholder="01XXXXXXXXX"
                           value={phoneRaw}
-                          onChange={(e) => setPhoneRaw(e.target.value)}
+                          onChange={(e) => handlePhoneChange(e.target.value)}
+                          maxLength={11}
                           required
                           className="flex-1 bg-transparent px-3 py-2 text-sm outline-none"
                         />
                       </div>
+                      {phoneError && (
+                        <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                          <AlertCircle className="mt-0.5 size-3.5 shrink-0" />
+                          <span>{phoneError}</span>
+                        </div>
+                      )}
                     </div>
                     <Button
                       type="submit"
@@ -271,7 +337,7 @@ export function AuthDrawer({
                         inputMode="numeric"
                         maxLength={6}
                         value={otp}
-                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                        onChange={(e) => setOtp(bnToEnDigits(e.target.value).replace(/\D/g, ""))}
                         required
                         autoFocus
                       />
