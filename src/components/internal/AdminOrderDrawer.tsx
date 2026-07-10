@@ -408,14 +408,28 @@ export function AdminOrderDrawer({
               action={
                 isEditingCustomer ? (
                   <>
-                    <button onClick={cancelCustomerEdit} className="btn-sm">Cancel</button>
-                    <button onClick={saveCustomer} className="btn-sm-primary">
-                      <Save className="size-3.5" /> Save
+                    <button onClick={cancelCustomerEdit} className="btn-sm" disabled={savingCustomer}>
+                      Cancel
+                    </button>
+                    <button
+                      onClick={saveCustomer}
+                      className="btn-sm-primary disabled:opacity-60"
+                      disabled={savingCustomer}
+                    >
+                      {savingCustomer ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <Save className="size-3.5" />
+                      )}
+                      {savingCustomer ? "Saving…" : "Save"}
                     </button>
                   </>
                 ) : (
                   <button
-                    onClick={() => setIsEditingCustomer(true)}
+                    onClick={() => {
+                      setIsEditingCustomer(true);
+                      setCustErrors({});
+                    }}
                     className="btn-sm"
                     title="Edit customer details"
                   >
@@ -425,43 +439,12 @@ export function AdminOrderDrawer({
               }
             >
               {isEditingCustomer ? (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <TextField label="Name" value={customer.customer_name} onChange={(v) => setCustomer({ ...customer, customer_name: v })} />
-                  <TextField
-                    label="Phone"
-                    value={customer.customer_phone}
-                    onChange={(v) => setCustomer({ ...customer, customer_phone: v.replace(/\D/g, "").slice(0, 11) })}
-                    addonRight={
-                      <a href={`tel:${customer.customer_phone}`} className="text-brand hover:opacity-80" title="Call">
-                        <Phone className="size-4" />
-                      </a>
-                    }
-                  />
-                  <TextField
-                    label="Alternative Phone"
-                    value={customer.alternative_phone}
-                    onChange={(v) => setCustomer({ ...customer, alternative_phone: v.replace(/\D/g, "").slice(0, 15) })}
-                    addonRight={
-                      customer.alternative_phone ? (
-                        <a href={`tel:${customer.alternative_phone}`} className="text-brand hover:opacity-80"><Phone className="size-4" /></a>
-                      ) : undefined
-                    }
-                  />
-                  <TextField
-                    label="Email"
-                    value={customer.customer_email}
-                    onChange={(v) => setCustomer({ ...customer, customer_email: v })}
-                    addonRight={<Mail className="size-4 text-slate-400" />}
-                  />
-                  {!isEbookOnly && (
-                    <>
-                      <TextField label="Division" value={customer.division} onChange={(v) => setCustomer({ ...customer, division: v })} />
-                      <TextField label="District" value={customer.district} onChange={(v) => setCustomer({ ...customer, district: v })} />
-                      <TextField label="Thana / Upazila" value={customer.thana} onChange={(v) => setCustomer({ ...customer, thana: v })} />
-                      <TextField className="sm:col-span-2" label="Address (village / area / house / road)" value={customer.address_line} onChange={(v) => setCustomer({ ...customer, address_line: v })} />
-                    </>
-                  )}
-                </div>
+                <CustomerEditForm
+                  customer={customer}
+                  setCustomer={setCustomer}
+                  errors={custErrors}
+                  isEbookOnly={isEbookOnly}
+                />
               ) : (
                 <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
                   <ReadField label="Name" value={customer.customer_name} />
