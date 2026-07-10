@@ -76,19 +76,28 @@ function AuthButton() {
     );
   }
   return (
-    <button
-      type="button"
-      onClick={async () => {
-        await supabase.auth.signOut();
-        toast.success("সাইন আউট হয়েছে");
-        navigate({ to: "/" });
-      }}
-      className="hidden items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-secondary sm:flex"
-      title={user.email ?? user.phone ?? ""}
-    >
-      <LogOut className="size-4" />
-      সাইন আউট
-    </button>
+    <div className="hidden items-center gap-2 sm:flex">
+      <Link
+        to="/sdash"
+        className="inline-flex items-center gap-1.5 rounded-md bg-brand px-3 py-1.5 text-sm font-medium text-brand-foreground transition-colors hover:bg-brand/90"
+      >
+        <UserIcon className="size-4" />
+        ড্যাশবোর্ড
+      </Link>
+      <button
+        type="button"
+        onClick={async () => {
+          await supabase.auth.signOut();
+          toast.success("সাইন আউট হয়েছে");
+          navigate({ to: "/" });
+        }}
+        className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-secondary"
+        title={user.email ?? user.phone ?? ""}
+      >
+        <LogOut className="size-4" />
+        সাইন আউট
+      </button>
+    </div>
   );
 }
 
