@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { Loader2, Mail, Phone, Link2, Unlink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { UserIdentity } from "@supabase/supabase-js";
+import { ensureReauth } from "@/lib/reauth";
 
 function bnToEnDigits(s: string): string {
   const map: Record<string, string> = {
