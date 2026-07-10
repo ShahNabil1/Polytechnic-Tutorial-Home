@@ -163,7 +163,7 @@ export function ReauthDialogHost() {
                     autoFocus
                     type="password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => setPassword(toEnglishPassword(e.target.value))}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") tryPassword();
                     }}
