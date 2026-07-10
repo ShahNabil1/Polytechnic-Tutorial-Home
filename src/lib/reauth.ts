@@ -8,10 +8,16 @@ const REAUTH_KEY = "sec:reauthed_at";
 const REAUTH_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 let opener: (() => Promise<boolean>) | null = null;
+let methodsAvailable = true;
 
 /** ReauthDialogHost registers itself here on mount. */
 export function registerReauthDialog(fn: () => Promise<boolean>) {
   opener = fn;
+}
+
+/** Host tells us whether any reauth method (password/passkey) is set. */
+export function setReauthMethodsAvailable(available: boolean) {
+  methodsAvailable = available;
 }
 
 export function isReauthFresh(): boolean {
