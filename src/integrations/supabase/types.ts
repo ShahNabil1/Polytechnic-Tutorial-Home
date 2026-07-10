@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      blocked_identifiers: {
+        Row: {
+          blocked_by: string | null
+          created_at: string
+          id: string
+          kind: string
+          reason: string | null
+          value: string
+        }
+        Insert: {
+          blocked_by?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          reason?: string | null
+          value: string
+        }
+        Update: {
+          blocked_by?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          reason?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
       internal_profiles: {
         Row: {
           address: string | null
@@ -65,6 +92,246 @@ export type Database = {
           updated_at?: string
           user_id?: string
           workplace?: string | null
+        }
+        Relationships: []
+      }
+      order_internal_notes: {
+        Row: {
+          author_user_id: string | null
+          body: string
+          created_at: string
+          id: string
+          order_id: string
+        }
+        Insert: {
+          author_user_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          order_id: string
+        }
+        Update: {
+          author_user_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_internal_notes_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_items: {
+        Row: {
+          bundle_id: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          is_bundle: boolean
+          item_type: string
+          line_total: number
+          order_id: string
+          product_id: string | null
+          quantity: number
+          sku: string | null
+          title: string
+          unit_price: number
+        }
+        Insert: {
+          bundle_id?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_bundle?: boolean
+          item_type?: string
+          line_total?: number
+          order_id: string
+          product_id?: string | null
+          quantity?: number
+          sku?: string | null
+          title: string
+          unit_price?: number
+        }
+        Update: {
+          bundle_id?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_bundle?: boolean
+          item_type?: string
+          line_total?: number
+          order_id?: string
+          product_id?: string | null
+          quantity?: number
+          sku?: string | null
+          title?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_status_history: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          from_status: string | null
+          id: string
+          note: string | null
+          order_id: string
+          to_status: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          order_id: string
+          to_status: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          order_id?: string
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_status_history_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          address_line: string | null
+          alternative_phone: string | null
+          cod_amount: number
+          created_at: string
+          customer_email: string | null
+          customer_name: string
+          customer_phone: string
+          delivery_type: number
+          device_fingerprint: string | null
+          discount_bdt: number
+          district: string | null
+          division: string | null
+          full_address: string | null
+          has_physical: boolean
+          id: string
+          idempotency_key: string | null
+          ip: unknown
+          item_description: string | null
+          note: string | null
+          order_no: string
+          order_type: string
+          payment_method: string | null
+          payment_status: string
+          shipping_bdt: number
+          status: string
+          steadfast_consignment_id: string | null
+          steadfast_status: string | null
+          steadfast_synced_at: string | null
+          steadfast_tracking_code: string | null
+          subtotal_bdt: number
+          thana: string | null
+          total_bdt: number
+          updated_at: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          address_line?: string | null
+          alternative_phone?: string | null
+          cod_amount?: number
+          created_at?: string
+          customer_email?: string | null
+          customer_name: string
+          customer_phone: string
+          delivery_type?: number
+          device_fingerprint?: string | null
+          discount_bdt?: number
+          district?: string | null
+          division?: string | null
+          full_address?: string | null
+          has_physical?: boolean
+          id?: string
+          idempotency_key?: string | null
+          ip?: unknown
+          item_description?: string | null
+          note?: string | null
+          order_no: string
+          order_type?: string
+          payment_method?: string | null
+          payment_status?: string
+          shipping_bdt?: number
+          status?: string
+          steadfast_consignment_id?: string | null
+          steadfast_status?: string | null
+          steadfast_synced_at?: string | null
+          steadfast_tracking_code?: string | null
+          subtotal_bdt?: number
+          thana?: string | null
+          total_bdt?: number
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          address_line?: string | null
+          alternative_phone?: string | null
+          cod_amount?: number
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string
+          customer_phone?: string
+          delivery_type?: number
+          device_fingerprint?: string | null
+          discount_bdt?: number
+          district?: string | null
+          division?: string | null
+          full_address?: string | null
+          has_physical?: boolean
+          id?: string
+          idempotency_key?: string | null
+          ip?: unknown
+          item_description?: string | null
+          note?: string | null
+          order_no?: string
+          order_type?: string
+          payment_method?: string | null
+          payment_status?: string
+          shipping_bdt?: number
+          status?: string
+          steadfast_consignment_id?: string | null
+          steadfast_status?: string | null
+          steadfast_synced_at?: string | null
+          steadfast_tracking_code?: string | null
+          subtotal_bdt?: number
+          thana?: string | null
+          total_bdt?: number
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -570,6 +837,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      next_order_no: { Args: never; Returns: string }
     }
     Enums: {
       app_role: "student" | "employee" | "instructor" | "super_admin"

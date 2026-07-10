@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { nextOrderId } from "@/lib/order-id";
 import { AlertTriangle, Lock, ShoppingBag } from "lucide-react";
 import {
   useCart,
@@ -14,6 +14,8 @@ import { formatBDT, toBanglaNumber } from "@/lib/format";
 import { productTypeLabel } from "@/lib/products";
 import { BD_LOCATIONS, normalizeBanglaPhone } from "@/lib/bd-locations";
 import { cn } from "@/lib/utils";
+import { createOrder } from "@/lib/orders.functions";
+import { computeFingerprint } from "@/lib/fingerprint";
 
 export const Route = createFileRoute("/checkout/")({
   head: () => ({
@@ -135,6 +137,8 @@ function CheckoutPage() {
     return Object.keys(errs).length === 0;
   }
 
+  const createOrderFn = useServerFn(createOrder);
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (submittedRef.current || submitting) return;
@@ -142,65 +146,85 @@ function CheckoutPage() {
     submittedRef.current = true;
     setSubmitting(true);
 
-    // Idempotency: derive a stable key from the current cart + customer snapshot.
-    // A repeated submit (double-click, retry) with the same payload reuses the
-    // previously created order instead of generating a new Order ID.
+    // Stable idempotency key = SHA256(cart + customer + total)
     const idemPayload = JSON.stringify({
       c: form,
       i: items.map((i) => [i.productId, i.quantity, i.price, i.isOnlineBook ?? false]),
       t: total,
     });
-    const idemKey = `idem:${await sha256Hex(idemPayload)}`;
+    const idemKey = await sha256Hex(idemPayload);
 
-    let orderNo: string;
     try {
-      const existing = sessionStorage.getItem(idemKey);
-      if (existing) {
-        // Duplicate submit detected — reuse the existing order, do NOT create a new one.
-        orderNo = existing;
-        clear();
-        navigate({
-          to: "/checkout/success",
-          search: { order: orderNo, digital: isPhysical ? undefined : 1 },
-        });
-        return;
+      const fingerprint = await computeFingerprint();
+      const res = await createOrderFn({
+        data: {
+          idempotencyKey: idemKey,
+          fingerprint,
+          customer: {
+            name: form.name,
+            phone: form.phone,
+            email: form.email || "",
+            division: form.division || "",
+            district: form.district || "",
+            upazila: form.upazila || "",
+            address: form.address || "",
+          },
+          items: items.map((i) => ({
+            productId: i.productId,
+            title: i.title,
+            unitPrice: i.price,
+            quantity: i.quantity,
+            image: i.image || "",
+            isBundle: !!i.isBundle,
+            isOnlineBook: !!i.isOnlineBook,
+            type: i.type,
+          })),
+          totals: { subtotal, shipping, total },
+        },
+      });
+      const orderNo = res.orderNo;
+
+      const snapshot = {
+        orderNo,
+        status: (res.status ?? "processing") as "processing",
+        createdAt: Date.now(),
+        idempotencyKey: idemKey,
+        customer: { ...form },
+        items: items.map((i) => ({
+          productId: i.productId,
+          title: i.title,
+          type: i.type,
+          isOnlineBook: i.isOnlineBook,
+          price: i.price,
+          quantity: i.quantity,
+          image: i.image,
+          coverEmoji: i.coverEmoji,
+          coverColor: i.coverColor,
+        })),
+        subtotal,
+        shipping,
+        total,
+        isPhysical,
+      };
+      try {
+        sessionStorage.setItem(`order:${orderNo}`, JSON.stringify(snapshot));
+        sessionStorage.setItem("order:last", orderNo);
+      } catch {}
+      clear();
+      navigate({
+        to: "/checkout/success",
+        search: { order: orderNo, digital: isPhysical ? undefined : 1 },
+      });
+    } catch (err: any) {
+      submittedRef.current = false;
+      setSubmitting(false);
+      const msg = String(err?.message || err || "");
+      if (msg.startsWith("BLOCKED")) {
+        setErrors({ _global: "এই ডিভাইস/ফোন/আইপি থেকে অর্ডার প্লেস করা যাবে না।" });
+      } else {
+        setErrors({ _global: "অর্ডার তৈরি করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।" });
       }
-    } catch {}
-
-    await new Promise((r) => setTimeout(r, 900));
-    orderNo = nextOrderId();
-    const snapshot = {
-      orderNo,
-      status: "processing" as const,
-      createdAt: Date.now(),
-      idempotencyKey: idemKey,
-      customer: { ...form },
-      items: items.map((i) => ({
-        productId: i.productId,
-        title: i.title,
-        type: i.type,
-        isOnlineBook: i.isOnlineBook,
-        price: i.price,
-        quantity: i.quantity,
-        image: i.image,
-        coverEmoji: i.coverEmoji,
-        coverColor: i.coverColor,
-      })),
-      subtotal,
-      shipping,
-      total,
-      isPhysical,
-    };
-    try {
-      sessionStorage.setItem(`order:${orderNo}`, JSON.stringify(snapshot));
-      sessionStorage.setItem("order:last", orderNo);
-      sessionStorage.setItem(idemKey, orderNo);
-    } catch {}
-    clear();
-    navigate({
-      to: "/checkout/success",
-      search: { order: orderNo, digital: isPhysical ? undefined : 1 },
-    });
+    }
   }
 
   return (
@@ -396,6 +420,12 @@ function CheckoutPage() {
               >
                 {submitting ? "প্রসেস হচ্ছে..." : (<><Lock className="size-4" />অর্ডার কনফার্ম করুন</>)}
               </button>
+
+              {errors._global && (
+                <p className="mt-2 rounded-lg border border-destructive/30 bg-destructive/10 p-2 text-center text-[11.5px] font-bold text-destructive">
+                  {errors._global}
+                </p>
+              )}
 
               <p className="mt-2.5 text-center text-[10.5px] text-muted-foreground">
                 অর্ডার কনফার্ম করে আপনি আমাদের <a href="#" className="underline">শর্তাবলী</a> মেনে নিচ্ছেন।
