@@ -12,7 +12,9 @@ export const getPasskeyRegistrationOptions = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { beginRegistration } = await import("./passkey.server");
-    return beginRegistration(context.userId);
+    const claims = context.claims as { phone?: string; email?: string; user_metadata?: { full_name?: string } };
+    const userName = claims.phone || claims.email || claims.user_metadata?.full_name || context.userId;
+    return beginRegistration({ supabase: context.supabase, userId: context.userId, userName });
   });
 
 // ---- Register verify (auth required) ----
@@ -26,8 +28,11 @@ export const verifyPasskeyRegistration = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => RegisterVerifySchema.parse(input))
   .handler(async ({ context, data }) => {
     const { finishRegistration } = await import("./passkey.server");
+    const claims = context.claims as { phone?: string };
     return finishRegistration({
+      supabase: context.supabase,
       userId: context.userId,
+      phone: claims.phone ?? null,
       response: data.response,
       deviceName: data.deviceName,
     });
