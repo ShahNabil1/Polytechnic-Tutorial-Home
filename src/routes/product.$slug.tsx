@@ -2,10 +2,12 @@ import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-ro
 import { useState } from "react";
 import { ArrowLeft, Check, ShoppingCart, Zap, ChevronLeft, ChevronRight, ImageIcon } from "lucide-react";
 import { productTypeLabel } from "@/lib/products";
-import { getPublicProductBySlug } from "@/lib/products.functions";
+import { getPublicProductBySlug, listPublicProducts } from "@/lib/products.functions";
 import { useCart } from "@/lib/cart-store";
 import { formatBDT } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { ProductCard } from "@/components/product-card";
+
 
 const WHATSAPP_NUMBER = "8801790736863";
 
@@ -23,8 +25,23 @@ export const Route = createFileRoute("/product/$slug")({
   loader: async ({ params }) => {
     const product = await getPublicProductBySlug({ data: { slug: params.slug } });
     if (!product) throw notFound();
-    return { product };
+    const all = await listPublicProducts().catch(() => []);
+    const others = all.filter((p) => p.id !== product.id);
+    // Prefer same type, then same department overlap; fallback to remaining
+    const sameType = others.filter((p) => p.type === product.type);
+    const sameDept = others.filter(
+      (p) => p.departments?.some((d) => product.departments?.includes(d)),
+    );
+    const seen = new Set<string>();
+    const ranked = [...sameDept, ...sameType, ...others].filter((p) => {
+      if (seen.has(p.id)) return false;
+      seen.add(p.id);
+      return true;
+    });
+    const suggestions = ranked.slice(0, 8);
+    return { product, suggestions };
   },
+
   head: ({ params, loaderData }) => {
     if (!loaderData) {
       return {
@@ -90,7 +107,8 @@ export const Route = createFileRoute("/product/$slug")({
 });
 
 function ProductPage() {
-  const { product } = Route.useLoaderData();
+  const { product, suggestions } = Route.useLoaderData();
+
   const navigate = useNavigate();
   const add = useCart((s) => s.add);
   const inCart = useCart((s) => s.items.some((i) => i.productId === product.id));
@@ -259,7 +277,34 @@ function ProductPage() {
           </div>
 
         </div>
+
+        {suggestions.length > 0 && (
+          <section className="mt-16 md:mt-20">
+            <div className="mb-6 flex items-end justify-between gap-4 md:mb-8">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-brand md:text-sm">
+                  আরও দেখুন
+                </p>
+                <h2 className="mt-1 text-xl font-extrabold tracking-tight md:text-2xl lg:text-3xl">
+                  আপনার পছন্দ হতে পারে এমন অন্যান্য বই
+                </h2>
+              </div>
+              <Link
+                to="/shop"
+                className="hidden shrink-0 text-sm font-bold text-muted-foreground underline-offset-4 hover:text-foreground hover:underline sm:inline"
+              >
+                সব বই →
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-5">
+              {suggestions.map((p: typeof product) => (
+                <ProductCard key={p.id} product={p} />
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </div>
+
   );
 }
