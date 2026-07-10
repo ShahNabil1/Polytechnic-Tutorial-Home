@@ -149,14 +149,23 @@ function ProfilePage() {
     e.preventDefault();
     if (!user) return;
     setSaving(true);
+    const nextForm: FormState = {
+      full_name: form.full_name.trim(),
+      avatar_url: form.avatar_url.trim(),
+      institute_name: form.institute_name.trim(),
+      department_name: form.department_name.trim(),
+      current_semester: form.current_semester,
+      board_roll: form.board_roll.trim(),
+      registration_no: form.registration_no.trim(),
+    };
     const payload = {
-      full_name: form.full_name.trim() || null,
-      avatar_url: form.avatar_url.trim() || null,
-      institute_name: form.institute_name.trim() || null,
-      department_name: form.department_name.trim() || null,
-      current_semester: form.current_semester || null,
-      board_roll: form.board_roll.trim() || null,
-      registration_no: form.registration_no.trim() || null,
+      full_name: nextForm.full_name || null,
+      avatar_url: nextForm.avatar_url || null,
+      institute_name: nextForm.institute_name || null,
+      department_name: nextForm.department_name || null,
+      current_semester: nextForm.current_semester || null,
+      board_roll: nextForm.board_roll || null,
+      registration_no: nextForm.registration_no || null,
     } as never;
     const { error } = await supabase.from("profiles").update(payload).eq("id", user.id);
     setSaving(false);
@@ -164,14 +173,31 @@ function ProfilePage() {
       toast.error("সেভ করা যায়নি: " + error.message);
       return;
     }
+    setForm(nextForm);
+    setSavedForm(nextForm);
     toast.success("প্রোফাইল সেভ হয়েছে");
     if (isComplete) setEditMode(false);
+  }
+
+  function handleCancelEdit() {
+    // Restore the last-saved snapshot so unsaved edits do not linger
+    // in the UI (previously they persisted and looked "saved" until refresh).
+    setForm(savedForm);
+    setEditMode(false);
   }
 
   if (loading) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
         <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-6 text-sm text-destructive">
+        প্রোফাইল লোড করা যায়নি: {loadError}
       </div>
     );
   }
