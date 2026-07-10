@@ -25,8 +25,23 @@ export const Route = createFileRoute("/product/$slug")({
   loader: async ({ params }) => {
     const product = await getPublicProductBySlug({ data: { slug: params.slug } });
     if (!product) throw notFound();
-    return { product };
+    const all = await listPublicProducts().catch(() => []);
+    const others = all.filter((p) => p.id !== product.id);
+    // Prefer same type, then same department overlap; fallback to remaining
+    const sameType = others.filter((p) => p.type === product.type);
+    const sameDept = others.filter(
+      (p) => p.departments?.some((d) => product.departments?.includes(d)),
+    );
+    const seen = new Set<string>();
+    const ranked = [...sameDept, ...sameType, ...others].filter((p) => {
+      if (seen.has(p.id)) return false;
+      seen.add(p.id);
+      return true;
+    });
+    const suggestions = ranked.slice(0, 8);
+    return { product, suggestions };
   },
+
   head: ({ params, loaderData }) => {
     if (!loaderData) {
       return {
