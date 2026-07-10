@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Monitor, LogOut, Shield, Pencil, Check, X } from "lucide-react";
-import { listMySessions, revokeSession, renameSession } from "@/lib/sessions.functions";
+import { Loader2, Monitor, LogOut, Shield, Pencil, Check, X, ShieldOff } from "lucide-react";
+import { listMySessions, revokeSession, renameSession, revokeOtherSessions } from "@/lib/sessions.functions";
+import { ensureReauth } from "@/lib/reauth";
 
 type Session = Awaited<ReturnType<typeof listMySessions>>[number];
 
