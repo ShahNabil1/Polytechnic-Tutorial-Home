@@ -337,7 +337,7 @@ export function AuthDrawer({
                         inputMode="numeric"
                         maxLength={6}
                         value={otp}
-                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                        onChange={(e) => setOtp(bnToEnDigits(e.target.value).replace(/\D/g, ""))}
                         required
                         autoFocus
                       />
