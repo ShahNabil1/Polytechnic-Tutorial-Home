@@ -10,9 +10,11 @@ import {
   Plus,
   Minus,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { ProductCard } from "@/components/product-card";
-import { getFeaturedProducts } from "@/lib/products";
+import type { Product } from "@/lib/products";
+import { listFeaturedProducts } from "@/lib/products.functions";
 import { toBanglaNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
