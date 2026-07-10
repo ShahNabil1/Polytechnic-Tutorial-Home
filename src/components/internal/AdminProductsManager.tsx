@@ -487,6 +487,14 @@ function ProductEditor({
                 placeholder="data-structure-algorithm"
               />
             </Field>
+            <Field label="SKU (unique identifier)" full>
+              <input
+                value={draft.sku}
+                onChange={(e) => setDraft({ ...draft, sku: e.target.value })}
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 font-mono text-sm text-slate-900"
+                placeholder="Leave empty to auto-generate (e.g. PTH-XXXXXXXX)"
+              />
+            </Field>
             <Field label="Subtitle" full>
               <input
                 value={draft.subtitle}
