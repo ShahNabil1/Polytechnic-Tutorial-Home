@@ -60,6 +60,7 @@ const UpdateSchema = z.object({
   job_role: z.string().max(120).optional().nullable(),
   subjects: z.array(z.string().max(120)).max(50).optional(),
   departments: z.array(z.string().max(120)).max(50).optional(),
+  mfa_enrolled: z.boolean().optional(),
 });
 
 export const updateMyInternalProfile = createServerFn({ method: "POST" })
