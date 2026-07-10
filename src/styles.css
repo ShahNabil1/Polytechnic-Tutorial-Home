@@ -125,4 +125,27 @@
   input[type="number"] {
     font-family: var(--font-inter);
   }
+
+  html,
+  body {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* Prevent iOS auto-zoom on input focus — inputs must be ≥ 16px on mobile */
+  @media (max-width: 640px) {
+    input,
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
+  }
+
+  /* Body scroll lock utility for custom modals (radix dialogs already handle this) */
+  body.no-scroll {
+    overflow: hidden;
+    touch-action: none;
+    overscroll-behavior: contain;
+  }
 }
+
