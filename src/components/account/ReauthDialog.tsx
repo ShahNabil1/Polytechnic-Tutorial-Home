@@ -5,7 +5,7 @@ import { startAuthentication } from "@simplewebauthn/browser";
 import { supabase } from "@/integrations/supabase/client";
 import { verifyPasswordReauth } from "@/lib/reauth.functions";
 import { getPasskeyAuthOptions, verifyPasskeyAuthentication, listMyPasskeys } from "@/lib/passkey.functions";
-import { markReauthed, registerReauthDialog } from "@/lib/reauth";
+import { markReauthed, registerReauthDialog, setReauthMethodsAvailable } from "@/lib/reauth";
 
 /**
  * Modal host for step-up reauth. Mount once inside the profile page.
