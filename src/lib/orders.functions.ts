@@ -183,8 +183,12 @@ export const createOrder = createServerFn({ method: "POST" })
     const { error: itemErr } = await sb.from("order_items").insert(itemsRows as any);
     if (itemErr) throw new Error(itemErr.message);
 
+    // On successful order: remove any incomplete-checkout rows for this phone.
+    await sb.from("incomplete_checkouts").delete().eq("customer_phone", data.customer.phone);
+
     return { id: order.id, orderNo: order.order_no, status: order.status };
   });
+
 
 function isUuid(v: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
@@ -506,3 +510,240 @@ export const searchProductsForOrder = createServerFn({ method: "GET" })
       isOnlineBook: !!r.is_online_book,
     }));
   });
+
+// -------- INCOMPLETE CHECKOUTS --------
+
+function dhakaDayKey(d = new Date()): string {
+  // YYYY-MM-DD in Asia/Dhaka
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Dhaka",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  return fmt.format(d); // en-CA gives YYYY-MM-DD
+}
+
+function computeSignature(
+  phone: string,
+  items: Array<{ productId: string; quantity: number }>,
+) {
+  const sig = items
+    .map((i) => `${i.productId}:${i.quantity}`)
+    .sort()
+    .join(",");
+  return `${phone}|${dhakaDayKey()}|${sig}`;
+}
+
+const IncompleteInput = z.object({
+  customer: z.object({
+    name: z.string().max(120).optional().or(z.literal("")),
+    phone: z.string().regex(/^01[3-9]\d{8}$/),
+    email: z.string().max(200).optional().or(z.literal("")),
+    division: z.string().max(80).optional().or(z.literal("")),
+    district: z.string().max(80).optional().or(z.literal("")),
+    upazila: z.string().max(80).optional().or(z.literal("")),
+    address: z.string().max(300).optional().or(z.literal("")),
+  }),
+  items: z
+    .array(
+      z.object({
+        productId: z.string().min(1).max(80),
+        title: z.string().max(200),
+        unitPrice: z.number().nonnegative(),
+        quantity: z.number().int().positive().max(999),
+        image: z.string().max(500).optional().or(z.literal("")),
+      }),
+    )
+    .min(1)
+    .max(50),
+  totals: z.object({
+    subtotal: z.number().nonnegative(),
+    shipping: z.number().nonnegative(),
+    total: z.number().nonnegative(),
+  }),
+  fingerprint: z.string().max(80).optional().or(z.literal("")),
+  userId: z.string().uuid().optional().nullable(),
+});
+
+export const captureIncompleteCheckout = createServerFn({ method: "POST" })
+  .inputValidator((d) => IncompleteInput.parse(d))
+  .handler(async ({ data }) => {
+    const sb = serverPublic();
+    let ip = "";
+    let ua = "";
+    try {
+      ip = getRequestIP({ xForwardedFor: true }) || "";
+      ua = getRequestHeader("user-agent") || "";
+    } catch {}
+
+    // Skip capture if this phone already has a confirmed order today (avoid noise).
+    const { data: existingOrder } = await sb
+      .from("orders")
+      .select("id")
+      .eq("customer_phone", data.customer.phone)
+      .limit(1);
+    if (existingOrder && existingOrder.length) return { ok: true, skipped: true };
+
+    const signature = computeSignature(
+      data.customer.phone,
+      data.items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+    );
+    const nowIso = new Date().toISOString();
+    const attemptEntry = {
+      at: nowIso,
+      ip: ip || null,
+      fingerprint: data.fingerprint || null,
+      user_agent: ua || null,
+    };
+
+    // Try to fetch existing row for this signature.
+    const { data: existing } = await sb
+      .from("incomplete_checkouts")
+      .select("id, attempts, attempt_count")
+      .eq("signature", signature)
+      .maybeSingle();
+
+    if (existing) {
+      const attempts = Array.isArray(existing.attempts) ? existing.attempts : [];
+      // Cap attempts array to last 50 to keep row size sane.
+      const nextAttempts = [...attempts, attemptEntry].slice(-50);
+      const { error } = await sb
+        .from("incomplete_checkouts")
+        .update({
+          attempts: nextAttempts,
+          attempt_count: (existing.attempt_count ?? 0) + 1,
+          last_attempt_at: nowIso,
+          customer_name: data.customer.name || null,
+          customer_email: data.customer.email || null,
+          division: data.customer.division || null,
+          district: data.customer.district || null,
+          thana: data.customer.upazila || null,
+          address_line: data.customer.address || null,
+          subtotal_bdt: data.totals.subtotal,
+          shipping_bdt: data.totals.shipping,
+          total_bdt: data.totals.total,
+          last_ip: ip || null,
+          last_user_agent: ua || null,
+          last_fingerprint: data.fingerprint || null,
+          cart: data.items as any,
+          user_id: data.userId ?? null,
+        } as any)
+        .eq("id", existing.id);
+      if (error) throw new Error(error.message);
+      return { ok: true, id: existing.id, attempt_count: (existing.attempt_count ?? 0) + 1 };
+    }
+
+    const { data: inserted, error } = await sb
+      .from("incomplete_checkouts")
+      .insert({
+        signature,
+        user_id: data.userId ?? null,
+        customer_name: data.customer.name || null,
+        customer_phone: data.customer.phone,
+        customer_email: data.customer.email || null,
+        division: data.customer.division || null,
+        district: data.customer.district || null,
+        thana: data.customer.upazila || null,
+        address_line: data.customer.address || null,
+        cart: data.items as any,
+        subtotal_bdt: data.totals.subtotal,
+        shipping_bdt: data.totals.shipping,
+        total_bdt: data.totals.total,
+        last_ip: ip || null,
+        last_user_agent: ua || null,
+        last_fingerprint: data.fingerprint || null,
+        attempts: [attemptEntry] as any,
+        attempt_count: 1,
+        first_attempt_at: nowIso,
+        last_attempt_at: nowIso,
+      } as any)
+      .select("id")
+      .single();
+    if (error) {
+      // Race on unique signature — retry as update
+      const { data: again } = await sb
+        .from("incomplete_checkouts")
+        .select("id, attempts, attempt_count")
+        .eq("signature", signature)
+        .maybeSingle();
+      if (again) {
+        const attempts = Array.isArray(again.attempts) ? again.attempts : [];
+        await sb
+          .from("incomplete_checkouts")
+          .update({
+            attempts: [...attempts, attemptEntry].slice(-50),
+            attempt_count: (again.attempt_count ?? 0) + 1,
+            last_attempt_at: nowIso,
+          } as any)
+          .eq("id", again.id);
+        return { ok: true, id: again.id };
+      }
+      throw new Error(error.message);
+    }
+    return { ok: true, id: inserted.id, attempt_count: 1 };
+  });
+
+export const listAdminIncompleteCheckouts = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({ search: z.string().max(120).optional(), limit: z.number().int().min(1).max(500).optional() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureStaff(context);
+    let q = context.supabase
+      .from("incomplete_checkouts")
+      .select("*")
+      .order("last_attempt_at", { ascending: false })
+      .limit(data.limit ?? 200);
+    if (data.search) {
+      const s = data.search.trim();
+      q = q.or(
+        `customer_phone.ilike.%${s}%,customer_name.ilike.%${s}%,customer_email.ilike.%${s}%`,
+      );
+    }
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+    return (rows ?? []).map((r: any) => ({
+      ...r,
+      last_ip: r.last_ip == null ? null : String(r.last_ip),
+    }));
+  });
+
+export const deleteIncompleteCheckout = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await ensureStaff(context);
+    const { error } = await context.supabase
+      .from("incomplete_checkouts")
+      .delete()
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// -------- PUBLIC blocklist check (used by the app-wide gate) --------
+
+export const checkBlocklistPublic = createServerFn({ method: "POST" })
+  .inputValidator((d) => z.object({ fingerprint: z.string().max(80).optional().or(z.literal("")) }).parse(d))
+  .handler(async ({ data }) => {
+    const sb = serverPublic();
+    let ip = "";
+    try {
+      ip = getRequestIP({ xForwardedFor: true }) || "";
+    } catch {}
+    const checks: Array<{ kind: "ip" | "fingerprint"; value: string }> = [];
+    if (ip) checks.push({ kind: "ip", value: ip });
+    if (data.fingerprint) checks.push({ kind: "fingerprint", value: data.fingerprint });
+    if (!checks.length) return { blocked: false as const };
+    const { data: blocked } = await sb
+      .from("blocked_identifiers")
+      .select("kind,value,reason")
+      .or(checks.map((c) => `and(kind.eq.${c.kind},value.eq.${c.value})`).join(","));
+    if (blocked && blocked.length) {
+      return { blocked: true as const, reason: blocked[0]?.reason ?? null };
+    }
+    return { blocked: false as const };
+  });
+
