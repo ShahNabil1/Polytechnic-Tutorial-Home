@@ -1,188 +1,121 @@
-# Enterprise RBAC + Profile System — Implementation Plan
+## Goal
 
-Goal: add 4 roles (Student default, Employee, Instructor, Super Admin), route them to separate dashboards, add TOTP 2FA + 30-min inactivity for internal roles, and reuse the existing student profile with dynamic role-specific fields — without breaking any current student flow.
+Turn `/workspace/ecommerce/orders` into a real order management console. Every physical/mixed order that a customer confirms at checkout gets persisted server-side, shown in status tabs, and exposes a rich view/edit drawer — with the record shape already matching Steadfast's `create_order` API so the future integration is a one-liner.
 
----
+## Database (Supabase migration)
 
-## 1. Database schema (one migration)
+New tables (all with GRANTs + RLS + updated_at trigger):
 
-`**app_role` enum**: `student | employee | instructor | super_admin`.
+1. **`orders`** — one row per confirmed order
+   - `id uuid pk`, `order_no text unique` (e.g. `PTH001`, generated server-side via sequence)
+   - `user_id uuid null` (null = guest), `customer_email`, `customer_name`, `customer_phone`, `alternative_phone`
+   - `division`, `district`, `thana`, `address_line`, `full_address text` (composed)
+   - `subtotal_bdt`, `shipping_bdt`, `discount_bdt`, `total_bdt`, `cod_amount numeric default 0`
+   - `payment_status text` (`paid` default), `payment_method text`
+   - `status text` — enum-like: `processing | ready_to_ship | shipped | hold | delivered | cancelled | returned | incomplete`
+   - `order_type text` — `physical | ebook | mixed`
+   - `has_physical bool`, `delivery_type smallint default 0`
+   - `note text` (customer-facing / Steadfast note), `item_description text` (auto-composed: `"Title x2, Title2 x1"`)
+   - `ip inet`, `user_agent text`, `device_fingerprint text`
+   - `steadfast_consignment_id text`, `steadfast_tracking_code text`, `steadfast_status text`, `steadfast_synced_at timestamptz`
+   - `idempotency_key text unique` (blocks duplicate submits server-side too)
+   - `created_at`, `updated_at`
 
-`**public.user_roles**` — canonical role table (per system rules; never on `profiles`).
+2. **`order_items`**
+   - `id`, `order_id fk`, `product_id`, `bundle_id null`, `is_bundle bool`, `title`, `sku`, `unit_price`, `quantity`, `line_total`, `image_url`, `item_type` (`physical|ebook`)
 
-- `id`, `user_id → auth.users`, `role app_role`, `assigned_by`, `assigned_at`
-- Unique `(user_id, role)`
-- Partial unique index `WHERE role='super_admin'` → guarantees exactly one Super Admin
-- RLS: users can read their own rows; only Super Admin can insert/update/delete (via `has_role`)
+3. **`order_internal_notes`**
+   - `id`, `order_id`, `author_user_id`, `body`, `created_at` — internal-only, staff-visible
 
-**Security definer functions**:
+4. **`order_status_history`**
+   - `id`, `order_id`, `from_status`, `to_status`, `changed_by`, `note`, `created_at`
 
-- `has_role(_user_id uuid, _role app_role) → boolean`
-- `get_primary_role(_user_id uuid) → app_role` (returns highest-privilege role for routing)
+5. **`blocked_identifiers`**
+   - `id`, `kind text` (`ip | fingerprint | phone`), `value text`, `reason`, `blocked_by`, `created_at`, unique(kind, value)
 
-`**public.internal_profiles**` — one row per non-student user (kept separate so student `profiles` schema is untouched):
+6. **Sequence** `order_no_seq` + SQL function `next_order_no()` returning `'PTH' || lpad(nextval, 3, '0')` (grows past 3 digits).
 
-- `user_id PK → auth.users`
-- `display_id text unique` (Super Admin=`001`, Employee=random 4-digit, Instructor=random 5-digit)
-- `address text`, `nid_number text` (encrypted at rest via pgsodium or app-layer)
-- `cv_r2_key text`, `bank_details jsonb` (account name/number, bank, branch, routing, or MFS provider+number)
-- Instructor-only: `workplace text`, `job_role text`, `subjects text[]`, `departments text[]`
-- `mfa_enrolled boolean default false`, `first_login_completed boolean default false`
-- RLS: user reads/updates own row; Super Admin reads/updates all; Employees read own only
+RLS:
+- `orders`, `order_items`, `order_status_history`, `order_internal_notes`, `blocked_identifiers`: only `employee | super_admin` roles can select/update; owning user can select their own orders (for future "My Orders" page — not built now but policy ready). Insert to `orders`/`order_items` allowed for authenticated OR anon (guest checkout) but only via server function using the publishable client; guarded by `idempotency_key` unique + blocklist check inside the server fn.
+- Internal notes: insert/select only for internal roles.
 
-**Display ID generation**: DB trigger on `user_roles` insert → creates the `internal_profiles` row with a generated ID (retry on collision) and seeds `001` for Super Admin.
+## Server functions (`src/lib/orders.functions.ts`)
 
-**Seed the first Super Admin** in the same migration: user provides phone/email; migration inserts `user_roles(super_admin)` for that `auth.users.id` and creates `internal_profiles` with `display_id='001'`.
+- `createOrder({ cart, customer, totals, idempotencyKey, fingerprint })` — public (no auth required). Checks `blocked_identifiers` against IP (from request) / fingerprint / phone → throws if blocked. Reuses row if `idempotency_key` exists. Generates `order_no` via `next_order_no()`. Inserts order + items. Returns `{ orderNo, status, id }`.
+- `listAdminOrders({ status?, search?, limit, cursor })` — internal-only, filter by tab.
+- `getAdminOrder({ id })` — full order + items + notes + history + (if `user_id`) profile snapshot.
+- `updateOrderCustomer({ id, patch })` — edit name/phone/address/etc, writes history entry.
+- `updateOrderItems({ id, items })` — replace items, recompute totals + item_description.
+- `updateOrderStatus({ id, status, note })` — writes history.
+- `addInternalNote({ id, body })`.
+- `addBlockedIdentifier({ kind, value, reason })` / `removeBlockedIdentifier({ id })`.
+- `listBlockedIdentifiers()`.
 
-**R2 layout** (reuse existing R2 setup): `private/nid/{user_id}.pdf`, `private/cv/{user_id}.pdf`. Upload + download go through new signed-URL server functions gated by `has_role`. No public URLs.
+All internal ones use `requireSupabaseAuth` + `has_role` check for `employee|super_admin`.
 
----
+## Client integration
 
-## 2. Routing & auth-gate composition
+- **`src/routes/checkout.index.tsx`** — replace localStorage-only order creation with `createOrder` server fn call. Keep client-side idempotency; also pass idempotencyKey server-side. Collect `device_fingerprint` (simple canvas+UA hash) and send. On success, store snapshot in sessionStorage as before and navigate to `/checkout/success`.
+- **`src/lib/fingerprint.ts`** (new) — tiny FP hash (UA + screen + tz + canvas).
+- **`src/routes/__root.tsx`** (or a small guard hook) — on mount, check `/api/public/blocklist-check` server route; if blocked, replace the app with a "Access denied" screen. (Server route because it needs raw IP.)
 
-- Keep `src/routes/_authenticated/` as-is (integration-managed gate).
-- Add pathless nested layouts under it that also enforce role and 2FA:
-  - `src/routes/_authenticated/_internal/route.tsx` — requires role ∈ {employee, super_admin, instructor}. Runs SessionEnforcer + **InactivityEnforcer (30 min)** + **MFA-required guard**.
-  - `/workspace` → `_authenticated/_internal/workspace.*` (Employee + Super Admin)
-  - `/instructor` → `_authenticated/_internal/instructor.*` (Instructor)
-- **Post-login role router**: on sign-in success, `use-auth` fetches `get_primary_role`, then redirects: student → `/sdash`, employee/super_admin → `/workspace`, instructor → `/instructor`. Also runs on `/` for logged-in users so bookmarks resolve correctly.
-- **First-login gate**: if `internal_profiles.first_login_completed=false`, force `/workspace/setup` (password + TOTP enrollment). All other internal routes redirect back until complete.
-- **MFA-always-on**: if internal role but `mfa_enrolled=false` and `first_login_completed=true` (Super Admin reset), force logout with a clear message + redirect to setup on next login.
+## Orders admin page
 
----
+Rewrite `src/routes/_authenticated/_internal.workspace.ecommerce.orders.tsx`:
 
-## 3. Auth flows
+- Header + horizontal tabs: Processing | Ready To Ship | Shipped | Hold | Delivered | Cancelled | Returned | Incomplete. Each tab shows count badge.
+- Table rows (top-to-bottom newest first): `#Order No` · `Created (Asia/Dhaka, formatted bn/en)` · `Customer name + phone (tel: link with phone icon)` · `IP / fingerprint (mono, truncated)` · `Total BDT` · `View` button.
+- Search box (order no / phone / name).
+- **View drawer** (`AdminOrderDrawer.tsx`):
+  - Left: customer card — editable fields (name, phone with tel: icon, alt phone, email, division/district/thana/address, note). Save button per section.
+  - If `user_id` present: show profile avatar + full profile snapshot (read-only) above the editable form.
+  - Items block: current items list with qty/price/line total; "Add product" combobox that searches products; qty +/- and remove. Recompute totals live; Save updates order.
+  - Steadfast panel: shows the exact JSON that will be POSTed (invoice=order_no, recipient_*, cod_amount=0, item_description, total_lot=sum(qty), delivery_type=0, note, alternative_phone). Copy button. Placeholder "Send to Steadfast" button (disabled, tooltip "coming soon").
+  - Status changer dropdown (writes history).
+  - Internal notes thread (staff only, add + list).
+  - Block buttons: Block IP · Block Fingerprint · Block Phone (with reason prompt).
+  - E-book orders: hide address block (show only what customer provided).
 
-**Student signup** (existing auth-drawer) — unchanged. Newly created users get `user_roles(role='student')` via updated `handle_new_user` trigger.
+## Steadfast payload contract
 
-**Public signup blocked for internal roles**: no UI change needed (creation happens inside), but `handle_new_user` always assigns `student` — internal roles only exist via admin action.
+Match user's spec exactly:
+```
+invoice          = order_no                    (PTH001…)
+recipient_name   = customer_name
+recipient_phone  = customer_phone (11 digits)
+alternative_phone= alternative_phone (opt)
+recipient_email  = customer_email (opt)
+recipient_address= "{address_line}, {thana}, {district}, {division}" (≤250 chars)
+cod_amount       = 0
+note             = note
+item_description = "Title xQty, Title2 xQty2, …"
+total_lot        = sum(quantity)
+delivery_type    = 0
+```
+Helper `buildSteadfastPayload(order)` in `src/lib/steadfast.ts` — used by the drawer preview and by the future API call.
 
-**Internal user creation** (from `/workspace/employees` or `/workspace/instructors`, Super Admin only):
+## Files to create / edit
 
-- Server fn `createInternalUser` (uses `supabaseAdmin` inside handler, after `has_role(super_admin)` check):
-  - `admin.createUser({ phone, email, password: temp-random })` — user gets a temporary password shown once to Super Admin to hand over
-  - Inserts `user_roles` row + `internal_profiles` (auto-generated display ID)
-  - Sets `first_login_completed=false`
+**Create**
+- `supabase/migrations/…orders.sql` (via migration tool)
+- `src/lib/orders.functions.ts`
+- `src/lib/orders.ts` (shared types)
+- `src/lib/steadfast.ts`
+- `src/lib/fingerprint.ts`
+- `src/components/internal/AdminOrdersManager.tsx`
+- `src/components/internal/AdminOrderDrawer.tsx`
+- `src/routes/api/public/blocklist-check.ts` (server route for IP check)
 
-**Login (all roles)** — reuse existing auth-drawer:
+**Edit**
+- `src/routes/_authenticated/_internal.workspace.ecommerce.orders.tsx` → render `AdminOrdersManager`
+- `src/routes/checkout.index.tsx` → call `createOrder` server fn, pass fingerprint
+- `src/routes/checkout.success.tsx` → status/order id now come from server response
+- `src/routes/__root.tsx` → mount blocklist check (or via a small `<BlocklistGate>` component)
 
-- Phone+password OR email+password identical to today.
-- After password auth, `use-auth` calls `supabase.auth.mfa.listFactors()`:
-  - Student → done, redirect.
-  - Internal + no verified TOTP factor → if `first_login_completed=false` route to `/workspace/setup`; else force sign-out (2FA missing = block).
-  - Internal + verified TOTP → drawer switches OTP UI (existing 6-digit SMS input reused verbatim) to accept TOTP; calls `mfa.challenge()` + `mfa.verify()` to reach `aal2`; then role-route.
+## Non-goals (this turn)
+- Actual Steadfast HTTP call (payload preview only, per user "future connect")
+- Customer-facing "My Orders" page (RLS is ready for it later)
+- Real-time updates / notifications
+- E-book delivery/download flow
 
-**First-login setup screen** (`/workspace/setup`):
-
-1. Force change password (existing PasswordCard reused).
-2. Enroll TOTP: `mfa.enroll({ factorType: 'totp' })` → show QR + secret (Google Authenticator).
-3. Verify one 6-digit code via existing OTP UI → mark `mfa_enrolled=true`, `first_login_completed=true`.
-4. No backup codes shown (per spec).
-
-**2FA reset** (Super Admin, from employee/instructor detail page):
-
-- Server fn lists user's factors via `supabaseAdmin.auth.admin.mfa.listFactors` and unenrolls all TOTP factors.
-- Sets `mfa_enrolled=false`; next login forces re-setup.
-
-**Inactivity enforcer (internal roles only)**:
-
-- New component `InactivityEnforcer` mounted in `_internal/route.tsx`.
-- Tracks `mousemove/keydown/click/scroll/touchstart` while `document.visibilityState==='visible'`; timer keeps running when tab hidden (per user's choice).
-- Idle timeout 30 min → `supabase.auth.signOut()` + cache teardown (per Sign-Out Hygiene) + navigate to `/auth?reason=idle`.
-- Student routes unaffected.
-
----
-
-## 4. Profile page — one component, dynamic fields
-
-`src/routes/_authenticated/sdash.profile.tsx` currently owns the shared profile. Refactor:
-
-- Extract page body into `src/components/account/ProfilePage.tsx` (avatar+crop, name, phone, linked Google, passkeys, sessions, password, edit/lock behavior — all already built).
-- Mount it at:
-  - `/sdash/profile` (student, unchanged UX)
-  - `/workspace/profile` (employee + super_admin)
-  - `/instructor/profile` (instructor)
-- New `<RoleProfileFields role={...} />` sub-section rendered conditionally under the shared cards:
-  - **Super Admin**: read-only `Admin ID: 001`. No NID/CV/bank.
-  - **Employee**: read-only `Employee ID: NNNN`, editable Address, NID (text + PDF upload), CV (PDF upload), Bank/MFS details (structured form), 2FA status card (enrolled/date/reset-own → sign-out to re-enroll).
-  - **Instructor**: read-only `Instructor ID: NNNNN`, everything Employee has + Workplace, Job Role, Subjects (multi), Departments (multi from the diploma list already added).
-- Edit/lock pattern (already implemented) applies to the role-specific fields too: save locks, top-right pencil unlocks.
-- File uploads use new `uploadPrivateDoc` server fn → R2 private key; download via `getPrivateDocSignedUrl` (Super Admin sees any, user sees own).
-
----
-
-## 5. Workspace & Instructor dashboards (skeletons only in this phase)
-
-- `/workspace` (Employee + Super Admin shell): sidebar with Home, Profile, and — Super Admin only — Employees, Instructors, Super Admin (self only).
-- `/workspace/employees` and `/workspace/instructors` (Super Admin only, gated via `has_role`): list + "Create" dialog + row actions (view, reset 2FA, deactivate).
-- `/instructor` (Instructor shell): sidebar with Home, Profile. Content placeholders — spec doesn't define instructor features yet.
-- All internal routes get `head({ robots: noindex })`.
-
----
-
-## 6. Validation, security, i18n
-
-- All new inputs: English-only filter (existing `toEnglishText`/`toEnglishPassword` helpers) applied to name/address/bank/workplace/etc. Bangla labels stay.
-- Zod validators on every server fn (phone regex, NID length, bank account format, PDF mime + ≤10 MB).
-- RLS policies for `user_roles`, `internal_profiles` written in the same migration with explicit GRANTs to `authenticated` + `service_role` (no `anon`).
-- No service-role key in client bundle. `supabaseAdmin` used only inside `.handler()` with `await import(...)`.
-- Update `security-memory` after migration.
-
----
-
-## 7. File-level change map
-
-**New**
-
-- `supabase/migrations/*_rbac_internal_profiles.sql` (schema + seed Super Admin + trigger)
-- `src/lib/roles.ts` (types, `useMyRole` hook via server fn)
-- `src/lib/roles.functions.ts` (`getMyRole`, `getPrimaryRole`)
-- `src/lib/internal-users.functions.ts` (`createInternalUser`, `listInternalUsers`, `resetUserMfa`, `deactivateUser`)
-- `src/lib/internal-profile.functions.ts` (`getInternalProfile`, `updateInternalProfile`, `uploadPrivateDoc`, `getPrivateDocSignedUrl`)
-- `src/lib/mfa.ts` (client helpers around `supabase.auth.mfa.*`)
-- `src/components/account/InactivityEnforcer.tsx`
-- `src/components/account/RoleProfileFields.tsx`
-- `src/components/account/ProfilePage.tsx` (extracted shared body)
-- `src/components/account/MfaSetupCard.tsx`
-- `src/routes/_authenticated/_internal/route.tsx` (role + MFA + inactivity gate)
-- `src/routes/_authenticated/_internal/workspace.tsx` + `workspace.index.tsx` + `workspace.profile.tsx` + `workspace.setup.tsx` + `workspace.employees.tsx` + `workspace.instructors.tsx`
-- `src/routes/_authenticated/_internal/instructor.tsx` + `instructor.index.tsx` + `instructor.profile.tsx`
-
-**Edited**
-
-- `src/hooks/use-auth.ts` — post-login role resolution + MFA gate + redirect
-- `src/components/auth-drawer.tsx` — OTP step accepts TOTP via `mfa.challenge/verify` when factor present
-- `src/routes/_authenticated/sdash.profile.tsx` — swap body for `<ProfilePage role="student" />`
-- `src/routes/index.tsx` — logged-in redirect by role
-
-**Unchanged**
-
-- Student `profiles` table, existing sdash routes, existing auth-drawer UI shape, existing SessionsCard/PasswordCard/PasskeysCard/ImageCropperDialog.
-
----
-
-## 8. Rollout order (safe, non-breaking)
-
-1. Migration: enum, `user_roles`, `internal_profiles`, `has_role`, triggers, seed Super Admin (needs your phone/email). Backfill: every existing user gets `student` role.
-2. Role-aware routing on `/` — student flow verified unchanged.
-3. Extract `ProfilePage`, wire student route to it (no visual change).
-4. Build `_internal` layout + `/workspace` + `/instructor` skeletons.
-5. First-login + TOTP setup + auth-drawer TOTP verify.
-6. Inactivity enforcer.
-7. Super Admin employee/instructor management + 2FA reset.
-8. Role-specific profile fields + R2 private uploads.
-9. Security scan + linter pass, update security memory.
-
----
-
-## Open input needed before step 1
-
-Please share the **phone or email of the first Super Admin** (existing signed-up user preferred so we don't have to create the auth user in a migration). If it must be a new user, share phone + email + a temp password to seed.  
-  
-The plan looks excellent! Just one minor business requirement to add before you proceed:
-
-Please make sure we have a way to store and manage specific access permissions (like 'can_edit_product' or 'can_delete_order') for Employees. We will need this later to build a granular role-based access control so we can hide or show specific buttons based on what an employee is allowed to do.
-
-Also, to answer your open input for Step 1, here is my existing signed-up account's information to seed the first Super Admin: **[hamidurrahmansharon2007@gmail.com, 8801338125069](mailto:hamidurrahmansharon2007@gmail.com)** 
-
-You have my full approval to proceed with Step 1 and the rest of the rollout order!
+Ready to build this on approval.
