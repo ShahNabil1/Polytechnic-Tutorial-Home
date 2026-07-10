@@ -229,7 +229,7 @@ export function AuthDrawer({
                       className="w-full bg-amber-500 text-amber-950 hover:bg-amber-600"
                       disabled={loading}
                     >
-                      {loading ? "পাঠানো হচ্ছে..." : "লগইন"}
+                      {loading ? "পাঠানো হচ্ছে..." : tab === "login" ? "লগইন" : "সাইন আপ"}
                     </Button>
                   </form>
                 )}
