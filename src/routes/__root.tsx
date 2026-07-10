@@ -145,7 +145,10 @@ function RootComponent() {
     pathname === "/sdash" ||
     pathname.startsWith("/sdash/") ||
     pathname === "/shop" ||
-    pathname.startsWith("/shop/");
+    pathname.startsWith("/shop/") ||
+    pathname.startsWith("/product/") ||
+    pathname === "/cart" ||
+    pathname.startsWith("/checkout");
   const isInternalApp =
     pathname === "/workspace" ||
     pathname.startsWith("/workspace/") ||
