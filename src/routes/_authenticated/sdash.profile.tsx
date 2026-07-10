@@ -11,6 +11,7 @@ import { SessionsCard } from "@/components/account/SessionsCard";
 import { ReauthDialogHost } from "@/components/account/ReauthDialog";
 import { ImageCropperDialog } from "@/components/account/ImageCropperDialog";
 import { uploadFileToR2 } from "@/lib/upload-client";
+import { toEnglishText } from "@/lib/input-filter";
 import {
   SEMESTER_OPTIONS,
   DEPARTMENT_OPTIONS,
