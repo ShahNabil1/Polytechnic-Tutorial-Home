@@ -162,22 +162,25 @@ export function CartDrawer() {
               </AnimatePresence>
             </div>
 
-            <div className="border-t border-border/60 bg-surface/60 px-6 py-5">
-              <div className="mb-4 flex items-center justify-between">
-                <span className="text-sm font-bold text-muted-foreground">
+            <div className="flex-1 overflow-y-auto px-3 py-3 md:px-4 md:py-4">
+              {/* items rendered above */}
+            </div>
+            <div className="border-t border-border/60 bg-surface/60 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:px-6 md:py-5">
+              <div className="mb-3 flex items-center justify-between md:mb-4">
+                <span className="text-xs font-bold text-muted-foreground md:text-sm">
                   সাবটোটাল
                 </span>
-                <span className="text-xl font-extrabold tabular-nums">
+                <span className="text-lg font-extrabold tabular-nums md:text-xl">
                   {formatBDT(subtotal)}
                 </span>
               </div>
-              <p className="mb-4 text-[11px] font-medium text-muted-foreground">
+              <p className="mb-3 text-[11px] font-medium text-muted-foreground md:mb-4">
                 ডেলিভারি চার্জ চেকআউটে হিসাব হবে।
               </p>
               <Link
                 to="/checkout"
                 onClick={() => setOpen(false)}
-                className="flex items-center justify-center gap-2 rounded-xl bg-brand px-6 py-3.5 text-sm font-extrabold text-brand-foreground shadow-lg shadow-brand/25 transition-all hover:-translate-y-0.5 hover:bg-brand/90"
+                className="flex items-center justify-center gap-2 rounded-xl bg-brand px-6 py-3 text-sm font-extrabold text-brand-foreground shadow-lg shadow-brand/25 transition-all hover:-translate-y-0.5 hover:bg-brand/90 md:py-3.5"
               >
                 চেকআউটে যান
                 <ArrowRight className="size-4" />
@@ -185,7 +188,7 @@ export function CartDrawer() {
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="mt-2 flex w-full items-center justify-center rounded-xl px-6 py-2.5 text-xs font-bold text-muted-foreground hover:text-foreground"
+                className="mt-1.5 flex w-full items-center justify-center rounded-xl px-6 py-2 text-xs font-bold text-muted-foreground hover:text-foreground md:mt-2 md:py-2.5"
               >
                 শপিং চালিয়ে যান
               </button>
