@@ -123,7 +123,7 @@ function CheckoutPage() {
 
   function validate(): boolean {
     const errs: Record<string, string> = {};
-    if (form.name.trim().length < 2) errs.name = "নাম দিন";
+    if (form.name.trim().length < 3) errs.name = "নাম সর্বনিম্ন ৩ অক্ষরের হতে হবে";
     const phoneCheck = phoneSchema.safeParse(form.phone);
     if (!phoneCheck.success) errs.phone = phoneCheck.error.issues[0].message;
 
