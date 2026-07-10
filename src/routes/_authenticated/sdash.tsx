@@ -12,12 +12,17 @@ export const Route = createFileRoute("/_authenticated/sdash")({
   component: StudentDashboardLayout,
 });
 
-const TABS = [
+const TABS: ReadonlyArray<{
+  to: "/sdash" | "/sdash/courses" | "/sdash/shop" | "/sdash/profile";
+  label: string;
+  icon: typeof LayoutDashboard;
+  exact?: boolean;
+}> = [
   { to: "/sdash", label: "ড্যাশবোর্ড", icon: LayoutDashboard, exact: true },
   { to: "/sdash/courses", label: "আমার কোর্স", icon: BookOpen },
   { to: "/sdash/shop", label: "আমার শপ", icon: ShoppingBag },
   { to: "/sdash/profile", label: "প্রোফাইল", icon: UserIcon },
-] as const;
+];
 
 function StudentDashboardLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
