@@ -45,6 +45,7 @@ export function LinkedAccountsCard() {
   const emailIdentity = identities.find((i) => i.provider === "email");
 
   async function handleLinkGoogle() {
+    if (!(await ensureReauth())) return;
     setLinkingGoogle(true);
     try {
       const { error } = await supabase.auth.linkIdentity({
