@@ -213,6 +213,14 @@ export function AuthDrawer({
         return;
       }
       toast.success("সাইন ইন সফল");
+      if (rememberPasskey && isPasskeySupported()) {
+        try {
+          await registerPasskey();
+          toast.success("Passkey সেভ হয়েছে");
+        } catch (e) {
+          toast.error("Passkey সেভ করা যায়নি: " + errMsg(e));
+        }
+      }
       resetAll();
       onOpenChange(false);
     } catch (err) {
