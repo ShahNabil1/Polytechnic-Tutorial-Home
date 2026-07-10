@@ -463,6 +463,10 @@ export async function beginRegistration(args: {
     .eq("user_id", args.userId);
   if (existingError) throw new Error(`Passkey lookup failed: ${existingError.message}`);
 
+  if ((existing?.length ?? 0) >= 3) {
+    throw new Error("সর্বোচ্চ ৩টা Passkey রাখা যাবে। নতুন যোগ করতে আগে একটা রিমুভ করুন।");
+  }
+
   const challenge = randomBase64Url();
   await storeChallenge({ supabase: args.supabase, challenge, purpose: "register", userId: args.userId });
 
