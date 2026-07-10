@@ -24,6 +24,7 @@ import { Route as AuthenticatedSdashIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedSdashShopRouteImport } from './routes/_authenticated/sdash.shop'
 import { Route as AuthenticatedSdashProfileRouteImport } from './routes/_authenticated/sdash.profile'
 import { Route as AuthenticatedSdashCoursesRouteImport } from './routes/_authenticated/sdash.courses'
+import { Route as ApiPublicSessionsActionRouteImport } from './routes/api/public/sessions.$action'
 
 const TermsOfServiceRoute = TermsOfServiceRouteImport.update({
   id: '/terms-of-service',
@@ -101,6 +102,11 @@ const AuthenticatedSdashCoursesRoute =
     path: '/courses',
     getParentRoute: () => AuthenticatedSdashRoute,
   } as any)
+const ApiPublicSessionsActionRoute = ApiPublicSessionsActionRouteImport.update({
+  id: '/api/public/sessions/$action',
+  path: '/api/public/sessions/$action',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -117,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/sdash/profile': typeof AuthenticatedSdashProfileRoute
   '/sdash/shop': typeof AuthenticatedSdashShopRoute
   '/sdash/': typeof AuthenticatedSdashIndexRoute
+  '/api/public/sessions/$action': typeof ApiPublicSessionsActionRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -132,6 +139,7 @@ export interface FileRoutesByTo {
   '/sdash/profile': typeof AuthenticatedSdashProfileRoute
   '/sdash/shop': typeof AuthenticatedSdashShopRoute
   '/sdash': typeof AuthenticatedSdashIndexRoute
+  '/api/public/sessions/$action': typeof ApiPublicSessionsActionRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -150,6 +158,7 @@ export interface FileRoutesById {
   '/_authenticated/sdash/profile': typeof AuthenticatedSdashProfileRoute
   '/_authenticated/sdash/shop': typeof AuthenticatedSdashShopRoute
   '/_authenticated/sdash/': typeof AuthenticatedSdashIndexRoute
+  '/api/public/sessions/$action': typeof ApiPublicSessionsActionRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -168,6 +177,7 @@ export interface FileRouteTypes {
     | '/sdash/profile'
     | '/sdash/shop'
     | '/sdash/'
+    | '/api/public/sessions/$action'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -183,6 +193,7 @@ export interface FileRouteTypes {
     | '/sdash/profile'
     | '/sdash/shop'
     | '/sdash'
+    | '/api/public/sessions/$action'
   id:
     | '__root__'
     | '/'
@@ -200,6 +211,7 @@ export interface FileRouteTypes {
     | '/_authenticated/sdash/profile'
     | '/_authenticated/sdash/shop'
     | '/_authenticated/sdash/'
+    | '/api/public/sessions/$action'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -212,6 +224,7 @@ export interface RootRouteChildren {
   ShopRoute: typeof ShopRoute
   TermsOfServiceRoute: typeof TermsOfServiceRoute
   ProductSlugRoute: typeof ProductSlugRoute
+  ApiPublicSessionsActionRoute: typeof ApiPublicSessionsActionRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -321,6 +334,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSdashCoursesRouteImport
       parentRoute: typeof AuthenticatedSdashRoute
     }
+    '/api/public/sessions/$action': {
+      id: '/api/public/sessions/$action'
+      path: '/api/public/sessions/$action'
+      fullPath: '/api/public/sessions/$action'
+      preLoaderRoute: typeof ApiPublicSessionsActionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -374,6 +394,7 @@ const rootRouteChildren: RootRouteChildren = {
   ShopRoute: ShopRoute,
   TermsOfServiceRoute: TermsOfServiceRoute,
   ProductSlugRoute: ProductSlugRoute,
+  ApiPublicSessionsActionRoute: ApiPublicSessionsActionRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

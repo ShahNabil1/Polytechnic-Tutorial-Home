@@ -39,7 +39,11 @@ async function authFetch<T>(path: string, init?: RequestInit): Promise<T> {
   });
   const json = (await res.json().catch(() => null)) as { error?: string } | T | null;
   if (!res.ok) {
-    throw new Error((json && "error" in json && json.error) || `Request failed (${res.status})`);
+    const errorMessage =
+      json && typeof json === "object" && "error" in json && typeof json.error === "string"
+        ? json.error
+        : `Request failed (${res.status})`;
+    throw new Error(errorMessage);
   }
   return json as T;
 }
