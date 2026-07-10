@@ -30,6 +30,8 @@ import { Route as AuthenticatedInternalInstructorRouteImport } from './routes/_a
 import { Route as AuthenticatedInternalWorkspaceIndexRouteImport } from './routes/_authenticated/_internal.workspace.index'
 import { Route as AuthenticatedInternalInstructorIndexRouteImport } from './routes/_authenticated/_internal.instructor.index'
 import { Route as ApiPublicSessionsActionRouteImport } from './routes/api/public/sessions.$action'
+import { Route as AuthenticatedInternalWorkspaceProfileRouteImport } from './routes/_authenticated/_internal.workspace.profile'
+import { Route as AuthenticatedInternalInstructorProfileRouteImport } from './routes/_authenticated/_internal.instructor.profile'
 
 const TermsOfServiceRoute = TermsOfServiceRouteImport.update({
   id: '/terms-of-service',
@@ -140,6 +142,18 @@ const ApiPublicSessionsActionRoute = ApiPublicSessionsActionRouteImport.update({
   path: '/api/public/sessions/$action',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedInternalWorkspaceProfileRoute =
+  AuthenticatedInternalWorkspaceProfileRouteImport.update({
+    id: '/profile',
+    path: '/profile',
+    getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
+  } as any)
+const AuthenticatedInternalInstructorProfileRoute =
+  AuthenticatedInternalInstructorProfileRouteImport.update({
+    id: '/profile',
+    path: '/profile',
+    getParentRoute: () => AuthenticatedInternalInstructorRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -158,6 +172,8 @@ export interface FileRoutesByFullPath {
   '/sdash/profile': typeof AuthenticatedSdashProfileRoute
   '/sdash/shop': typeof AuthenticatedSdashShopRoute
   '/sdash/': typeof AuthenticatedSdashIndexRoute
+  '/instructor/profile': typeof AuthenticatedInternalInstructorProfileRoute
+  '/workspace/profile': typeof AuthenticatedInternalWorkspaceProfileRoute
   '/api/public/sessions/$action': typeof ApiPublicSessionsActionRoute
   '/instructor/': typeof AuthenticatedInternalInstructorIndexRoute
   '/workspace/': typeof AuthenticatedInternalWorkspaceIndexRoute
@@ -176,6 +192,8 @@ export interface FileRoutesByTo {
   '/sdash/profile': typeof AuthenticatedSdashProfileRoute
   '/sdash/shop': typeof AuthenticatedSdashShopRoute
   '/sdash': typeof AuthenticatedSdashIndexRoute
+  '/instructor/profile': typeof AuthenticatedInternalInstructorProfileRoute
+  '/workspace/profile': typeof AuthenticatedInternalWorkspaceProfileRoute
   '/api/public/sessions/$action': typeof ApiPublicSessionsActionRoute
   '/instructor': typeof AuthenticatedInternalInstructorIndexRoute
   '/workspace': typeof AuthenticatedInternalWorkspaceIndexRoute
@@ -200,6 +218,8 @@ export interface FileRoutesById {
   '/_authenticated/sdash/profile': typeof AuthenticatedSdashProfileRoute
   '/_authenticated/sdash/shop': typeof AuthenticatedSdashShopRoute
   '/_authenticated/sdash/': typeof AuthenticatedSdashIndexRoute
+  '/_authenticated/_internal/instructor/profile': typeof AuthenticatedInternalInstructorProfileRoute
+  '/_authenticated/_internal/workspace/profile': typeof AuthenticatedInternalWorkspaceProfileRoute
   '/api/public/sessions/$action': typeof ApiPublicSessionsActionRoute
   '/_authenticated/_internal/instructor/': typeof AuthenticatedInternalInstructorIndexRoute
   '/_authenticated/_internal/workspace/': typeof AuthenticatedInternalWorkspaceIndexRoute
@@ -223,6 +243,8 @@ export interface FileRouteTypes {
     | '/sdash/profile'
     | '/sdash/shop'
     | '/sdash/'
+    | '/instructor/profile'
+    | '/workspace/profile'
     | '/api/public/sessions/$action'
     | '/instructor/'
     | '/workspace/'
@@ -241,6 +263,8 @@ export interface FileRouteTypes {
     | '/sdash/profile'
     | '/sdash/shop'
     | '/sdash'
+    | '/instructor/profile'
+    | '/workspace/profile'
     | '/api/public/sessions/$action'
     | '/instructor'
     | '/workspace'
@@ -264,6 +288,8 @@ export interface FileRouteTypes {
     | '/_authenticated/sdash/profile'
     | '/_authenticated/sdash/shop'
     | '/_authenticated/sdash/'
+    | '/_authenticated/_internal/instructor/profile'
+    | '/_authenticated/_internal/workspace/profile'
     | '/api/public/sessions/$action'
     | '/_authenticated/_internal/instructor/'
     | '/_authenticated/_internal/workspace/'
@@ -431,15 +457,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicSessionsActionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/_internal/workspace/profile': {
+      id: '/_authenticated/_internal/workspace/profile'
+      path: '/profile'
+      fullPath: '/workspace/profile'
+      preLoaderRoute: typeof AuthenticatedInternalWorkspaceProfileRouteImport
+      parentRoute: typeof AuthenticatedInternalWorkspaceRoute
+    }
+    '/_authenticated/_internal/instructor/profile': {
+      id: '/_authenticated/_internal/instructor/profile'
+      path: '/profile'
+      fullPath: '/instructor/profile'
+      preLoaderRoute: typeof AuthenticatedInternalInstructorProfileRouteImport
+      parentRoute: typeof AuthenticatedInternalInstructorRoute
+    }
   }
 }
 
 interface AuthenticatedInternalInstructorRouteChildren {
+  AuthenticatedInternalInstructorProfileRoute: typeof AuthenticatedInternalInstructorProfileRoute
   AuthenticatedInternalInstructorIndexRoute: typeof AuthenticatedInternalInstructorIndexRoute
 }
 
 const AuthenticatedInternalInstructorRouteChildren: AuthenticatedInternalInstructorRouteChildren =
   {
+    AuthenticatedInternalInstructorProfileRoute:
+      AuthenticatedInternalInstructorProfileRoute,
     AuthenticatedInternalInstructorIndexRoute:
       AuthenticatedInternalInstructorIndexRoute,
   }
@@ -450,11 +493,14 @@ const AuthenticatedInternalInstructorRouteWithChildren =
   )
 
 interface AuthenticatedInternalWorkspaceRouteChildren {
+  AuthenticatedInternalWorkspaceProfileRoute: typeof AuthenticatedInternalWorkspaceProfileRoute
   AuthenticatedInternalWorkspaceIndexRoute: typeof AuthenticatedInternalWorkspaceIndexRoute
 }
 
 const AuthenticatedInternalWorkspaceRouteChildren: AuthenticatedInternalWorkspaceRouteChildren =
   {
+    AuthenticatedInternalWorkspaceProfileRoute:
+      AuthenticatedInternalWorkspaceProfileRoute,
     AuthenticatedInternalWorkspaceIndexRoute:
       AuthenticatedInternalWorkspaceIndexRoute,
   }
