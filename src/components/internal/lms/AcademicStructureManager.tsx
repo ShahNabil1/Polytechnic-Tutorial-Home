@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { confirm } from "@/components/ui/confirm-dialog";
 
 type Draft = {
   id?: string;
