@@ -14,8 +14,6 @@ import {
   Save,
   Plus,
   Trash2,
-  Copy,
-  Send,
   Ban,
   ShieldAlert,
   MessageSquarePlus,
@@ -31,6 +29,7 @@ import {
   ShieldCheck,
   CheckSquare,
   Square,
+  Tag,
 } from "lucide-react";
 import {
   getAdminOrder,
@@ -47,7 +46,6 @@ import {
   ORDER_STATUSES,
   STATUS_LABEL,
   STATUS_STYLE,
-  buildSteadfastPayload,
   formatDhakaDateTime,
   type Order,
   type OrderItem,
@@ -55,6 +53,7 @@ import {
 } from "@/lib/orders";
 import { formatBDT } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 
 export function AdminOrderDrawer({
   orderId,
