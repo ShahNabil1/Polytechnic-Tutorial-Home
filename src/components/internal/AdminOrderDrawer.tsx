@@ -154,6 +154,7 @@ export function AdminOrderDrawer({
 
   const [savingCustomer, setSavingCustomer] = useState(false);
   const [savingNote, setSavingNote] = useState(false);
+  const [submittingNote, setSubmittingNote] = useState(false);
   const [custErrors, setCustErrors] = useState<Record<string, string>>({});
 
   function validateCustomer(): Record<string, string> {
