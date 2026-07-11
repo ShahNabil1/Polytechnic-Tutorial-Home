@@ -43,6 +43,7 @@ import { Route as AuthenticatedInternalWorkspaceEcommerceIndexRouteImport } from
 import { Route as ApiPublicWebhooksSteadfastSecretRouteImport } from './routes/api/public/webhooks/steadfast.$secret'
 import { Route as AuthenticatedInternalWorkspaceSettingsSmsTemplatesRouteImport } from './routes/_authenticated/_internal.workspace.settings.sms-templates'
 import { Route as AuthenticatedInternalWorkspaceSettingsEmailTemplatesRouteImport } from './routes/_authenticated/_internal.workspace.settings.email-templates'
+import { Route as AuthenticatedInternalWorkspaceLmsAndCoursesSubjectsRouteImport } from './routes/_authenticated/_internal.workspace.lms-and-courses.subjects'
 import { Route as AuthenticatedInternalWorkspaceLmsAndCoursesStructureRouteImport } from './routes/_authenticated/_internal.workspace.lms-and-courses.structure'
 import { Route as AuthenticatedInternalWorkspaceEcommerceProductsRouteImport } from './routes/_authenticated/_internal.workspace.ecommerce.products'
 import { Route as AuthenticatedInternalWorkspaceEcommerceOrdersRouteImport } from './routes/_authenticated/_internal.workspace.ecommerce.orders'
@@ -233,6 +234,12 @@ const AuthenticatedInternalWorkspaceSettingsEmailTemplatesRoute =
     path: '/settings/email-templates',
     getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
   } as any)
+const AuthenticatedInternalWorkspaceLmsAndCoursesSubjectsRoute =
+  AuthenticatedInternalWorkspaceLmsAndCoursesSubjectsRouteImport.update({
+    id: '/subjects',
+    path: '/subjects',
+    getParentRoute: () => AuthenticatedInternalWorkspaceLmsAndCoursesRoute,
+  } as any)
 const AuthenticatedInternalWorkspaceLmsAndCoursesStructureRoute =
   AuthenticatedInternalWorkspaceLmsAndCoursesStructureRouteImport.update({
     id: '/structure',
@@ -298,6 +305,7 @@ export interface FileRoutesByFullPath {
   '/workspace/ecommerce/orders': typeof AuthenticatedInternalWorkspaceEcommerceOrdersRoute
   '/workspace/ecommerce/products': typeof AuthenticatedInternalWorkspaceEcommerceProductsRoute
   '/workspace/lms-and-courses/structure': typeof AuthenticatedInternalWorkspaceLmsAndCoursesStructureRoute
+  '/workspace/lms-and-courses/subjects': typeof AuthenticatedInternalWorkspaceLmsAndCoursesSubjectsRoute
   '/workspace/settings/email-templates': typeof AuthenticatedInternalWorkspaceSettingsEmailTemplatesRoute
   '/workspace/settings/sms-templates': typeof AuthenticatedInternalWorkspaceSettingsSmsTemplatesRoute
   '/api/public/webhooks/steadfast/$secret': typeof ApiPublicWebhooksSteadfastSecretRoute
@@ -334,6 +342,7 @@ export interface FileRoutesByTo {
   '/workspace/ecommerce/orders': typeof AuthenticatedInternalWorkspaceEcommerceOrdersRoute
   '/workspace/ecommerce/products': typeof AuthenticatedInternalWorkspaceEcommerceProductsRoute
   '/workspace/lms-and-courses/structure': typeof AuthenticatedInternalWorkspaceLmsAndCoursesStructureRoute
+  '/workspace/lms-and-courses/subjects': typeof AuthenticatedInternalWorkspaceLmsAndCoursesSubjectsRoute
   '/workspace/settings/email-templates': typeof AuthenticatedInternalWorkspaceSettingsEmailTemplatesRoute
   '/workspace/settings/sms-templates': typeof AuthenticatedInternalWorkspaceSettingsSmsTemplatesRoute
   '/api/public/webhooks/steadfast/$secret': typeof ApiPublicWebhooksSteadfastSecretRoute
@@ -376,6 +385,7 @@ export interface FileRoutesById {
   '/_authenticated/_internal/workspace/ecommerce/orders': typeof AuthenticatedInternalWorkspaceEcommerceOrdersRoute
   '/_authenticated/_internal/workspace/ecommerce/products': typeof AuthenticatedInternalWorkspaceEcommerceProductsRoute
   '/_authenticated/_internal/workspace/lms-and-courses/structure': typeof AuthenticatedInternalWorkspaceLmsAndCoursesStructureRoute
+  '/_authenticated/_internal/workspace/lms-and-courses/subjects': typeof AuthenticatedInternalWorkspaceLmsAndCoursesSubjectsRoute
   '/_authenticated/_internal/workspace/settings/email-templates': typeof AuthenticatedInternalWorkspaceSettingsEmailTemplatesRoute
   '/_authenticated/_internal/workspace/settings/sms-templates': typeof AuthenticatedInternalWorkspaceSettingsSmsTemplatesRoute
   '/api/public/webhooks/steadfast/$secret': typeof ApiPublicWebhooksSteadfastSecretRoute
@@ -417,6 +427,7 @@ export interface FileRouteTypes {
     | '/workspace/ecommerce/orders'
     | '/workspace/ecommerce/products'
     | '/workspace/lms-and-courses/structure'
+    | '/workspace/lms-and-courses/subjects'
     | '/workspace/settings/email-templates'
     | '/workspace/settings/sms-templates'
     | '/api/public/webhooks/steadfast/$secret'
@@ -453,6 +464,7 @@ export interface FileRouteTypes {
     | '/workspace/ecommerce/orders'
     | '/workspace/ecommerce/products'
     | '/workspace/lms-and-courses/structure'
+    | '/workspace/lms-and-courses/subjects'
     | '/workspace/settings/email-templates'
     | '/workspace/settings/sms-templates'
     | '/api/public/webhooks/steadfast/$secret'
@@ -494,6 +506,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_internal/workspace/ecommerce/orders'
     | '/_authenticated/_internal/workspace/ecommerce/products'
     | '/_authenticated/_internal/workspace/lms-and-courses/structure'
+    | '/_authenticated/_internal/workspace/lms-and-courses/subjects'
     | '/_authenticated/_internal/workspace/settings/email-templates'
     | '/_authenticated/_internal/workspace/settings/sms-templates'
     | '/api/public/webhooks/steadfast/$secret'
@@ -759,6 +772,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInternalWorkspaceSettingsEmailTemplatesRouteImport
       parentRoute: typeof AuthenticatedInternalWorkspaceRoute
     }
+    '/_authenticated/_internal/workspace/lms-and-courses/subjects': {
+      id: '/_authenticated/_internal/workspace/lms-and-courses/subjects'
+      path: '/subjects'
+      fullPath: '/workspace/lms-and-courses/subjects'
+      preLoaderRoute: typeof AuthenticatedInternalWorkspaceLmsAndCoursesSubjectsRouteImport
+      parentRoute: typeof AuthenticatedInternalWorkspaceLmsAndCoursesRoute
+    }
     '/_authenticated/_internal/workspace/lms-and-courses/structure': {
       id: '/_authenticated/_internal/workspace/lms-and-courses/structure'
       path: '/structure'
@@ -817,12 +837,15 @@ const AuthenticatedInternalInstructorRouteWithChildren =
 
 interface AuthenticatedInternalWorkspaceLmsAndCoursesRouteChildren {
   AuthenticatedInternalWorkspaceLmsAndCoursesStructureRoute: typeof AuthenticatedInternalWorkspaceLmsAndCoursesStructureRoute
+  AuthenticatedInternalWorkspaceLmsAndCoursesSubjectsRoute: typeof AuthenticatedInternalWorkspaceLmsAndCoursesSubjectsRoute
 }
 
 const AuthenticatedInternalWorkspaceLmsAndCoursesRouteChildren: AuthenticatedInternalWorkspaceLmsAndCoursesRouteChildren =
   {
     AuthenticatedInternalWorkspaceLmsAndCoursesStructureRoute:
       AuthenticatedInternalWorkspaceLmsAndCoursesStructureRoute,
+    AuthenticatedInternalWorkspaceLmsAndCoursesSubjectsRoute:
+      AuthenticatedInternalWorkspaceLmsAndCoursesSubjectsRoute,
   }
 
 const AuthenticatedInternalWorkspaceLmsAndCoursesRouteWithChildren =
