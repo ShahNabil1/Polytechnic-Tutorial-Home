@@ -162,7 +162,7 @@ export function AdminIncompleteCheckouts({ search }: { search: string }) {
                     <div className="mt-2 flex flex-wrap gap-3 text-[11px] font-semibold text-slate-500">
                       <span>First: {formatDhakaDateTime(r.first_attempt_at)}</span>
                       <span>Last: {formatDhakaDateTime(r.last_attempt_at)}</span>
-                      <span>Total: <span className="font-mono text-slate-800">{formatBDT(Number(r.total_bdt))}</span></span>
+                      <span>Total: <span className="font-mono text-slate-800">{formatBDTEn(Number(r.total_bdt))}</span></span>
                     </div>
 
                     <div className="mt-2 flex flex-wrap gap-1.5">
