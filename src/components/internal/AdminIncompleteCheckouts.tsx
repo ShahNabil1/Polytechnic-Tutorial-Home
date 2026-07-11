@@ -79,7 +79,10 @@ function OutcomeBadge({ outcome }: { outcome?: string | null }) {
 export function AdminIncompleteCheckouts({ search }: { search: string }) {
   const fetchList = useServerFn(listAdminIncompleteCheckouts);
   const del = useServerFn(deleteIncompleteCheckout);
+  const promote = useServerFn(promoteIncompleteCheckoutToOrder);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [openOrderId, setOpenOrderId] = useState<string | null>(null);
+  const [promotingId, setPromotingId] = useState<string | null>(null);
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["admin-incomplete", search],
@@ -96,6 +99,20 @@ export function AdminIncompleteCheckouts({ search }: { search: string }) {
       toast.error(e.message || "Failed");
     }
   }
+
+  async function view(id: string) {
+    setPromotingId(id);
+    try {
+      const res = await promote({ data: { id } });
+      setOpenOrderId(res.id);
+      refetch();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to open");
+    } finally {
+      setPromotingId(null);
+    }
+  }
+
 
   const rows = (data ?? []) as Row[];
 
