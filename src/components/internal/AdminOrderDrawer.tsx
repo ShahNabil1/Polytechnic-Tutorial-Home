@@ -695,7 +695,25 @@ export function AdminOrderDrawer({
                 <button onClick={() => setShowSearch((v) => !v)} className="btn-sm">
                   <Plus className="size-3.5" /> Add Product
                 </button>
-                <button onClick={saveItems} className="btn-sm-primary"><Save className="size-3.5" /> Save Items</button>
+                <button
+                  onClick={saveItems}
+                  disabled={savingItems || !itemsDirty || (itemDraft?.length ?? 0) === 0}
+                  className="btn-sm-primary transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
+                  title={
+                    (itemDraft?.length ?? 0) === 0
+                      ? "অন্তত একটি প্রোডাক্ট থাকতে হবে"
+                      : !itemsDirty
+                      ? "কোনো পরিবর্তন নেই"
+                      : "Save items"
+                  }
+                >
+                  {savingItems ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Save className="size-3.5" />
+                  )}
+                  {savingItems ? "Saving…" : itemsDirty ? "Save Items" : "Saved"}
+                </button>
               </div>
             }>
               {showSearch && (
