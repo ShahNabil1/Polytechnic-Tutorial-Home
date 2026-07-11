@@ -8,6 +8,7 @@ import {
   MoreHorizontal,
   type LucideIcon,
 } from "lucide-react";
+import { SteadfastBalanceCard } from "@/components/internal/SteadfastBalanceCard";
 
 export const Route = createFileRoute("/_authenticated/_internal/workspace/ecommerce/")({
   head: () => ({
