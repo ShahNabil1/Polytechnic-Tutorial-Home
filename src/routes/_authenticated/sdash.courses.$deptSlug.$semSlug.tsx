@@ -62,21 +62,8 @@ function StudentCourseView() {
   }
 
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const res = (await fn({
-          data: { dept_slug: deptSlug, sem_slug: semSlug },
-        } as never)) as LmsCourseContent;
-        setData(res);
-        // open first subject by default
-        if (res.subjects[0]) setOpenSubjects({ [res.subjects[0].id]: true });
-      } catch (e: any) {
-        toast.error(e?.message ?? "Failed to load");
-      } finally {
-        setLoading(false);
-      }
-    })();
+    refetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deptSlug, semSlug]);
 
   if (loading) {
