@@ -293,6 +293,17 @@ export function AdminOrderDrawer({
     }
 
     try {
+      // Flush an unsaved delivery note before dispatching to Steadfast — otherwise
+      // the server reads the stale (null) note from DB and the courier gets no note.
+      if (s === "ready_to_ship" && order?.has_physical && deliveryNote !== (order?.note ?? "")) {
+        const trimmed = deliveryNote.trim();
+        if (trimmed.length > 500) {
+          toast.error("Delivery note must be under 500 characters");
+          return;
+        }
+        await upCustomer({ data: { id: orderId, patch: { note: trimmed || null } } });
+        setCustomer((c: any) => ({ ...c, note: trimmed }));
+      }
       await upStatus({ data: { id: orderId, status: s, note } });
       toast.success(`Marked ${STATUS_LABEL[s]}`);
       setPendingStatus(null);
