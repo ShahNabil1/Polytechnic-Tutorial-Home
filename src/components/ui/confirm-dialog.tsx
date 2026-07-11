@@ -151,6 +151,31 @@ export function ConfirmDialogHost() {
     }
   }, [s.open, isPrompt, s.defaultValue]);
 
+  // Lock body scroll while the confirm dialog is open. Restores prior inline
+  // styles on close/unmount, and compensates for the scrollbar width so the
+  // page underneath does not shift. Safe when stacked over other locks
+  // (drawers, sheets) because we snapshot the previous values.
+  useEffect(() => {
+    if (!s.open) return;
+    if (typeof document === "undefined") return;
+    const body = document.body;
+    const html = document.documentElement;
+    const prevBodyOverflow = body.style.overflow;
+    const prevBodyPaddingRight = body.style.paddingRight;
+    const prevHtmlOverflow = html.style.overflow;
+    const scrollbarWidth = window.innerWidth - html.clientWidth;
+    body.style.overflow = "hidden";
+    html.style.overflow = "hidden";
+    if (scrollbarWidth > 0) {
+      body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+    return () => {
+      body.style.overflow = prevBodyOverflow;
+      body.style.paddingRight = prevBodyPaddingRight;
+      html.style.overflow = prevHtmlOverflow;
+    };
+  }, [s.open]);
+
   const trimmed = value.trim();
   const canConfirm = !isPrompt || trimmed.length >= minLength;
 
