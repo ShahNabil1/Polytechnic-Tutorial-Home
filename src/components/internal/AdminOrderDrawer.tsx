@@ -724,13 +724,6 @@ function PhoneField({ label, phone }: { label: string; phone?: string | null }) 
         {label}
       </p>
       <div className="flex flex-wrap items-center gap-2">
-        <a
-          href={`tel:${value}`}
-          className="inline-flex items-center gap-1.5 rounded-md bg-brand/10 px-2 py-1 text-sm font-semibold text-brand hover:bg-brand/15"
-        >
-          <Phone className="size-3.5" />
-          <span className="font-mono">{value}</span>
-        </a>
         {wa && (
           <a
             href={wa}
@@ -742,6 +735,13 @@ function PhoneField({ label, phone }: { label: string; phone?: string | null }) 
             <WhatsAppIcon className="size-4" />
           </a>
         )}
+        <a
+          href={`tel:${value}`}
+          className="inline-flex items-center gap-1.5 rounded-md bg-brand/10 px-2 py-1 text-sm font-semibold text-brand hover:bg-brand/15"
+        >
+          <Phone className="size-3.5" />
+          <span className="font-mono">{value}</span>
+        </a>
       </div>
     </div>
   );
