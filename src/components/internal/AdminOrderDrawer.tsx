@@ -769,39 +769,69 @@ export function AdminOrderDrawer({
               )}
             </Section>
 
-            {/* Delivery Note — only shown when the order has a physical item */}
+            {/* Delivery Note — collapsed by default; toggle with checkbox */}
             {!isEbookOnly && (
-              <Section
-                title="Delivery Note (for Steadfast)"
-                icon={Truck}
-                action={
-                  <button
-                    onClick={saveDeliveryNote}
-                    className="btn-sm-primary transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
-                    disabled={savingNote || !deliveryNoteDirty}
-                    title={!deliveryNoteDirty ? "কোনো পরিবর্তন নেই" : "Save delivery note"}
-                  >
-                    {savingNote ? (
-                      <Loader2 className="size-3.5 animate-spin" />
-                    ) : (
-                      <Save className="size-3.5" />
-                    )}
-                    {savingNote ? "Saving…" : deliveryNoteDirty ? "Save Note" : "Saved"}
-                  </button>
-                }
-              >
-                <textarea
-                  value={deliveryNote}
-                  onChange={(e) => setDeliveryNote(e.target.value.slice(0, 500))}
-                  placeholder="Optional — e.g. Deliver by 3 PM, call before arrival, leave with security… (sent to Steadfast when provided)"
-                  rows={6}
-                  className="min-h-[180px] w-full resize-y rounded-lg border border-slate-200 bg-white p-3 text-sm outline-none focus:border-slate-400"
-                />
-                <p className="mt-1 text-[11px] text-slate-500">
-                  {deliveryNote.length}/500 characters · optional, forwarded to Steadfast when set
-                </p>
-              </Section>
+              <section className="rounded-2xl border border-slate-200 bg-white p-3">
+                <label className="flex cursor-pointer items-center gap-2 select-none">
+                  <input
+                    type="checkbox"
+                    checked={showDeliveryNote}
+                    onChange={(e) => {
+                      const v = e.target.checked;
+                      setShowDeliveryNote(v);
+                      if (!v && deliveryNote.trim() && (order?.note ?? "").trim()) {
+                        // keep saved text; just collapse
+                      }
+                    }}
+                    className="size-4 rounded border-slate-300 accent-slate-900"
+                  />
+                  <Truck className="size-4 text-slate-500" />
+                  <span className="text-sm font-extrabold text-slate-900">Add delivery note</span>
+                  {(order?.note ?? "").trim() && !showDeliveryNote && (
+                    <span className="ml-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-200">
+                      Saved
+                    </span>
+                  )}
+                  <span className="ml-auto text-[11px] text-slate-400">for Steadfast · optional</span>
+                </label>
+
+                <div
+                  className={cn(
+                    "grid transition-all duration-300 ease-out",
+                    showDeliveryNote
+                      ? "mt-3 grid-rows-[1fr] opacity-100"
+                      : "grid-rows-[0fr] opacity-0",
+                  )}
+                >
+                  <div className="overflow-hidden">
+                    <textarea
+                      value={deliveryNote}
+                      onChange={(e) => setDeliveryNote(e.target.value.slice(0, 500))}
+                      placeholder="Optional — e.g. Deliver by 3 PM, call before arrival, leave with security…"
+                      rows={4}
+                      className="w-full resize-y rounded-lg border border-slate-200 bg-white p-3 text-sm outline-none focus:border-slate-400"
+                    />
+                    <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
+                      <span>{deliveryNote.length}/500 characters</span>
+                      <button
+                        onClick={saveDeliveryNote}
+                        className="btn-sm-primary transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
+                        disabled={savingNote || !deliveryNoteDirty}
+                        title={!deliveryNoteDirty ? "কোনো পরিবর্তন নেই" : "Save delivery note"}
+                      >
+                        {savingNote ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          <Save className="size-3.5" />
+                        )}
+                        {savingNote ? "Saving…" : deliveryNoteDirty ? "Save Note" : "Saved"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </section>
             )}
+
 
 
 
