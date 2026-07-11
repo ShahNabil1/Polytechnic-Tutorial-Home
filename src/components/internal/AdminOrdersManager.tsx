@@ -120,13 +120,6 @@ export function AdminOrdersManager() {
                       <td className="px-4 py-3.5 align-top">
                         <p className="font-semibold text-slate-900">{o.customer_name}</p>
                         <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                          <a
-                            href={`tel:${o.customer_phone}`}
-                            className="inline-flex items-center gap-1 rounded-md bg-brand/10 px-1.5 py-0.5 font-mono text-xs font-bold text-brand hover:bg-brand/15"
-                          >
-                            <Phone className="size-3" />
-                            {o.customer_phone}
-                          </a>
                           {waLinkBD(o.customer_phone) && (
                             <a
                               href={waLinkBD(o.customer_phone)!}
@@ -138,6 +131,13 @@ export function AdminOrdersManager() {
                               <WhatsAppIcon className="size-3.5" />
                             </a>
                           )}
+                          <a
+                            href={`tel:${o.customer_phone}`}
+                            className="inline-flex items-center gap-1 rounded-md bg-brand/10 px-1.5 py-0.5 font-mono text-xs font-bold text-brand hover:bg-brand/15"
+                          >
+                            <Phone className="size-3" />
+                            {o.customer_phone}
+                          </a>
                         </div>
                       </td>
                       <td className="px-4 py-3.5 align-top text-right font-mono text-sm font-extrabold text-slate-900">
