@@ -196,6 +196,8 @@ export const createOrder = createServerFn({ method: "POST" })
         status: "processing",
         order_type: orderType,
         has_physical: hasPhysical,
+        digital_status: hasEbook ? "pending" : "not_applicable",
+        physical_status: hasPhysical ? "pending" : "not_applicable",
         delivery_type: 0,
         note: data.customer.note || null,
         item_description: itemDesc,
