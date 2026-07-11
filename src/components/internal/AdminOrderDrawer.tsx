@@ -43,6 +43,7 @@ import {
   getBlockStatus,
   retryEbookDelivery,
 } from "@/lib/orders.functions";
+import { retrySteadfastDispatch } from "@/lib/steadfast.functions";
 import {
   ORDER_STATUSES,
   STATUS_LABEL,
@@ -62,6 +63,11 @@ import { cn } from "@/lib/utils";
 import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
 import { ResendLogo, ResendEventChips } from "@/components/internal/ResendEventChips";
+import {
+  SteadfastEventChips,
+  SteadfastTrackingCard,
+  SteadfastLogo,
+} from "@/components/internal/SteadfastEventChips";
 
 export function AdminOrderDrawer({
   orderId,
