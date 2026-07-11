@@ -256,11 +256,12 @@ export function AdminOrderDrawer({
     }
   }
 
-  async function changeStatus(s: OrderStatus, note?: string) {
+  async function changeStatus(s: OrderStatus, note?: string, confirmed = false) {
     if (!order || s === order.status) return;
 
-    // Hold / Cancel show an inline reason input instead of committing immediately.
-    if ((s === "hold" || s === "cancelled") && !note) {
+    // Hold / Cancel / Ready-to-ship show an inline confirmation instead of committing immediately.
+    const needsConfirm = s === "hold" || s === "cancelled" || s === "ready_to_ship";
+    if (needsConfirm && !confirmed) {
       setPendingStatus(s);
       setReasonDraft("");
       return;
@@ -280,12 +281,17 @@ export function AdminOrderDrawer({
 
   async function confirmPendingStatus() {
     if (!pendingStatus) return;
-    const reason = reasonDraft.trim();
-    if (reason.length < 3) {
-      toast.error("Please write at least 3 characters");
+    if (pendingStatus === "hold" || pendingStatus === "cancelled") {
+      const reason = reasonDraft.trim();
+      if (reason.length < 3) {
+        toast.error("Please write at least 3 characters");
+        return;
+      }
+      await changeStatus(pendingStatus, reason, true);
       return;
     }
-    await changeStatus(pendingStatus, reason);
+    // ready_to_ship: no reason required, just confirm
+    await changeStatus(pendingStatus, undefined, true);
   }
 
   async function submitNote() {
