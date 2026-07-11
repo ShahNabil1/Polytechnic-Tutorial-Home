@@ -1,6 +1,6 @@
 name = "pth-steadfast"
 main = "src/index.ts"
-compatibility_date = "2024-11-27"
+compatibility_date = "2024-11-11"
 compatibility_flags = ["nodejs_compat"]
 
 [vars]
