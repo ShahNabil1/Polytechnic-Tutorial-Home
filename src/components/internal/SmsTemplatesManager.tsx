@@ -116,6 +116,7 @@ export function SmsTemplatesManager() {
     setIsEditing(true);
     setName("New template");
     setBody("");
+    setCategory("campaign");
     setTimeout(() => editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
   }
 
@@ -126,6 +127,7 @@ export function SmsTemplatesManager() {
     } else if (selected) {
       setName(selected.name);
       setBody(selected.body);
+      setCategory(selected.category ?? "other");
     }
     setIsEditing(false);
   }
