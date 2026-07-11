@@ -3,15 +3,32 @@ main = "src/index.ts"
 compatibility_date = "2024-11-27"
 compatibility_flags = ["nodejs_compat"]
 
-# Non-secret defaults. Override per-env via `wrangler secret put` (see README).
 [vars]
 STEADFAST_BASE_URL = "https://portal.packzy.com/api/v1"
 ALLOWED_ORIGINS = "https://polytechnictutorial.com,https://www.polytechnictutorial.com,https://polyverse-learn-shop.lovable.app"
 
-# Secrets (set with `wrangler secret put <NAME>`):
-#   STEADFAST_API_KEY          — from Steadfast dashboard
-#   STEADFAST_SECRET_KEY       — from Steadfast dashboard
-#   STEADFAST_WEBHOOK_SECRET   — you invent, paste same value in Steadfast dashboard webhook config
-#   STEADFAST_WORKER_HMAC_SECRET        — must match STEADFAST_WORKER_HMAC_SECRET in Lovable project secrets
-#   SUPABASE_URL               — same as Lovable
-#   SUPABASE_SERVICE_ROLE_KEY  — from Supabase dashboard (NEVER put in Lovable client code)
+# ---------- Cloudflare Queues ----------
+# One-time setup (run once from cloudflare-worker/):
+#   npx wrangler queues create steadfast-jobs
+#   npx wrangler queues create steadfast-jobs-dlq
+
+[[queues.producers]]
+binding = "STEADFAST_QUEUE"
+queue = "steadfast-jobs"
+
+[[queues.consumers]]
+queue = "steadfast-jobs"
+max_batch_size = 10
+max_batch_timeout = 5
+max_retries = 5
+max_concurrency = 4
+dead_letter_queue = "steadfast-jobs-dlq"
+
+# ---------- Secrets ----------
+# Set each with `npx wrangler secret put <NAME>`:
+#   STEADFAST_API_KEY              — Steadfast dashboard
+#   STEADFAST_SECRET_KEY           — Steadfast dashboard
+#   STEADFAST_WEBHOOK_SECRET       — you invent; paste same value into Steadfast webhook config (Step 4)
+#   STEADFAST_WORKER_HMAC_SECRET   — must match Lovable secret STEADFAST_WORKER_HMAC_SECRET
+#   SUPABASE_URL                   — https://qmqcfzgbkzdedfqrmoah.supabase.co
+#   SUPABASE_SERVICE_ROLE_KEY      — Supabase dashboard → Settings → API
