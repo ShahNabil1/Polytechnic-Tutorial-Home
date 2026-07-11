@@ -317,7 +317,9 @@ export function AdminOrderDrawer({
     setItemDraft((draft) => (draft ?? items).filter((_, i) => i !== idx));
   }
 
-  const isEbookOnly = order?.order_type === "ebook";
+  const activeItems = itemDraft ?? items;
+  const hasPhysical = activeItems.some((i: any) => (i.item_type ?? i.type) !== "ebook");
+  const isEbookOnly = !hasPhysical && order?.order_type === "ebook";
 
   return (
     <div className="fixed inset-0 z-[60] flex justify-end bg-black/40" onClick={onClose}>
