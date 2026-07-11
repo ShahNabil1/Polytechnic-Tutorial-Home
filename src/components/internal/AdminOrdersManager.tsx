@@ -90,6 +90,11 @@ export function AdminOrdersManager() {
         queryClient.invalidateQueries({ queryKey: ["admin-order-counts"] });
         queryClient.invalidateQueries({ queryKey: ["admin-incomplete"] });
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "order_email_deliveries" }, () => {
+        // Resend webhook → any sent/delivered/opened/clicked/bounced update refreshes chips live.
+        queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+        queryClient.invalidateQueries({ queryKey: ["admin-order"] });
+      })
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
