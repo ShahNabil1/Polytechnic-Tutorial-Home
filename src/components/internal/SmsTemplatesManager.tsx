@@ -53,7 +53,9 @@ export function SmsTemplatesManager() {
 
   const [name, setName] = useState("");
   const [body, setBody] = useState("");
+  const [category, setCategory] = useState<string>("other");
   const [saving, setSaving] = useState(false);
+  const [filter, setFilter] = useState<string>("all");
 
   useEffect(() => {
     if (selected) {
