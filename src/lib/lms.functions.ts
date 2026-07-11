@@ -1247,6 +1247,7 @@ export const listPublicCourses = createServerFn({ method: "GET" }).handler(
           semester_slug: sem.slug,
           subject_count: subjectIds.length,
           lesson_count: lessonCount,
+          is_featured: !!r.is_featured,
         };
       })
       .filter((x): x is PublicCourseCard => x !== null);
