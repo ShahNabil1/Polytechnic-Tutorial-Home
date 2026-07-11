@@ -92,6 +92,7 @@ export function SmsTemplatesManager() {
           name: name.trim(),
           body,
           variables: selected?.key && SYSTEM_VARS[selected.key] ? SYSTEM_VARS[selected.key] : variables,
+          category,
         },
       });
       toast.success("Template saved");
