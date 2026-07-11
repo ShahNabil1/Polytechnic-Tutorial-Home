@@ -17,7 +17,7 @@ const searchSchema = z.object({
   pageSize: z.number().int().optional(),
 });
 
-export const Route = createFileRoute("/courses")({
+export const Route = createFileRoute("/courses/")({
   head: () => ({
     meta: [
       { title: "সকল কোর্স — Polytechnic Tutorial Home" },

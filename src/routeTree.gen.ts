@@ -13,10 +13,10 @@ import { Route as TermsOfServiceRouteImport } from './routes/terms-of-service'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ShopRouteImport } from './routes/shop'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
-import { Route as CoursesRouteImport } from './routes/courses'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CoursesIndexRouteImport } from './routes/courses.index'
 import { Route as CheckoutIndexRouteImport } from './routes/checkout.index'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as CheckoutSuccessRouteImport } from './routes/checkout.success'
@@ -76,11 +76,6 @@ const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
   path: '/privacy-policy',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CoursesRoute = CoursesRouteImport.update({
-  id: '/courses',
-  path: '/courses',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
   path: '/about',
@@ -93,6 +88,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CoursesIndexRoute = CoursesIndexRouteImport.update({
+  id: '/courses/',
+  path: '/courses/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CheckoutIndexRoute = CheckoutIndexRouteImport.update({
@@ -135,9 +135,9 @@ const AuthenticatedSdashIndexRoute = AuthenticatedSdashIndexRouteImport.update({
   getParentRoute: () => AuthenticatedSdashRoute,
 } as any)
 const CoursesDeptSlugSemSlugRoute = CoursesDeptSlugSemSlugRouteImport.update({
-  id: '/$deptSlug/$semSlug',
-  path: '/$deptSlug/$semSlug',
-  getParentRoute: () => CoursesRoute,
+  id: '/courses/$deptSlug/$semSlug',
+  path: '/courses/$deptSlug/$semSlug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedSdashShopRoute = AuthenticatedSdashShopRouteImport.update({
   id: '/shop',
@@ -319,7 +319,6 @@ const AuthenticatedInternalWorkspaceLmsAndCoursesCoursesDeptSlugSemSlugRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/courses': typeof CoursesRouteWithChildren
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/shop': typeof ShopRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -330,6 +329,7 @@ export interface FileRoutesByFullPath {
   '/checkout/success': typeof CheckoutSuccessRoute
   '/product/$slug': typeof ProductSlugRoute
   '/checkout/': typeof CheckoutIndexRoute
+  '/courses/': typeof CoursesIndexRoute
   '/instructor': typeof AuthenticatedInternalInstructorRouteWithChildren
   '/workspace': typeof AuthenticatedInternalWorkspaceRouteWithChildren
   '/sdash/courses': typeof AuthenticatedSdashCoursesRouteWithChildren
@@ -365,7 +365,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/courses': typeof CoursesRouteWithChildren
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/shop': typeof ShopRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -375,6 +374,7 @@ export interface FileRoutesByTo {
   '/checkout/success': typeof CheckoutSuccessRoute
   '/product/$slug': typeof ProductSlugRoute
   '/checkout': typeof CheckoutIndexRoute
+  '/courses': typeof CoursesIndexRoute
   '/sdash/courses': typeof AuthenticatedSdashCoursesRouteWithChildren
   '/sdash/profile': typeof AuthenticatedSdashProfileRoute
   '/sdash/shop': typeof AuthenticatedSdashShopRoute
@@ -410,7 +410,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/about': typeof AboutRoute
-  '/courses': typeof CoursesRouteWithChildren
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/shop': typeof ShopRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -422,6 +421,7 @@ export interface FileRoutesById {
   '/checkout/success': typeof CheckoutSuccessRoute
   '/product/$slug': typeof ProductSlugRoute
   '/checkout/': typeof CheckoutIndexRoute
+  '/courses/': typeof CoursesIndexRoute
   '/_authenticated/_internal/instructor': typeof AuthenticatedInternalInstructorRouteWithChildren
   '/_authenticated/_internal/workspace': typeof AuthenticatedInternalWorkspaceRouteWithChildren
   '/_authenticated/sdash/courses': typeof AuthenticatedSdashCoursesRouteWithChildren
@@ -459,7 +459,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
-    | '/courses'
     | '/privacy-policy'
     | '/shop'
     | '/sitemap.xml'
@@ -470,6 +469,7 @@ export interface FileRouteTypes {
     | '/checkout/success'
     | '/product/$slug'
     | '/checkout/'
+    | '/courses/'
     | '/instructor'
     | '/workspace'
     | '/sdash/courses'
@@ -505,7 +505,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
-    | '/courses'
     | '/privacy-policy'
     | '/shop'
     | '/sitemap.xml'
@@ -515,6 +514,7 @@ export interface FileRouteTypes {
     | '/checkout/success'
     | '/product/$slug'
     | '/checkout'
+    | '/courses'
     | '/sdash/courses'
     | '/sdash/profile'
     | '/sdash/shop'
@@ -549,7 +549,6 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/about'
-    | '/courses'
     | '/privacy-policy'
     | '/shop'
     | '/sitemap.xml'
@@ -561,6 +560,7 @@ export interface FileRouteTypes {
     | '/checkout/success'
     | '/product/$slug'
     | '/checkout/'
+    | '/courses/'
     | '/_authenticated/_internal/instructor'
     | '/_authenticated/_internal/workspace'
     | '/_authenticated/sdash/courses'
@@ -598,7 +598,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
-  CoursesRoute: typeof CoursesRouteWithChildren
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   ShopRoute: typeof ShopRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
@@ -608,6 +607,8 @@ export interface RootRouteChildren {
   CheckoutSuccessRoute: typeof CheckoutSuccessRoute
   ProductSlugRoute: typeof ProductSlugRoute
   CheckoutIndexRoute: typeof CheckoutIndexRoute
+  CoursesIndexRoute: typeof CoursesIndexRoute
+  CoursesDeptSlugSemSlugRoute: typeof CoursesDeptSlugSemSlugRoute
   ApiPublicHooksDeliverEbookBatchRoute: typeof ApiPublicHooksDeliverEbookBatchRoute
   ApiPublicSessionsActionRoute: typeof ApiPublicSessionsActionRoute
   ApiPublicWebhooksResendRoute: typeof ApiPublicWebhooksResendRoute
@@ -644,13 +645,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrivacyPolicyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/courses': {
-      id: '/courses'
-      path: '/courses'
-      fullPath: '/courses'
-      preLoaderRoute: typeof CoursesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/about': {
       id: '/about'
       path: '/about'
@@ -670,6 +664,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/courses/': {
+      id: '/courses/'
+      path: '/courses'
+      fullPath: '/courses/'
+      preLoaderRoute: typeof CoursesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/checkout/': {
@@ -730,10 +731,10 @@ declare module '@tanstack/react-router' {
     }
     '/courses/$deptSlug/$semSlug': {
       id: '/courses/$deptSlug/$semSlug'
-      path: '/$deptSlug/$semSlug'
+      path: '/courses/$deptSlug/$semSlug'
       fullPath: '/courses/$deptSlug/$semSlug'
       preLoaderRoute: typeof CoursesDeptSlugSemSlugRouteImport
-      parentRoute: typeof CoursesRoute
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/sdash/shop': {
       id: '/_authenticated/sdash/shop'
@@ -1108,22 +1109,10 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
-interface CoursesRouteChildren {
-  CoursesDeptSlugSemSlugRoute: typeof CoursesDeptSlugSemSlugRoute
-}
-
-const CoursesRouteChildren: CoursesRouteChildren = {
-  CoursesDeptSlugSemSlugRoute: CoursesDeptSlugSemSlugRoute,
-}
-
-const CoursesRouteWithChildren =
-  CoursesRoute._addFileChildren(CoursesRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
-  CoursesRoute: CoursesRouteWithChildren,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
   ShopRoute: ShopRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
@@ -1133,6 +1122,8 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutSuccessRoute: CheckoutSuccessRoute,
   ProductSlugRoute: ProductSlugRoute,
   CheckoutIndexRoute: CheckoutIndexRoute,
+  CoursesIndexRoute: CoursesIndexRoute,
+  CoursesDeptSlugSemSlugRoute: CoursesDeptSlugSemSlugRoute,
   ApiPublicHooksDeliverEbookBatchRoute: ApiPublicHooksDeliverEbookBatchRoute,
   ApiPublicSessionsActionRoute: ApiPublicSessionsActionRoute,
   ApiPublicWebhooksResendRoute: ApiPublicWebhooksResendRoute,
