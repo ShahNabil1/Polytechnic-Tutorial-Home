@@ -67,6 +67,7 @@ const EMPTY_DRAFT: Draft = {
   is_active: true,
   is_featured: false,
   is_online_book: false,
+  ebook_file_url: "",
 };
 
 function slugify(v: string) {
