@@ -478,8 +478,6 @@ export function AdminOrderDrawer({
               )}
             </Section>
 
-            {/* Delivery Note (separate save) */}
-            <Section
             {/* Delivery Note — only shown when the order has a physical item */}
             {!isEbookOnly && (
               <Section
