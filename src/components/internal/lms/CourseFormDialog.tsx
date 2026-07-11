@@ -114,8 +114,28 @@ export function CourseFormDialog({
       setIsActive(course?.is_active ?? true);
       setSortOrder(course?.sort_order ?? 0);
       setSlugEdited(!!course);
+      initRef.current = false;
+      dirtyRef.current = false;
     }
   }, [open, course, fixedDeptId, fixedSemId]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (!initRef.current) {
+      initRef.current = true;
+      return;
+    }
+    dirtyRef.current = true;
+  }, [open, deptId, semId, title, slug, description, metaTitle, metaDescription, media, price, compareAt, isActive, sortOrder]);
+
+  function attemptClose() {
+    if (saving || uploading) return;
+    if (dirtyRef.current) {
+      const ok = window.confirm("You have unsaved changes. Discard them?");
+      if (!ok) return;
+    }
+    onClose();
+  }
 
   useEffect(() => {
     if (!slugEdited) setSlug(slugify(title));
