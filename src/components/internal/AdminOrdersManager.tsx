@@ -517,6 +517,20 @@ export function AdminOrdersManager() {
         />
       )}
 
+      <BulkRTSDialog
+        open={bulkOpen}
+        orders={bulkOrders}
+        onClose={() => {
+          setBulkOpen(false);
+          setSelected(new Set());
+          refetch();
+        }}
+        onDone={() => {
+          refetch();
+          queryClient.invalidateQueries({ queryKey: ["admin-order-counts"] });
+        }}
+      />
+
       {isFetching && !isLoading && (
         <p className="text-right text-[11px] font-semibold text-slate-400">Refreshing…</p>
       )}
