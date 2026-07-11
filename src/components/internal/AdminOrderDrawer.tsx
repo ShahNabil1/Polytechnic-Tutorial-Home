@@ -367,8 +367,51 @@ export function AdminOrderDrawer({
   const hasPhysical = activeItems.some((i: any) => (i.item_type ?? i.type) !== "ebook");
   const isEbookOnly = !hasPhysical && order?.order_type === "ebook";
 
+  const itemsSignature = (arr: OrderItem[]) =>
+    JSON.stringify(
+      arr.map((i) => ({
+        p: i.product_id,
+        t: i.title,
+        s: i.sku,
+        u: Number(i.unit_price),
+        q: Number(i.quantity),
+        y: i.item_type,
+      })),
+    );
+  const itemsDirty = itemDraft !== null && itemsSignature(itemDraft) !== itemsSignature(items);
+  const customerDirty =
+    isEditingCustomer &&
+    !!order &&
+    !!customer &&
+    (customer.customer_name !== order.customer_name ||
+      customer.customer_phone !== order.customer_phone ||
+      (customer.alternative_phone ?? "") !== (order.alternative_phone ?? "") ||
+      (customer.customer_email ?? "") !== (order.customer_email ?? "") ||
+      (customer.division ?? "") !== (order.division ?? "") ||
+      (customer.district ?? "") !== (order.district ?? "") ||
+      (customer.thana ?? "") !== (order.thana ?? "") ||
+      (customer.address_line ?? "") !== (order.address_line ?? ""));
+  const deliveryNoteDirty = !!order && deliveryNote !== (order.note ?? "");
+  const noteDraftDirty = noteBody.trim().length > 0;
+  const hasUnsaved = itemsDirty || customerDirty || deliveryNoteDirty || noteDraftDirty;
+
+  async function requestClose() {
+    if (hasUnsaved) {
+      const ok = await confirmDialog({
+        variant: "warning",
+        title: "সেভ করা হয়নি এমন পরিবর্তন আছে",
+        description:
+          "এই অর্ডারে আপনি কিছু পরিবর্তন করেছেন যা এখনো সেভ হয়নি। ক্লোজ করলে ওই পরিবর্তনগুলো হারিয়ে যাবে। এগুলো বাদ দিয়ে ক্লোজ করবেন?",
+        confirmLabel: "Discard & Close",
+        cancelLabel: "Keep Editing",
+      });
+      if (!ok) return;
+    }
+    onClose();
+  }
+
   return (
-    <div className="fixed inset-0 z-[60] flex justify-end bg-black/40" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] flex justify-end bg-black/40" onClick={requestClose}>
       <div
         className="flex h-full w-full max-w-4xl flex-col overflow-hidden bg-slate-50 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
