@@ -178,6 +178,7 @@ function RootComponent() {
           <Outlet />
         </BlocklistGate>
         <Toaster richColors position="top-center" />
+        <ConfirmDialogHost />
       </QueryClientProvider>
     );
   }
@@ -194,6 +195,7 @@ function RootComponent() {
         </div>
       </BlocklistGate>
       <Toaster richColors position="top-center" />
+      <ConfirmDialogHost />
     </QueryClientProvider>
   );
 }
