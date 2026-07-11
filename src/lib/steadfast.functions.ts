@@ -205,7 +205,7 @@ export const bulkDispatchToSteadfast = createServerFn({ method: "POST" })
           payload: {} as SteadfastSinglePayload,
           ok: true,
           consignmentId: String(o.steadfast_consignment_id),
-          trackingCode: o.steadfast_tracking_code,
+          trackingCode: o.steadfast_tracking_code ?? undefined,
         });
         continue;
       }
