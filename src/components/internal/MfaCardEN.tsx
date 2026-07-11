@@ -1,7 +1,7 @@
 /**
-import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
  * English fork of MfaCard for internal (/workspace, /instructor) routes.
  */
+import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, ShieldCheck, ShieldOff, KeyRound, X } from "lucide-react";

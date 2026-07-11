@@ -1,9 +1,9 @@
 /**
-import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
  * TOTP (Authenticator app) enrollment card for internal users.
  * Uses Supabase Auth MFA API (aal2). On successful verify, updates
  * internal_profiles.mfa_enrolled via server fn.
  */
+import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, ShieldCheck, ShieldOff, KeyRound, X } from "lucide-react";
