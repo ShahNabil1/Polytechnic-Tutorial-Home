@@ -116,6 +116,51 @@ export function AdminOrdersManager() {
   const total = data?.total ?? 0;
   const counts = countsData?.counts ?? data?.counts ?? {};
 
+  // Bulk-select derived state (only relevant on Processing tab).
+  const selectablePhysicalIds = useMemo(
+    () => orders.filter((o: any) => o.has_physical).map((o: any) => o.id as string),
+    [orders],
+  );
+  const selectedList = useMemo(
+    () => orders.filter((o: any) => selected.has(o.id)),
+    [orders, selected],
+  );
+  const selectionHasNonPhysical = selectedList.some((o: any) => !o.has_physical);
+  const allPhysicalSelected =
+    selectablePhysicalIds.length > 0 &&
+    selectablePhysicalIds.every((id: string) => selected.has(id));
+
+  function toggleSelect(id: string) {
+    setSelected((cur) => {
+      const next = new Set(cur);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function toggleSelectAllPhysical() {
+    setSelected((cur) => {
+      if (allPhysicalSelected) {
+        const next = new Set(cur);
+        for (const id of selectablePhysicalIds) next.delete(id);
+        return next;
+      }
+      const next = new Set(cur);
+      for (const id of selectablePhysicalIds) next.add(id);
+      return next;
+    });
+  }
+
+  function openBulkRTS() {
+    const payload: BulkDispatchOrder[] = selectedList
+      .filter((o: any) => o.has_physical)
+      .map((o: any) => ({ id: o.id, order_no: o.order_no }));
+    if (payload.length === 0) return;
+    setBulkOrders(payload);
+    setBulkOpen(true);
+  }
+
+
 
   return (
     <div className="space-y-4">
