@@ -359,16 +359,11 @@ function CouponFormDialog({
 }) {
   const [d, setD] = useState<Draft>(draft);
   const [saving, setSaving] = useState(false);
-  const [products, setProducts] = useState<{ id: string; title: string }[]>([]);
   const [cats, setCats] = useState<{ id: string; name: string; kind: string }[]>([]);
   const upsertFn = useServerFn(upsertCoupon);
-  const prodFn = useServerFn(listProductsForCoupon);
   const catsFn = useServerFn(listCategoriesForCoupon);
 
   useEffect(() => {
-    if (d.applies_to === "products" && products.length === 0) {
-      prodFn().then(setProducts).catch(() => {});
-    }
     if (d.applies_to === "categories" && cats.length === 0) {
       catsFn().then(setCats).catch(() => {});
     }
@@ -425,108 +420,137 @@ function CouponFormDialog({
     }
   }
 
-  const targetHelpers = {
-    products,
-    categories: cats,
-  };
-
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-3">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-3" onClick={onClose}>
       <form
         onSubmit={onSubmit}
-        className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-border bg-background p-5 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-border bg-background shadow-2xl"
       >
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-extrabold">{d.id ? "Edit coupon" : "New coupon"}</h2>
-          <button type="button" onClick={onClose} className="rounded p-1 hover:bg-accent"><X className="size-5" /></button>
+        {/* Sticky header */}
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-background/95 px-5 py-3 backdrop-blur">
+          <div className="flex items-center gap-2">
+            <div className="grid size-9 place-items-center rounded-lg bg-brand-soft text-brand"><Ticket className="size-5" /></div>
+            <div>
+              <h2 className="text-base font-extrabold leading-tight">{d.id ? "Edit coupon" : "New coupon"}</h2>
+              <p className="text-[11px] text-muted-foreground capitalize">{d.scope} coupon</p>
+            </div>
+          </div>
+          <button type="button" onClick={onClose} className="rounded p-1.5 hover:bg-accent"><X className="size-5" /></button>
         </div>
 
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          <Field label="Code" required>
-            <input className="input font-mono uppercase" value={d.code} onChange={(e) => update("code", e.target.value.toUpperCase())} maxLength={40} required />
-          </Field>
-          <Field label="Name" required>
-            <input className="input" value={d.name} onChange={(e) => update("name", e.target.value)} required />
-          </Field>
-          <Field label="Description" className="md:col-span-2">
-            <textarea className="input" rows={2} value={d.description} onChange={(e) => update("description", e.target.value)} />
-          </Field>
-
-          <Field label="Discount type" required>
-            <select className="input" value={d.discount_type} onChange={(e) => update("discount_type", e.target.value as CouponDiscountType)}>
-              <option value="percent">Percentage (%)</option>
-              <option value="flat">Flat amount (৳)</option>
-            </select>
-          </Field>
-          <Field label={d.discount_type === "percent" ? "Percentage" : "Flat amount"} required>
-            <input className="input" type="number" min="0" step="0.01" value={d.discount_value} onChange={(e) => update("discount_value", e.target.value)} required />
-          </Field>
-
-          {d.discount_type === "percent" && (
-            <Field label="Cap (max discount ৳)" hint="e.g. 20% up to ৳100">
-              <input className="input" type="number" min="0" step="0.01" value={d.cap_amount} onChange={(e) => update("cap_amount", e.target.value)} placeholder="Leave empty for no cap" />
-            </Field>
-          )}
-          <Field label="Minimum spend (৳)">
-            <input className="input" type="number" min="0" step="0.01" value={d.min_spend} onChange={(e) => update("min_spend", e.target.value)} />
-          </Field>
-
-          <Field label="Max total uses" hint="Blank = unlimited">
-            <input className="input" type="number" min="1" step="1" value={d.max_uses_total} onChange={(e) => update("max_uses_total", e.target.value)} />
-          </Field>
-          <Field label="Max uses per customer" hint="Blank = unlimited">
-            <input className="input" type="number" min="1" step="1" value={d.max_uses_per_customer} onChange={(e) => update("max_uses_per_customer", e.target.value)} />
-          </Field>
-
-          <Field label="Valid from">
-            <input className="input" type="datetime-local" value={d.starts_at} onChange={(e) => update("starts_at", e.target.value)} />
-          </Field>
-          <Field label="Valid until">
-            <input className="input" type="datetime-local" value={d.ends_at} onChange={(e) => update("ends_at", e.target.value)} />
-          </Field>
-
-          <Field label="Applies to" className="md:col-span-2">
-            <select className="input" value={d.applies_to} onChange={(e) => update("applies_to", e.target.value as CouponAppliesTo)}>
-              <option value="all">All products in this scope</option>
-              {d.scope === "shop" && <option value="products">Specific products</option>}
-              {d.scope === "shop" && <option value="categories">Specific categories</option>}
-              {d.scope === "course" && <option value="courses">Specific courses (coming soon)</option>}
-              {d.scope === "special" && <option value="customers">Specific customers (CRM)</option>}
-            </select>
-          </Field>
-
-          {d.applies_to === "products" && (
-            <TargetPicker
-              label="Select products"
-              items={targetHelpers.products.map((p) => ({ id: p.id, name: p.title }))}
-              selected={d.targets.filter((t) => t.target_type === "product").map((t) => t.target_id)}
-              onToggle={(id) => toggleTarget("product", id)}
-            />
-          )}
-          {d.applies_to === "categories" && (
-            <TargetPicker
-              label="Select categories"
-              items={targetHelpers.categories.map((c) => ({ id: c.id, name: `${c.name} (${c.kind})` }))}
-              selected={d.targets.filter((t) => t.target_type === "category").map((t) => t.target_id)}
-              onToggle={(id) => toggleTarget("category", id)}
-            />
-          )}
-          {(d.applies_to === "courses" || d.applies_to === "customers") && (
-            <div className="md:col-span-2 rounded-lg border border-dashed border-amber-300 bg-amber-50 p-3 text-xs font-semibold text-amber-800">
-              {d.applies_to === "courses"
-                ? "Course targeting activates once the Courses module ships."
-                : "Customer targeting activates once the CRM ships."} The coupon will save with no targets and can be edited later.
+        <div className="space-y-5 p-5">
+          {/* Section: Basics */}
+          <FormSection title="Basics" icon={BadgePercent}>
+            <div className="grid gap-3 md:grid-cols-2">
+              <Field label="Code" required hint="Customers type this — e.g. WELCOME10">
+                <input className="input font-mono uppercase tracking-wider" value={d.code} onChange={(e) => update("code", e.target.value.toUpperCase())} maxLength={40} placeholder="WELCOME10" required />
+              </Field>
+              <Field label="Name" required hint="Shown internally in reports">
+                <input className="input" value={d.name} onChange={(e) => update("name", e.target.value)} placeholder="Welcome discount" required />
+              </Field>
+              <Field label="Description" className="md:col-span-2" hint="Optional — internal note about this campaign">
+                <textarea className="input" rows={2} value={d.description} onChange={(e) => update("description", e.target.value)} placeholder="e.g. Diwali campaign for 1st-year students" />
+              </Field>
             </div>
-          )}
+          </FormSection>
 
-          <div className="md:col-span-2 grid gap-2 rounded-lg border border-border bg-muted/30 p-3 sm:grid-cols-3">
+          {/* Section: Discount */}
+          <FormSection title="Discount" icon={Percent}>
+            <div className="grid gap-3 md:grid-cols-2">
+              <Field label="Discount type" required>
+                <select className="input" value={d.discount_type} onChange={(e) => update("discount_type", e.target.value as CouponDiscountType)}>
+                  <option value="percent">Percentage (%)</option>
+                  <option value="flat">Flat amount (৳)</option>
+                </select>
+              </Field>
+              <Field label={d.discount_type === "percent" ? "Percentage" : "Flat amount"} required>
+                <input className="input" type="number" min="0" step="0.01" value={d.discount_value} onChange={(e) => update("discount_value", e.target.value)} required />
+              </Field>
+              {d.discount_type === "percent" && (
+                <Field label="Cap (max discount ৳)" hint="e.g. 20% up to ৳100">
+                  <input className="input" type="number" min="0" step="0.01" value={d.cap_amount} onChange={(e) => update("cap_amount", e.target.value)} placeholder="Leave empty for no cap" />
+                </Field>
+              )}
+              <Field label="Minimum spend (৳)">
+                <input className="input" type="number" min="0" step="0.01" value={d.min_spend} onChange={(e) => update("min_spend", e.target.value)} />
+              </Field>
+            </div>
+          </FormSection>
+
+          {/* Section: Limits */}
+          <FormSection title="Usage limits" icon={Users}>
+            <div className="grid gap-3 md:grid-cols-2">
+              <Field label="Max total uses" hint="Blank = unlimited">
+                <input className="input" type="number" min="1" step="1" value={d.max_uses_total} onChange={(e) => update("max_uses_total", e.target.value)} />
+              </Field>
+              <Field label="Max uses per customer" hint="Blank = unlimited">
+                <input className="input" type="number" min="1" step="1" value={d.max_uses_per_customer} onChange={(e) => update("max_uses_per_customer", e.target.value)} />
+              </Field>
+            </div>
+          </FormSection>
+
+          {/* Section: Validity */}
+          <FormSection title="Validity" icon={CalendarDays}>
+            <div className="grid gap-3 md:grid-cols-2">
+              <Field label="Valid from">
+                <input className="input" type="datetime-local" value={d.starts_at} onChange={(e) => update("starts_at", e.target.value)} />
+              </Field>
+              <Field label="Valid until">
+                <input className="input" type="datetime-local" value={d.ends_at} onChange={(e) => update("ends_at", e.target.value)} />
+              </Field>
+            </div>
+          </FormSection>
+
+          {/* Section: Applies to */}
+          <FormSection title="Applies to" icon={Package}>
+            <Field label="Applicability">
+              <select className="input" value={d.applies_to} onChange={(e) => update("applies_to", e.target.value as CouponAppliesTo)}>
+                <option value="all">All products in this scope</option>
+                {d.scope === "shop" && <option value="products">Specific products</option>}
+                {d.scope === "shop" && <option value="categories">Specific categories</option>}
+                {d.scope === "course" && <option value="courses">Specific courses (coming soon)</option>}
+                {d.scope === "special" && <option value="customers">Specific customers (CRM)</option>}
+              </select>
+            </Field>
+
+            {d.applies_to === "products" && (
+              <div className="mt-3">
+                <ProductPicker
+                  selectedIds={d.targets.filter((t) => t.target_type === "product").map((t) => t.target_id)}
+                  onToggle={(id) => toggleTarget("product", id)}
+                />
+              </div>
+            )}
+            {d.applies_to === "categories" && (
+              <div className="mt-3">
+                <SimplePicker
+                  label="Select categories"
+                  items={cats.map((c) => ({ id: c.id, name: `${c.name} (${c.kind})` }))}
+                  selected={d.targets.filter((t) => t.target_type === "category").map((t) => t.target_id)}
+                  onToggle={(id) => toggleTarget("category", id)}
+                />
+              </div>
+            )}
+            {(d.applies_to === "courses" || d.applies_to === "customers") && (
+              <div className="mt-3 rounded-lg border border-dashed border-amber-300 bg-amber-50 p-3 text-xs font-semibold text-amber-800">
+                {d.applies_to === "courses"
+                  ? "Course targeting activates once the Courses module ships."
+                  : "Customer targeting activates once the CRM ships."} The coupon will save with no targets and can be edited later.
+              </div>
+            )}
+          </FormSection>
+
+          {/* Toggles */}
+          <div className="grid gap-2 rounded-xl border border-border bg-muted/30 p-3 sm:grid-cols-3">
             <Toggle label="Active" checked={d.is_active} onChange={(v) => update("is_active", v)} />
             <Toggle label="Stackable" checked={d.stackable} onChange={(v) => update("stackable", v)} />
             <Toggle label="Exclude shipping" checked={d.exclude_shipping} onChange={(v) => update("exclude_shipping", v)} />
           </div>
         </div>
 
-        <div className="mt-5 flex justify-end gap-2">
+        {/* Sticky footer */}
+        <div className="sticky bottom-0 z-10 flex items-center justify-end gap-2 border-t border-border bg-background/95 px-5 py-3 backdrop-blur">
           <button type="button" onClick={onClose} className="rounded-lg border border-border px-4 py-2 text-sm font-semibold hover:bg-accent">Cancel</button>
           <button type="submit" disabled={saving} className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-bold text-brand-foreground hover:bg-brand/90 disabled:opacity-60">
             {saving && <Loader2 className="size-4 animate-spin" />}
@@ -535,6 +559,18 @@ function CouponFormDialog({
         </div>
       </form>
     </div>
+  );
+}
+
+function FormSection({ title, icon: Icon, children }: { title: string; icon: React.ComponentType<{ className?: string }>; children: React.ReactNode }) {
+  return (
+    <section className="rounded-xl border border-border bg-card/40 p-4">
+      <div className="mb-3 flex items-center gap-2 text-sm font-bold">
+        <Icon className="size-4 text-brand" />
+        <span>{title}</span>
+      </div>
+      {children}
+    </section>
   );
 }
 
@@ -559,11 +595,118 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
   );
 }
 
-function TargetPicker({ label, items, selected, onToggle }: { label: string; items: { id: string; name: string }[]; selected: string[]; onToggle: (id: string) => void }) {
+// -------- Realtime product picker (matches Order drawer UX) --------
+function ProductPicker({ selectedIds, onToggle }: { selectedIds: string[]; onToggle: (id: string) => void }) {
+  const [q, setQ] = useState("");
+  const searchFn = useServerFn(searchProductsForOrder);
+  const queryClient = useQueryClient();
+
+  const { data: results, isFetching } = useQuery({
+    queryKey: ["coupon-product-search", q],
+    queryFn: () => searchFn({ data: { q: q || undefined } }),
+    staleTime: 0,
+  });
+
+  useEffect(() => {
+    const ch = supabase
+      .channel(`coupon-products-picker`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "products" },
+        () => queryClient.invalidateQueries({ queryKey: ["coupon-product-search"] }),
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [queryClient]);
+
+  const list = results ?? [];
+  const selectedSet = new Set(selectedIds);
+  const selectedRows = list.filter((p) => selectedSet.has(p.id));
+  const unselectedRows = list.filter((p) => !selectedSet.has(p.id));
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between text-xs font-semibold text-muted-foreground">
+        <span>Search & pick products</span>
+        <span>{selectedIds.length} selected</span>
+      </div>
+
+      <div className="rounded-xl border border-border bg-white p-2">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search product title or SKU…"
+            className="w-full rounded-md border border-border bg-white py-2 pl-8 pr-2 text-sm outline-none focus:border-brand"
+          />
+          {isFetching && <Loader2 className="pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />}
+        </div>
+
+        <div className="mt-2 max-h-72 space-y-1 overflow-y-auto">
+          {list.length === 0 && (
+            <div className="p-4 text-center text-xs text-muted-foreground">No products found</div>
+          )}
+          {selectedRows.map((p) => (
+            <ProductRow key={p.id} p={p} selected onToggle={() => onToggle(p.id)} />
+          ))}
+          {selectedRows.length > 0 && unselectedRows.length > 0 && (
+            <div className="my-1 border-t border-dashed border-border" />
+          )}
+          {unselectedRows.map((p) => (
+            <ProductRow key={p.id} p={p} selected={false} onToggle={() => onToggle(p.id)} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProductRow({
+  p,
+  selected,
+  onToggle,
+}: {
+  p: { id: string; title: string; price: number; sku: string | null; image: string | null };
+  selected: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className={cn(
+        "flex w-full items-center gap-2 rounded-md p-1.5 text-left transition",
+        selected ? "bg-brand-soft/70 ring-1 ring-brand" : "hover:bg-accent",
+      )}
+    >
+      {p.image ? (
+        <img src={p.image} alt="" className="size-9 rounded object-cover" />
+      ) : (
+        <div className="size-9 rounded bg-slate-200" />
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold">{p.title}</p>
+        <p className="font-mono text-[10.5px] text-muted-foreground">
+          {p.sku ?? "no-sku"} · {formatBDTEn(p.price)}
+        </p>
+      </div>
+      <span className={cn(
+        "grid size-5 place-items-center rounded border",
+        selected ? "border-brand bg-brand text-brand-foreground" : "border-border bg-background",
+      )}>
+        {selected && <Check className="size-3.5" />}
+      </span>
+    </button>
+  );
+}
+
+// Category picker (kept simple — small list, prefetched)
+function SimplePicker({ label, items, selected, onToggle }: { label: string; items: { id: string; name: string }[]; selected: string[]; onToggle: (id: string) => void }) {
   const [q, setQ] = useState("");
   const filtered = q ? items.filter((i) => i.name.toLowerCase().includes(q.toLowerCase())) : items;
   return (
-    <div className="md:col-span-2">
+    <div>
       <div className="mb-1 text-xs font-semibold text-muted-foreground">{label} ({selected.length} selected)</div>
       <input className="input mb-2" placeholder="Search…" value={q} onChange={(e) => setQ(e.target.value)} />
       <div className="max-h-52 overflow-y-auto rounded-lg border border-border bg-card p-2">
@@ -589,3 +732,4 @@ function TargetPicker({ label, items, selected, onToggle }: { label: string; ite
     </div>
   );
 }
+
