@@ -1,8 +1,11 @@
 {
-  "name": "pth-steadfast-worker",
+  "name": "pth-steadfast",
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "main": "src/index.ts",
+  "compatibility_date": "2024-11-11",
+  "compatibility_flags": ["nodejs_compat"],
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
