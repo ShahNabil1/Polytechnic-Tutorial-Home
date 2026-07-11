@@ -370,6 +370,228 @@ export type Database = {
         }
         Relationships: []
       }
+      lms_lessons: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration_seconds: number | null
+          id: string
+          is_free: boolean
+          module_id: string
+          sort_order: number
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          video_provider: string
+          video_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration_seconds?: number | null
+          id?: string
+          is_free?: boolean
+          module_id: string
+          sort_order?: number
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          video_provider?: string
+          video_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration_seconds?: number | null
+          id?: string
+          is_free?: boolean
+          module_id?: string
+          sort_order?: number
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          video_provider?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_lessons_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "lms_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lms_modules: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          sort_order: number
+          subject_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          sort_order?: number
+          subject_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          sort_order?: number
+          subject_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_modules_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "lms_subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lms_subject_departments: {
+        Row: {
+          category_id: string
+          subject_id: string
+        }
+        Insert: {
+          category_id: string
+          subject_id: string
+        }
+        Update: {
+          category_id?: string
+          subject_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_subject_departments_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_subject_departments_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "lms_subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lms_subject_instructors: {
+        Row: {
+          assigned_at: string
+          instructor_user_id: string
+          role: string
+          subject_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          instructor_user_id: string
+          role?: string
+          subject_id: string
+        }
+        Update: {
+          assigned_at?: string
+          instructor_user_id?: string
+          role?: string
+          subject_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_subject_instructors_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "lms_subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lms_subject_semesters: {
+        Row: {
+          category_id: string
+          subject_id: string
+        }
+        Insert: {
+          category_id: string
+          subject_id: string
+        }
+        Update: {
+          category_id?: string
+          subject_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_subject_semesters_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_subject_semesters_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "lms_subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lms_subjects: {
+        Row: {
+          code: string | null
+          cover_image_url: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       order_email_deliveries: {
         Row: {
           attempt_no: number
