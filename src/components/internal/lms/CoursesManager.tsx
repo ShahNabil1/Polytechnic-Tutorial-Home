@@ -31,6 +31,7 @@ export function CoursesManager() {
   const listTax = useServerFn(listAcademicTaxonomy);
   const deleteFn = useServerFn(deleteCourse);
   const generateFn = useServerFn(generateMissingCourses);
+  const featuredFn = useServerFn(setCourseFeatured);
   const navigate = useNavigate();
 
   const [courses, setCourses] = useState<LmsCourse[]>([]);
