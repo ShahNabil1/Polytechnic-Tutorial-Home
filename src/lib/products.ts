@@ -62,6 +62,7 @@ export interface Product {
   featured?: boolean;
   isActive?: boolean;
   isOnlineBook?: boolean;
+  ebookFileUrl?: string | null;
   // Legacy fields kept optional so cart items persisted before DB migration still render.
   coverColor?: string;
   coverEmoji?: string;
