@@ -179,3 +179,87 @@ export async function getStatusByInvoice(invoice: string): Promise<string | null
   const b = body as any;
   return (b?.delivery_status as string) ?? null;
 }
+
+// -------- shared helpers (imported by steadfast.functions.ts) --------
+// Kept here (not in .functions.ts) so `createServerFn().handler(...)` bodies
+// can safely call them — TSS server-fn splitting strips module-scope helpers
+// that live next to the handler declaration.
+
+export function buildPayloadFromOrder(order: any, items: any[]): SteadfastSinglePayload {
+  const physical = items.filter((i) => i.item_type !== "ebook");
+  const totalLot = physical.reduce((s, i) => s + Number(i.quantity || 0), 0) || 1;
+  const desc =
+    (order.item_description as string | null) ||
+    physical.map((i) => `${i.title} x${i.quantity}`).join(", ").slice(0, 500);
+  const address =
+    order.full_address ||
+    [order.address_line, order.thana, order.district, order.division].filter(Boolean).join(", ") ||
+    "N/A";
+
+  const payload: SteadfastSinglePayload = {
+    invoice: order.order_no,
+    recipient_name: order.customer_name,
+    recipient_phone: order.customer_phone,
+    recipient_address: String(address).slice(0, 250),
+    cod_amount: Number(order.cod_amount ?? order.total_bdt ?? 0),
+    total_lot: totalLot,
+    delivery_type: 0,
+    item_description: desc,
+  };
+  if (order.alternative_phone) payload.alternative_phone = order.alternative_phone;
+  if (order.customer_email) payload.recipient_email = order.customer_email;
+  if (order.note) payload.note = order.note;
+  return payload;
+}
+
+export async function dispatchOrderById(
+  sbAdmin: any,
+  orderId: string,
+): Promise<{ ok: boolean; error?: string; consignmentId?: string; trackingCode?: string }> {
+  const [{ data: order }, { data: items }] = await Promise.all([
+    sbAdmin.from("orders").select("*").eq("id", orderId).single(),
+    sbAdmin.from("order_items").select("*").eq("order_id", orderId),
+  ]);
+  if (!order) return { ok: false, error: "Order not found" };
+  if (!order.has_physical) return { ok: false, error: "Order has no physical items to ship" };
+  if (order.steadfast_consignment_id) {
+    return {
+      ok: true,
+      consignmentId: String(order.steadfast_consignment_id),
+      trackingCode: order.steadfast_tracking_code ?? undefined,
+    };
+  }
+
+  try {
+    const payload = buildPayloadFromOrder(order, items ?? []);
+    const c = await createSingleOrder(payload);
+    await sbAdmin
+      .from("orders")
+      .update({
+        steadfast_consignment_id: String(c.consignment_id),
+        steadfast_tracking_code: c.tracking_code,
+        steadfast_status: c.status ?? "in_review",
+        steadfast_delivery_status: c.status ?? "in_review",
+        steadfast_synced_at: new Date().toISOString(),
+        steadfast_last_error: null,
+        status: "ready_to_ship",
+        physical_status: "ready_to_ship",
+      })
+      .eq("id", orderId);
+    return {
+      ok: true,
+      consignmentId: String(c.consignment_id),
+      trackingCode: c.tracking_code,
+    };
+  } catch (err: any) {
+    const msg = String(err?.message ?? err ?? "Unknown Steadfast error").slice(0, 500);
+    await sbAdmin
+      .from("orders")
+      .update({
+        steadfast_last_error: msg,
+        steadfast_retry_count: (order.steadfast_retry_count ?? 0) + 1,
+      })
+      .eq("id", orderId);
+    return { ok: false, error: msg };
+  }
+}
