@@ -47,10 +47,15 @@ import {
   ORDER_STATUSES,
   STATUS_LABEL,
   STATUS_STYLE,
+  DIGITAL_STATUS_LABEL,
+  DIGITAL_STATUS_STYLE,
+  PHYSICAL_STATUS_LABEL,
   formatDhakaDateTime,
   type Order,
   type OrderItem,
   type OrderStatus,
+  type DigitalStatus,
+  type PhysicalStatus,
 } from "@/lib/orders";
 import { formatBDTEn, waLinkBD } from "@/lib/format";
 import { cn } from "@/lib/utils";
