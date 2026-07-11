@@ -1338,7 +1338,8 @@ function FulfillmentSection({
     }
   }
 
-  const canRetry = showDigital && ["failed", "bounced", "manual_review", "delayed"].includes(digital);
+  const canRetry = showDigital && ["pending", "sent", "failed", "bounced", "manual_review", "delayed"].includes(digital);
+  const retryLabel = digital === "sent" ? "Resend Email" : digital === "pending" ? "Send Now" : "Retry Delivery";
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -1350,7 +1351,7 @@ function FulfillmentSection({
             disabled={busy}
             className="rounded-lg bg-slate-900 px-3 py-1 text-xs font-bold text-white hover:bg-slate-800 disabled:opacity-60"
           >
-            {busy ? "Retrying…" : "Retry Delivery"}
+            {busy ? "Sending…" : retryLabel}
           </button>
         )}
       </div>
