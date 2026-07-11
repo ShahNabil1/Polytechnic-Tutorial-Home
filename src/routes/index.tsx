@@ -250,44 +250,9 @@ function Courses({ items }: { items: PublicCourseCard[] }) {
             শীঘ্রই নতুন কোর্স যুক্ত হচ্ছে।
           </div>
         ) : (
-          <div className="mt-10 grid gap-5 md:grid-cols-3">
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((c) => (
-              <Link
-                key={c.id}
-                to="/courses/$deptSlug/$semSlug"
-                params={{ deptSlug: c.department_slug, semSlug: c.semester_slug }}
-                className="group flex flex-col rounded-xl border border-border bg-card p-6 transition-colors hover:border-foreground/30"
-              >
-                <div className="text-xs font-medium text-brand">{c.department_name}</div>
-                <h3 className="mt-2 line-clamp-2 text-lg font-semibold leading-snug">
-                  {c.title}
-                </h3>
-                <div className="mt-5 flex flex-wrap gap-4 text-xs text-muted-foreground">
-                  <span className="inline-flex items-center gap-1.5">
-                    <PlayCircle className="size-3.5" />
-                    {toBanglaNumber(c.lesson_count)} লেসন
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <Users className="size-3.5" />
-                    {toBanglaNumber(c.subject_count)} সাব্জেক্ট
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <Clock className="size-3.5" />
-                    {c.semester_name}
-                  </span>
-                </div>
-                <div className="mt-6 flex items-end justify-between border-t border-border pt-5">
-                  <div>
-                    <div className="text-xs text-muted-foreground">শুরু থেকে</div>
-                    <div className="font-inter text-xl font-semibold tabular-nums">
-                      ৳{toBanglaNumber(c.price_bdt)}
-                    </div>
-                  </div>
-                  <span className="text-sm font-medium text-foreground transition-colors group-hover:text-brand">
-                    বিস্তারিত →
-                  </span>
-                </div>
-              </Link>
+              <PublicCourseCard key={c.id} course={c} />
             ))}
           </div>
         )}
