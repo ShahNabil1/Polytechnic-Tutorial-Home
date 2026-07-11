@@ -1,121 +1,131 @@
-## Goal
 
-Turn `/workspace/ecommerce/orders` into a real order management console. Every physical/mixed order that a customer confirms at checkout gets persisted server-side, shown in status tabs, and exposes a rich view/edit drawer — with the record shape already matching Steadfast's `create_order` API so the future integration is a one-liner.
+## Coupon System — End-to-End Plan
 
-## Database (Supabase migration)
+A unified coupon engine that powers the Workspace › Coupons admin page and the checkout redemption flow, structured for three coupon "scopes" that all share one database + validation core.
 
-New tables (all with GRANTs + RLS + updated_at trigger):
+---
 
-1. **`orders`** — one row per confirmed order
-   - `id uuid pk`, `order_no text unique` (e.g. `PTH001`, generated server-side via sequence)
-   - `user_id uuid null` (null = guest), `customer_email`, `customer_name`, `customer_phone`, `alternative_phone`
-   - `division`, `district`, `thana`, `address_line`, `full_address text` (composed)
-   - `subtotal_bdt`, `shipping_bdt`, `discount_bdt`, `total_bdt`, `cod_amount numeric default 0`
-   - `payment_status text` (`paid` default), `payment_method text`
-   - `status text` — enum-like: `processing | ready_to_ship | shipped | hold | delivered | cancelled | returned | incomplete`
-   - `order_type text` — `physical | ebook | mixed`
-   - `has_physical bool`, `delivery_type smallint default 0`
-   - `note text` (customer-facing / Steadfast note), `item_description text` (auto-composed: `"Title x2, Title2 x1"`)
-   - `ip inet`, `user_agent text`, `device_fingerprint text`
-   - `steadfast_consignment_id text`, `steadfast_tracking_code text`, `steadfast_status text`, `steadfast_synced_at timestamptz`
-   - `idempotency_key text unique` (blocks duplicate submits server-side too)
-   - `created_at`, `updated_at`
+### 1. Three tabs, one engine
 
-2. **`order_items`**
-   - `id`, `order_id fk`, `product_id`, `bundle_id null`, `is_bundle bool`, `title`, `sku`, `unit_price`, `quantity`, `line_total`, `image_url`, `item_type` (`physical|ebook`)
+Workspace › E-Commerce › Coupons will have 3 tabs, all backed by the same table:
 
-3. **`order_internal_notes`**
-   - `id`, `order_id`, `author_user_id`, `body`, `created_at` — internal-only, staff-visible
+- **Shop Coupons** — for physical books / bundles / online-books (active now)
+- **Course Coupons** — for future courses (schema ready; UI shows an empty state until courses exist)
+- **Special Coupons** — targeted to specific customers (CRM-gated; UI shows "Available after CRM build" until then, but the fields exist)
 
-4. **`order_status_history`**
-   - `id`, `order_id`, `from_status`, `to_status`, `changed_by`, `note`, `created_at`
+A `scope` column (`shop | course | special`) filters each tab. Only Shop coupons apply at `/checkout` for now.
 
-5. **`blocked_identifiers`**
-   - `id`, `kind text` (`ip | fingerprint | phone`), `value text`, `reason`, `blocked_by`, `created_at`, unique(kind, value)
+---
 
-6. **Sequence** `order_no_seq` + SQL function `next_order_no()` returning `'PTH' || lpad(nextval, 3, '0')` (grows past 3 digits).
+### 2. Coupon capabilities
 
-RLS:
-- `orders`, `order_items`, `order_status_history`, `order_internal_notes`, `blocked_identifiers`: only `employee | super_admin` roles can select/update; owning user can select their own orders (for future "My Orders" page — not built now but policy ready). Insert to `orders`/`order_items` allowed for authenticated OR anon (guest checkout) but only via server function using the publishable client; guarded by `idempotency_key` unique + blocklist check inside the server fn.
-- Internal notes: insert/select only for internal roles.
+Each coupon supports:
 
-## Server functions (`src/lib/orders.functions.ts`)
+- **Code** (unique, case-insensitive), **Name**, **Description**
+- **Discount type**: `percent` or `flat`
+- **Discount value** (e.g. 20 for 20% or 100 for ৳100 off)
+- **Cap** — max discount amount when percent (e.g. "20% up to ৳100")
+- **Minimum spend** (subtotal threshold)
+- **Max uses total** and **Max uses per customer**
+- **Applies to** (per coupon):
+  - All products
+  - Specific products (multi-select)
+  - Specific categories (multi-select)
+  - (Course scope) specific courses — schema ready
+  - (Special scope) specific customer user_ids — schema ready
+- **Active toggle** (on/off, instantly)
+- **Valid from / Valid until** (date range; either optional)
+- **Stackable** flag (default off)
+- **Excludes shipping** flag (default: discount subtotal only)
+- **Soft-delete + Reactivate** (via `deleted_at`; deleted coupons hidden but recoverable)
+- **Usage counter** (auto-incremented on successful order)
 
-- `createOrder({ cart, customer, totals, idempotencyKey, fingerprint })` — public (no auth required). Checks `blocked_identifiers` against IP (from request) / fingerprint / phone → throws if blocked. Reuses row if `idempotency_key` exists. Generates `order_no` via `next_order_no()`. Inserts order + items. Returns `{ orderNo, status, id }`.
-- `listAdminOrders({ status?, search?, limit, cursor })` — internal-only, filter by tab.
-- `getAdminOrder({ id })` — full order + items + notes + history + (if `user_id`) profile snapshot.
-- `updateOrderCustomer({ id, patch })` — edit name/phone/address/etc, writes history entry.
-- `updateOrderItems({ id, items })` — replace items, recompute totals + item_description.
-- `updateOrderStatus({ id, status, note })` — writes history.
-- `addInternalNote({ id, body })`.
-- `addBlockedIdentifier({ kind, value, reason })` / `removeBlockedIdentifier({ id })`.
-- `listBlockedIdentifiers()`.
+---
 
-All internal ones use `requireSupabaseAuth` + `has_role` check for `employee|super_admin`.
+### 3. Database (single table + one child table)
 
-## Client integration
+```text
+coupons
+  id, scope, code (unique lower), name, description,
+  discount_type, discount_value, cap_amount,
+  min_spend, max_uses_total, max_uses_per_customer,
+  applies_to ('all' | 'products' | 'categories' | 'courses' | 'customers'),
+  starts_at, ends_at, is_active,
+  stackable, exclude_shipping,
+  uses_count, created_by, deleted_at,
+  created_at, updated_at
 
-- **`src/routes/checkout.index.tsx`** — replace localStorage-only order creation with `createOrder` server fn call. Keep client-side idempotency; also pass idempotencyKey server-side. Collect `device_fingerprint` (simple canvas+UA hash) and send. On success, store snapshot in sessionStorage as before and navigate to `/checkout/success`.
-- **`src/lib/fingerprint.ts`** (new) — tiny FP hash (UA + screen + tz + canvas).
-- **`src/routes/__root.tsx`** (or a small guard hook) — on mount, check `/api/public/blocklist-check` server route; if blocked, replace the app with a "Access denied" screen. (Server route because it needs raw IP.)
+coupon_targets
+  coupon_id, target_type ('product'|'category'|'course'|'customer'), target_id
+  (PK: coupon_id + target_type + target_id)
 
-## Orders admin page
-
-Rewrite `src/routes/_authenticated/_internal.workspace.ecommerce.orders.tsx`:
-
-- Header + horizontal tabs: Processing | Ready To Ship | Shipped | Hold | Delivered | Cancelled | Returned | Incomplete. Each tab shows count badge.
-- Table rows (top-to-bottom newest first): `#Order No` · `Created (Asia/Dhaka, formatted bn/en)` · `Customer name + phone (tel: link with phone icon)` · `IP / fingerprint (mono, truncated)` · `Total BDT` · `View` button.
-- Search box (order no / phone / name).
-- **View drawer** (`AdminOrderDrawer.tsx`):
-  - Left: customer card — editable fields (name, phone with tel: icon, alt phone, email, division/district/thana/address, note). Save button per section.
-  - If `user_id` present: show profile avatar + full profile snapshot (read-only) above the editable form.
-  - Items block: current items list with qty/price/line total; "Add product" combobox that searches products; qty +/- and remove. Recompute totals live; Save updates order.
-  - Steadfast panel: shows the exact JSON that will be POSTed (invoice=order_no, recipient_*, cod_amount=0, item_description, total_lot=sum(qty), delivery_type=0, note, alternative_phone). Copy button. Placeholder "Send to Steadfast" button (disabled, tooltip "coming soon").
-  - Status changer dropdown (writes history).
-  - Internal notes thread (staff only, add + list).
-  - Block buttons: Block IP · Block Fingerprint · Block Phone (with reason prompt).
-  - E-book orders: hide address block (show only what customer provided).
-
-## Steadfast payload contract
-
-Match user's spec exactly:
+coupon_redemptions
+  id, coupon_id, order_id, user_id (nullable for guests), phone,
+  discount_amount, redeemed_at
 ```
-invoice          = order_no                    (PTH001…)
-recipient_name   = customer_name
-recipient_phone  = customer_phone (11 digits)
-alternative_phone= alternative_phone (opt)
-recipient_email  = customer_email (opt)
-recipient_address= "{address_line}, {thana}, {district}, {division}" (≤250 chars)
-cod_amount       = 0
-note             = note
-item_description = "Title xQty, Title2 xQty2, …"
-total_lot        = sum(quantity)
-delivery_type    = 0
+
+RLS: employees/super_admins manage; `anon` + `authenticated` can call a validation RPC (SECURITY DEFINER) that returns discount info without exposing the table.
+
+---
+
+### 4. Validation logic (shared)
+
+A single Postgres function `validate_coupon(code, subtotal, cart_json, phone, user_id)` returns:
+
+```json
+{ "ok": true, "discount": 100, "coupon_id": "...", "reason": null }
 ```
-Helper `buildSteadfastPayload(order)` in `src/lib/steadfast.ts` — used by the drawer preview and by the future API call.
 
-## Files to create / edit
+or
 
-**Create**
-- `supabase/migrations/…orders.sql` (via migration tool)
-- `src/lib/orders.functions.ts`
-- `src/lib/orders.ts` (shared types)
-- `src/lib/steadfast.ts`
-- `src/lib/fingerprint.ts`
-- `src/components/internal/AdminOrdersManager.tsx`
-- `src/components/internal/AdminOrderDrawer.tsx`
-- `src/routes/api/public/blocklist-check.ts` (server route for IP check)
+```json
+{ "ok": false, "discount": 0, "reason": "expired" | "min_spend" | "max_uses" | "not_applicable" | "inactive" | "not_found" }
+```
 
-**Edit**
-- `src/routes/_authenticated/_internal.workspace.ecommerce.orders.tsx` → render `AdminOrdersManager`
-- `src/routes/checkout.index.tsx` → call `createOrder` server fn, pass fingerprint
-- `src/routes/checkout.success.tsx` → status/order id now come from server response
-- `src/routes/__root.tsx` → mount blocklist check (or via a small `<BlocklistGate>` component)
+Same function is called by:
+- Checkout UI (via a server function, before order submit)
+- `createOrder` server function (re-validates atomically, records redemption, increments `uses_count`)
 
-## Non-goals (this turn)
-- Actual Steadfast HTTP call (payload preview only, per user "future connect")
-- Customer-facing "My Orders" page (RLS is ready for it later)
-- Real-time updates / notifications
-- E-book delivery/download flow
+This guarantees the client-facing preview and the authoritative server calculation never disagree.
 
-Ready to build this on approval.
+---
+
+### 5. Admin UI — `/workspace/ecommerce/coupons`
+
+- **Tabs**: Shop · Course · Special
+- **Toolbar**: search by code/name, filter (active/inactive/expired/deleted), "New Coupon" button
+- **Table**: Code · Name · Discount · Applies to · Uses · Validity · Status · Actions
+- **Actions per row**: Edit · Toggle active · Duplicate · Soft-delete · Reactivate (for deleted)
+- **Create/Edit dialog** — one form covering every field above with a searchable multi-select for products/categories (fetched from existing products/categories tables). Course & Customer selectors are wired but disabled with a "coming soon" hint on the relevant tabs.
+
+---
+
+### 6. Checkout UI — `/checkout`
+
+New "Promo code" block in the order-summary card:
+
+- Input + "Apply" button
+- On apply: calls `validateCoupon` server fn, shows discount line ("Coupon SAVE20 − ৳100") or a friendly Bangla error
+- Applied coupon shown as a pill with an "×" to remove
+- Total updates live; discount passed into `createOrder` so the server can re-validate + record the redemption + increment `uses_count`
+- Persists in cart state so page reloads keep it
+- Adds discount to the incomplete-checkout capture snapshot
+
+---
+
+### Technical notes
+
+- New files: `src/lib/coupons.functions.ts` (`validateCoupon`, `listCoupons`, `upsertCoupon`, `toggleCoupon`, `softDeleteCoupon`, `reactivateCoupon`), `src/components/workspace/coupons/*` (Table, FormDialog, TargetPicker), `src/components/checkout/CouponBlock.tsx`
+- `createOrder` extended to accept `couponCode`; re-validates server-side and writes to `coupon_redemptions` in the same transaction as the order.
+- `cart-store` gets `appliedCoupon` state + setter/clear.
+- Migration includes the three tables, GRANTs, RLS, the `validate_coupon` SECURITY DEFINER function, and the redemption trigger to bump `uses_count`.
+
+---
+
+### Out of scope (this pass)
+
+- Course-specific redemption flow (courses don't exist in the app yet — schema is ready, checkout wiring will land with the course cart).
+- Customer-targeted (Special) redemption (waits for CRM customer records; admin UI is stubbed with the field disabled).
+- Stacking multiple coupons at once (`stackable` flag stored, but UI enforces one coupon per order for now).
+
+Approve and I'll ship this in one go — migration first, then server fns, admin UI, checkout wiring.
