@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { confirm } from "@/components/ui/confirm-dialog";
 import { SubjectFormDialog } from "@/components/internal/lms/SubjectFormDialog";
+import { Pagination } from "@/components/internal/Pagination";
 
 type Props = {
   deptFilter?: string;
