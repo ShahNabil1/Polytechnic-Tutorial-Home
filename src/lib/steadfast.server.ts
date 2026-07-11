@@ -72,14 +72,18 @@ export type SteadfastBulkResultRow = {
 };
 
 function normalizeError(status: number, body: unknown): string {
-  if (typeof body === "string") return `HTTP ${status}: ${body.slice(0, 400)}`;
+  if (typeof body === "string") return status >= 200 && status < 300 ? body.slice(0, 400) : `HTTP ${status}: ${body.slice(0, 400)}`;
   const b = body as any;
+  const row = findResponseRow(b);
   const msg =
+    row?.message ||
+    row?.error ||
+    (row?.errors && (typeof row.errors === "string" ? row.errors : JSON.stringify(row.errors))) ||
     b?.message ||
     b?.error ||
     (b?.errors && (typeof b.errors === "string" ? b.errors : JSON.stringify(b.errors))) ||
     "";
-  return msg ? `HTTP ${status}: ${msg}` : `HTTP ${status}`;
+  return msg ? (status >= 200 && status < 300 ? msg : `HTTP ${status}: ${msg}`) : `HTTP ${status}`;
 }
 
 async function readBody(res: Response): Promise<unknown> {
@@ -89,6 +93,51 @@ async function readBody(res: Response): Promise<unknown> {
   } catch {
     return text;
   }
+}
+
+function findResponseRow(body: any, invoice?: string): any | null {
+  if (Array.isArray(body?.data)) {
+    return (
+      body.data.find((r: any) => String(r?.invoice ?? r?.Invoice ?? "") === invoice) ??
+      body.data[0] ??
+      null
+    );
+  }
+  return body?.data ?? body ?? null;
+}
+
+function readConsignment(value: any): SteadfastConsignment | null {
+  const c = value?.consignment ?? value;
+  const consignmentId = c?.consignment_id ?? c?.consignmentId;
+  const trackingCode = c?.tracking_code ?? c?.trackingCode;
+  if (!consignmentId || !trackingCode) return null;
+  return {
+    consignment_id: consignmentId,
+    invoice: String(c.invoice ?? value?.invoice ?? ""),
+    tracking_code: String(trackingCode),
+    status: c.delivery_status ?? c.status,
+  };
+}
+
+function extractConsignment(body: unknown, invoice: string): SteadfastConsignment | null {
+  const b = body as any;
+  const candidates: any[] = [b?.consignment, b?.data?.consignment, b?.data, b];
+  if (Array.isArray(b?.data)) {
+    const exact = b.data.filter((r: any) => String(r?.invoice ?? r?.Invoice ?? "") === invoice);
+    candidates.unshift(...exact);
+    candidates.push(...b.data);
+  }
+  for (const candidate of candidates) {
+    const consignment = readConsignment(candidate);
+    if (consignment) return { ...consignment, invoice: consignment.invoice || invoice };
+  }
+  return null;
+}
+
+function normalizeDeliveryStatus(status: string | undefined): string {
+  // Bulk-style rows use `status: "success"` to mean API success, not courier
+  // delivery state. Store the initial Steadfast delivery state consistently.
+  return !status || status === "success" ? "in_review" : status;
 }
 
 /**
@@ -107,16 +156,15 @@ export async function createSingleOrder(
   );
   const body = await readBody(res);
   if (!res.ok) throw new Error(normalizeError(res.status, body));
-  const b = body as any;
-  const c = b?.consignment;
-  if (!c?.consignment_id || !c?.tracking_code) {
+  const c = extractConsignment(body, payload.invoice);
+  if (!c) {
     throw new Error(normalizeError(res.status, body) || "Steadfast returned no consignment");
   }
   return {
     consignment_id: c.consignment_id,
-    invoice: c.invoice ?? payload.invoice,
+    invoice: c.invoice || payload.invoice,
     tracking_code: c.tracking_code,
-    status: c.status,
+    status: normalizeDeliveryStatus(c.status),
   };
 }
 
@@ -150,12 +198,13 @@ export async function createBulkOrders(
   }
   return rows.map((r) => {
     const invoice = String(r.invoice ?? r.Invoice ?? "");
-    if (r.status === "success" || r.consignment_id) {
+    const c = readConsignment(r);
+    if ((r.status === "success" || c?.consignment_id) && c) {
       return {
-        invoice,
+        invoice: invoice || c.invoice,
         status: "success",
-        consignment_id: r.consignment_id,
-        tracking_code: r.tracking_code,
+        consignment_id: c.consignment_id,
+        tracking_code: c.tracking_code,
       };
     }
     const message =
