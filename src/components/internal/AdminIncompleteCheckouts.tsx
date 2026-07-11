@@ -284,6 +284,15 @@ export function AdminIncompleteCheckouts({ search }: { search: string }) {
         </ul>
       )}
     </div>
+      <Pagination
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        className="mt-3"
+      />
+
       {openOrderId && (
         <AdminOrderDrawer
           orderId={openOrderId}
