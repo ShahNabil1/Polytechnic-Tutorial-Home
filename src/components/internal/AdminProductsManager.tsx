@@ -145,6 +145,7 @@ export function AdminProductsManager() {
       is_active: p.isActive ?? true,
       is_featured: p.featured ?? false,
       is_online_book: p.isOnlineBook ?? false,
+      ebook_file_url: p.ebookFileUrl ?? "",
     });
     setEditorOpen(true);
   }
