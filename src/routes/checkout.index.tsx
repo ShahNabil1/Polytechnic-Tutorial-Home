@@ -286,6 +286,8 @@ function CheckoutPage() {
             type: i.type,
           })),
           totals: { subtotal, shipping, total },
+          source: sourceRef.current.source,
+          sourceDetail: sourceRef.current.detail || "",
         },
       });
       const orderNo = res.orderNo;
