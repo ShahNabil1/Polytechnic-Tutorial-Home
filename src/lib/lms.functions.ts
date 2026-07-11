@@ -31,17 +31,30 @@ function slugify(input: string): string {
 
 // ==================== Academic Structure (departments/semesters) ====================
 
+function tableForKind(kind: AcademicKind) {
+  return kind === "department" ? "lms_departments" : "lms_semesters";
+}
+
 export const listAcademicTaxonomy = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("product_categories")
-      .select("*")
-      .in("kind", ["department", "semester"])
-      .order("kind")
-      .order("sort_order");
-    if (error) throw new Error(error.message);
-    return (data ?? []) as AcademicCategory[];
+    const [deps, sems] = await Promise.all([
+      context.supabase.from("lms_departments").select("*").order("sort_order"),
+      context.supabase.from("lms_semesters").select("*").order("sort_order"),
+    ]);
+    if (deps.error) throw new Error(deps.error.message);
+    if (sems.error) throw new Error(sems.error.message);
+    const rows: AcademicCategory[] = [
+      ...((deps.data ?? []) as any[]).map((r) => ({
+        id: r.id, kind: "department" as const, slug: r.slug, name: r.name,
+        sort_order: r.sort_order, is_active: r.is_active,
+      })),
+      ...((sems.data ?? []) as any[]).map((r) => ({
+        id: r.id, kind: "semester" as const, slug: r.slug, name: r.name,
+        sort_order: r.sort_order, is_active: r.is_active,
+      })),
+    ];
+    return rows;
   });
 
 const TaxonomyInput = z.object({
@@ -64,32 +77,30 @@ export const upsertAcademicTaxonomy = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await ensureCanManage(context);
+    const table = tableForKind(data.patch.kind);
+    const { kind: _k, ...row } = data.patch;
     if (data.id) {
-      const { error } = await context.supabase
-        .from("product_categories")
-        .update(data.patch as never)
-        .eq("id", data.id);
+      const { error } = await context.supabase.from(table).update(row as never).eq("id", data.id);
       if (error) throw new Error(error.message);
       return { ok: true, id: data.id };
     }
-    const { data: row, error } = await context.supabase
-      .from("product_categories")
-      .insert(data.patch as never)
+    const { data: inserted, error } = await context.supabase
+      .from(table)
+      .insert(row as never)
       .select("id")
       .single();
     if (error) throw new Error(error.message);
-    return { ok: true, id: (row as any).id as string };
+    return { ok: true, id: (inserted as any).id as string };
   });
 
 export const deleteAcademicTaxonomy = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
+  .inputValidator((i: unknown) =>
+    z.object({ id: z.string().uuid(), kind: z.enum(["department", "semester"]) }).parse(i),
+  )
   .handler(async ({ data, context }) => {
     await ensureCanManage(context);
-    const { error } = await context.supabase
-      .from("product_categories")
-      .delete()
-      .eq("id", data.id);
+    const { error } = await context.supabase.from(tableForKind(data.kind)).delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
