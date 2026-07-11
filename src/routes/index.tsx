@@ -123,7 +123,7 @@ function HomePage() {
   const fetchFeatured = useServerFn(listFeaturedProducts);
   const fetchCourses = useServerFn(listPublicCourses);
   const [featured, setFeatured] = useState<Product[]>([]);
-  const [courses, setCourses] = useState<PublicCourseCard[]>([]);
+  const [courses, setCourses] = useState<PublicCourseCardData[]>([]);
 
   useEffect(() => {
     fetchFeatured({ data: undefined as never })
@@ -223,7 +223,7 @@ function Stats() {
   );
 }
 
-function Courses({ items }: { items: PublicCourseCard[] }) {
+function Courses({ items }: { items: PublicCourseCardData[] }) {
   return (
     <section id="courses" className="scroll-mt-20 px-4 py-20 md:px-6 md:py-24">
       <div className="mx-auto max-w-6xl">
