@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Phone, Eye, Search } from "lucide-react";
@@ -9,21 +9,34 @@ import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
 import { cn } from "@/lib/utils";
 import { AdminOrderDrawer } from "@/components/internal/AdminOrderDrawer";
 import { AdminIncompleteCheckouts } from "@/components/internal/AdminIncompleteCheckouts";
+import { Pagination } from "@/components/internal/Pagination";
 import { supabase } from "@/integrations/supabase/client";
 
 export function AdminOrdersManager() {
   const [tab, setTab] = useState<OrderStatus>("processing");
   const [search, setSearch] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   const fetchOrders = useServerFn(listAdminOrders);
   const fetchCounts = useServerFn(getAdminOrderCounts);
   const queryClient = useQueryClient();
   const isIncomplete = tab === "incomplete";
 
+  // Reset to page 1 when tab / search / pageSize changes.
+  useEffect(() => {
+    setPage(1);
+  }, [tab, search, pageSize]);
+
+  const offset = (page - 1) * pageSize;
+
   const { data, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ["admin-orders", tab, search],
-    queryFn: () => fetchOrders({ data: { status: tab, search: search || undefined, limit: 200 } }),
+    queryKey: ["admin-orders", tab, search, page, pageSize],
+    queryFn: () =>
+      fetchOrders({
+        data: { status: tab, search: search || undefined, limit: pageSize, offset },
+      }),
   });
 
   // Counts fetched independently so badges stay accurate on every tab, including Incomplete.
@@ -52,7 +65,9 @@ export function AdminOrdersManager() {
   }, [queryClient]);
 
   const orders = data?.orders ?? [];
+  const total = data?.total ?? 0;
   const counts = countsData?.counts ?? data?.counts ?? {};
+
 
   return (
     <div className="space-y-4">
@@ -187,8 +202,16 @@ export function AdminOrdersManager() {
               </table>
             </div>
           </div>
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
           <AdminIncompleteCheckouts search={search} />
         </div>
+
       ) : (
         <div className="overflow-hidden rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/60 via-white to-sky-50/60 shadow-sm">
           <div className="overflow-x-auto">
@@ -269,6 +292,17 @@ export function AdminOrdersManager() {
           </div>
         </div>
       )}
+
+      {!isIncomplete && (
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
+      )}
+
 
       {openId && (
         <AdminOrderDrawer

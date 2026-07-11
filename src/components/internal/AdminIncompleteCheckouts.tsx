@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Pagination } from "@/components/internal/Pagination";
+
 import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -83,11 +85,21 @@ export function AdminIncompleteCheckouts({ search }: { search: string }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [openOrderId, setOpenOrderId] = useState<string | null>(null);
   const [promotingId, setPromotingId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, pageSize]);
+
+  const offset = (page - 1) * pageSize;
 
   const { data, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ["admin-incomplete", search],
-    queryFn: () => fetchList({ data: { search: search || undefined, limit: 200 } }),
+    queryKey: ["admin-incomplete", search, page, pageSize],
+    queryFn: () =>
+      fetchList({ data: { search: search || undefined, limit: pageSize, offset } }),
   });
+
 
   async function remove(id: string) {
     if (!(await confirmDialog({ variant: "danger", description: "Delete this incomplete checkout record?" }))) return;
@@ -114,13 +126,15 @@ export function AdminIncompleteCheckouts({ search }: { search: string }) {
   }
 
 
-  const rows = (data ?? []) as Row[];
+  const rows = (data?.items ?? []) as Row[];
+  const total = data?.total ?? rows.length;
 
   return (
     <>
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-        <span>{rows.length} incomplete checkout{rows.length === 1 ? "" : "s"}</span>
+        <span>{total} incomplete checkout{total === 1 ? "" : "s"}</span>
+
         <button
           onClick={() => refetch()}
           className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-bold text-slate-600 hover:bg-slate-100"
@@ -270,6 +284,15 @@ export function AdminIncompleteCheckouts({ search }: { search: string }) {
         </ul>
       )}
     </div>
+      <Pagination
+        page={page}
+        pageSize={pageSize}
+        total={total}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+        className="mt-3"
+      />
+
       {openOrderId && (
         <AdminOrderDrawer
           orderId={openOrderId}
