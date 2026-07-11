@@ -40,6 +40,7 @@ import { Route as AuthenticatedInternalWorkspaceEmployeesRouteImport } from './r
 import { Route as AuthenticatedInternalInstructorProfileRouteImport } from './routes/_authenticated/_internal.instructor.profile'
 import { Route as AuthenticatedInternalWorkspaceEcommerceIndexRouteImport } from './routes/_authenticated/_internal.workspace.ecommerce.index'
 import { Route as ApiPublicWebhooksSteadfastSecretRouteImport } from './routes/api/public/webhooks/steadfast.$secret'
+import { Route as AuthenticatedInternalWorkspaceSettingsSmsTemplatesRouteImport } from './routes/_authenticated/_internal.workspace.settings.sms-templates'
 import { Route as AuthenticatedInternalWorkspaceEcommerceProductsRouteImport } from './routes/_authenticated/_internal.workspace.ecommerce.products'
 import { Route as AuthenticatedInternalWorkspaceEcommerceOrdersRouteImport } from './routes/_authenticated/_internal.workspace.ecommerce.orders'
 import { Route as AuthenticatedInternalWorkspaceEcommerceCouponsRouteImport } from './routes/_authenticated/_internal.workspace.ecommerce.coupons'
@@ -211,6 +212,12 @@ const ApiPublicWebhooksSteadfastSecretRoute =
     path: '/api/public/webhooks/steadfast/$secret',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthenticatedInternalWorkspaceSettingsSmsTemplatesRoute =
+  AuthenticatedInternalWorkspaceSettingsSmsTemplatesRouteImport.update({
+    id: '/settings/sms-templates',
+    path: '/settings/sms-templates',
+    getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
+  } as any)
 const AuthenticatedInternalWorkspaceEcommerceProductsRoute =
   AuthenticatedInternalWorkspaceEcommerceProductsRouteImport.update({
     id: '/ecommerce/products',
@@ -268,6 +275,7 @@ export interface FileRoutesByFullPath {
   '/workspace/ecommerce/coupons': typeof AuthenticatedInternalWorkspaceEcommerceCouponsRoute
   '/workspace/ecommerce/orders': typeof AuthenticatedInternalWorkspaceEcommerceOrdersRoute
   '/workspace/ecommerce/products': typeof AuthenticatedInternalWorkspaceEcommerceProductsRoute
+  '/workspace/settings/sms-templates': typeof AuthenticatedInternalWorkspaceSettingsSmsTemplatesRoute
   '/api/public/webhooks/steadfast/$secret': typeof ApiPublicWebhooksSteadfastSecretRoute
   '/workspace/ecommerce/': typeof AuthenticatedInternalWorkspaceEcommerceIndexRoute
 }
@@ -300,6 +308,7 @@ export interface FileRoutesByTo {
   '/workspace/ecommerce/coupons': typeof AuthenticatedInternalWorkspaceEcommerceCouponsRoute
   '/workspace/ecommerce/orders': typeof AuthenticatedInternalWorkspaceEcommerceOrdersRoute
   '/workspace/ecommerce/products': typeof AuthenticatedInternalWorkspaceEcommerceProductsRoute
+  '/workspace/settings/sms-templates': typeof AuthenticatedInternalWorkspaceSettingsSmsTemplatesRoute
   '/api/public/webhooks/steadfast/$secret': typeof ApiPublicWebhooksSteadfastSecretRoute
   '/workspace/ecommerce': typeof AuthenticatedInternalWorkspaceEcommerceIndexRoute
 }
@@ -338,6 +347,7 @@ export interface FileRoutesById {
   '/_authenticated/_internal/workspace/ecommerce/coupons': typeof AuthenticatedInternalWorkspaceEcommerceCouponsRoute
   '/_authenticated/_internal/workspace/ecommerce/orders': typeof AuthenticatedInternalWorkspaceEcommerceOrdersRoute
   '/_authenticated/_internal/workspace/ecommerce/products': typeof AuthenticatedInternalWorkspaceEcommerceProductsRoute
+  '/_authenticated/_internal/workspace/settings/sms-templates': typeof AuthenticatedInternalWorkspaceSettingsSmsTemplatesRoute
   '/api/public/webhooks/steadfast/$secret': typeof ApiPublicWebhooksSteadfastSecretRoute
   '/_authenticated/_internal/workspace/ecommerce/': typeof AuthenticatedInternalWorkspaceEcommerceIndexRoute
 }
@@ -375,6 +385,7 @@ export interface FileRouteTypes {
     | '/workspace/ecommerce/coupons'
     | '/workspace/ecommerce/orders'
     | '/workspace/ecommerce/products'
+    | '/workspace/settings/sms-templates'
     | '/api/public/webhooks/steadfast/$secret'
     | '/workspace/ecommerce/'
   fileRoutesByTo: FileRoutesByTo
@@ -407,6 +418,7 @@ export interface FileRouteTypes {
     | '/workspace/ecommerce/coupons'
     | '/workspace/ecommerce/orders'
     | '/workspace/ecommerce/products'
+    | '/workspace/settings/sms-templates'
     | '/api/public/webhooks/steadfast/$secret'
     | '/workspace/ecommerce'
   id:
@@ -444,6 +456,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_internal/workspace/ecommerce/coupons'
     | '/_authenticated/_internal/workspace/ecommerce/orders'
     | '/_authenticated/_internal/workspace/ecommerce/products'
+    | '/_authenticated/_internal/workspace/settings/sms-templates'
     | '/api/public/webhooks/steadfast/$secret'
     | '/_authenticated/_internal/workspace/ecommerce/'
   fileRoutesById: FileRoutesById
@@ -686,6 +699,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWebhooksSteadfastSecretRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/_internal/workspace/settings/sms-templates': {
+      id: '/_authenticated/_internal/workspace/settings/sms-templates'
+      path: '/settings/sms-templates'
+      fullPath: '/workspace/settings/sms-templates'
+      preLoaderRoute: typeof AuthenticatedInternalWorkspaceSettingsSmsTemplatesRouteImport
+      parentRoute: typeof AuthenticatedInternalWorkspaceRoute
+    }
     '/_authenticated/_internal/workspace/ecommerce/products': {
       id: '/_authenticated/_internal/workspace/ecommerce/products'
       path: '/ecommerce/products'
@@ -744,6 +764,7 @@ interface AuthenticatedInternalWorkspaceRouteChildren {
   AuthenticatedInternalWorkspaceEcommerceCouponsRoute: typeof AuthenticatedInternalWorkspaceEcommerceCouponsRoute
   AuthenticatedInternalWorkspaceEcommerceOrdersRoute: typeof AuthenticatedInternalWorkspaceEcommerceOrdersRoute
   AuthenticatedInternalWorkspaceEcommerceProductsRoute: typeof AuthenticatedInternalWorkspaceEcommerceProductsRoute
+  AuthenticatedInternalWorkspaceSettingsSmsTemplatesRoute: typeof AuthenticatedInternalWorkspaceSettingsSmsTemplatesRoute
   AuthenticatedInternalWorkspaceEcommerceIndexRoute: typeof AuthenticatedInternalWorkspaceEcommerceIndexRoute
 }
 
@@ -765,6 +786,8 @@ const AuthenticatedInternalWorkspaceRouteChildren: AuthenticatedInternalWorkspac
       AuthenticatedInternalWorkspaceEcommerceOrdersRoute,
     AuthenticatedInternalWorkspaceEcommerceProductsRoute:
       AuthenticatedInternalWorkspaceEcommerceProductsRoute,
+    AuthenticatedInternalWorkspaceSettingsSmsTemplatesRoute:
+      AuthenticatedInternalWorkspaceSettingsSmsTemplatesRoute,
     AuthenticatedInternalWorkspaceEcommerceIndexRoute:
       AuthenticatedInternalWorkspaceEcommerceIndexRoute,
   }

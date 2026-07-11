@@ -63,10 +63,36 @@ Deno.serve(async (req) => {
   const phone = normalize(payload.user.phone);
   const otp = payload.sms.otp;
   const name = await lookupName(payload.user.id);
-  const greeting = name ? `প্রিয় ${name},\n\n` : "";
-  const message =
-    `${greeting}আপনার Polytechnic Tutorial Home OTP কোড: ${otp}\n\n` +
-    `কোডটি ৫ মিনিটের জন্য বৈধ। কারো সাথে শেয়ার করবেন না।`;
+
+  // Determine template key from sms_type. Supabase sends: recovery (password reset),
+  // signup, invite, magiclink, etc. Map to our template keys.
+  const smsType = String(payload.sms.sms_type ?? "").toLowerCase();
+  const templateKey = smsType === "recovery" || smsType === "reauthentication"
+    ? "reset_otp"
+    : "signup_otp";
+
+  let message = "";
+  try {
+    const { data: tpl } = await admin
+      .from("sms_templates")
+      .select("body")
+      .eq("key", templateKey)
+      .maybeSingle();
+    if (tpl?.body) {
+      message = String(tpl.body)
+        .replace(/\{\{\s*newline\s*\}\}/gi, "\n")
+        .replace(/\{\{\s*name\s*\}\}/gi, name || "গ্রাহক")
+        .replace(/\{\{\s*otp\s*\}\}/gi, otp);
+    }
+  } catch (e) {
+    console.error("template lookup failed:", e);
+  }
+  if (!message) {
+    const greeting = name ? `প্রিয় ${name},\n\n` : "";
+    message =
+      `${greeting}আপনার Polytechnic Tutorial Home OTP কোড: ${otp}\n\n` +
+      `কোডটি ৫ মিনিটের জন্য বৈধ। কারো সাথে শেয়ার করবেন না।`;
+  }
 
   const url = new URL("http://bulksmsbd.net/api/smsapi");
   url.searchParams.set("api_key", BULKSMSBD_API_KEY);
