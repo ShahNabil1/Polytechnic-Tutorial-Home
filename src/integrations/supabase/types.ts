@@ -370,6 +370,72 @@ export type Database = {
         }
         Relationships: []
       }
+      lms_courses: {
+        Row: {
+          compare_at_price_bdt: number | null
+          cover_image_url: string | null
+          created_at: string
+          created_by: string | null
+          department_id: string
+          description: string | null
+          id: string
+          is_active: boolean
+          price_bdt: number
+          semester_id: string
+          slug: string
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          compare_at_price_bdt?: number | null
+          cover_image_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          department_id: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          price_bdt?: number
+          semester_id: string
+          slug: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          compare_at_price_bdt?: number | null
+          cover_image_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          department_id?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          price_bdt?: number
+          semester_id?: string
+          slug?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_courses_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "lms_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_courses_semester_id_fkey"
+            columns: ["semester_id"]
+            isOneToOne: false
+            referencedRelation: "lms_semesters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lms_departments: {
         Row: {
           created_at: string
