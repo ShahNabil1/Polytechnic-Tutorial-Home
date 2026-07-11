@@ -46,6 +46,8 @@ function CheckoutPage() {
   const navigate = useNavigate();
   const items = useCart((s) => s.items);
   const clear = useCart((s) => s.clear);
+  const appliedCoupon = useCoupon((s) => s.applied);
+  const clearCoupon = useCoupon((s) => s.clear);
 
   const [form, setForm] = useState({
     name: "",
