@@ -31,7 +31,9 @@ import { Route as AuthenticatedInternalWorkspaceRouteImport } from './routes/_au
 import { Route as AuthenticatedInternalInstructorRouteImport } from './routes/_authenticated/_internal.instructor'
 import { Route as AuthenticatedInternalWorkspaceIndexRouteImport } from './routes/_authenticated/_internal.workspace.index'
 import { Route as AuthenticatedInternalInstructorIndexRouteImport } from './routes/_authenticated/_internal.instructor.index'
+import { Route as ApiPublicWebhooksResendRouteImport } from './routes/api/public/webhooks/resend'
 import { Route as ApiPublicSessionsActionRouteImport } from './routes/api/public/sessions.$action'
+import { Route as ApiPublicHooksDeliverEbookBatchRouteImport } from './routes/api/public/hooks/deliver-ebook-batch'
 import { Route as AuthenticatedInternalWorkspaceProfileRouteImport } from './routes/_authenticated/_internal.workspace.profile'
 import { Route as AuthenticatedInternalWorkspaceInstructorsRouteImport } from './routes/_authenticated/_internal.workspace.instructors'
 import { Route as AuthenticatedInternalWorkspaceEmployeesRouteImport } from './routes/_authenticated/_internal.workspace.employees'
@@ -156,11 +158,22 @@ const AuthenticatedInternalInstructorIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedInternalInstructorRoute,
   } as any)
+const ApiPublicWebhooksResendRoute = ApiPublicWebhooksResendRouteImport.update({
+  id: '/api/public/webhooks/resend',
+  path: '/api/public/webhooks/resend',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicSessionsActionRoute = ApiPublicSessionsActionRouteImport.update({
   id: '/api/public/sessions/$action',
   path: '/api/public/sessions/$action',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksDeliverEbookBatchRoute =
+  ApiPublicHooksDeliverEbookBatchRouteImport.update({
+    id: '/api/public/hooks/deliver-ebook-batch',
+    path: '/api/public/hooks/deliver-ebook-batch',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedInternalWorkspaceProfileRoute =
   AuthenticatedInternalWorkspaceProfileRouteImport.update({
     id: '/profile',
@@ -239,7 +252,9 @@ export interface FileRoutesByFullPath {
   '/workspace/employees': typeof AuthenticatedInternalWorkspaceEmployeesRoute
   '/workspace/instructors': typeof AuthenticatedInternalWorkspaceInstructorsRoute
   '/workspace/profile': typeof AuthenticatedInternalWorkspaceProfileRoute
+  '/api/public/hooks/deliver-ebook-batch': typeof ApiPublicHooksDeliverEbookBatchRoute
   '/api/public/sessions/$action': typeof ApiPublicSessionsActionRoute
+  '/api/public/webhooks/resend': typeof ApiPublicWebhooksResendRoute
   '/instructor/': typeof AuthenticatedInternalInstructorIndexRoute
   '/workspace/': typeof AuthenticatedInternalWorkspaceIndexRoute
   '/workspace/ecommerce/categories': typeof AuthenticatedInternalWorkspaceEcommerceCategoriesRoute
@@ -268,7 +283,9 @@ export interface FileRoutesByTo {
   '/workspace/employees': typeof AuthenticatedInternalWorkspaceEmployeesRoute
   '/workspace/instructors': typeof AuthenticatedInternalWorkspaceInstructorsRoute
   '/workspace/profile': typeof AuthenticatedInternalWorkspaceProfileRoute
+  '/api/public/hooks/deliver-ebook-batch': typeof ApiPublicHooksDeliverEbookBatchRoute
   '/api/public/sessions/$action': typeof ApiPublicSessionsActionRoute
+  '/api/public/webhooks/resend': typeof ApiPublicWebhooksResendRoute
   '/instructor': typeof AuthenticatedInternalInstructorIndexRoute
   '/workspace': typeof AuthenticatedInternalWorkspaceIndexRoute
   '/workspace/ecommerce/categories': typeof AuthenticatedInternalWorkspaceEcommerceCategoriesRoute
@@ -303,7 +320,9 @@ export interface FileRoutesById {
   '/_authenticated/_internal/workspace/employees': typeof AuthenticatedInternalWorkspaceEmployeesRoute
   '/_authenticated/_internal/workspace/instructors': typeof AuthenticatedInternalWorkspaceInstructorsRoute
   '/_authenticated/_internal/workspace/profile': typeof AuthenticatedInternalWorkspaceProfileRoute
+  '/api/public/hooks/deliver-ebook-batch': typeof ApiPublicHooksDeliverEbookBatchRoute
   '/api/public/sessions/$action': typeof ApiPublicSessionsActionRoute
+  '/api/public/webhooks/resend': typeof ApiPublicWebhooksResendRoute
   '/_authenticated/_internal/instructor/': typeof AuthenticatedInternalInstructorIndexRoute
   '/_authenticated/_internal/workspace/': typeof AuthenticatedInternalWorkspaceIndexRoute
   '/_authenticated/_internal/workspace/ecommerce/categories': typeof AuthenticatedInternalWorkspaceEcommerceCategoriesRoute
@@ -337,7 +356,9 @@ export interface FileRouteTypes {
     | '/workspace/employees'
     | '/workspace/instructors'
     | '/workspace/profile'
+    | '/api/public/hooks/deliver-ebook-batch'
     | '/api/public/sessions/$action'
+    | '/api/public/webhooks/resend'
     | '/instructor/'
     | '/workspace/'
     | '/workspace/ecommerce/categories'
@@ -366,7 +387,9 @@ export interface FileRouteTypes {
     | '/workspace/employees'
     | '/workspace/instructors'
     | '/workspace/profile'
+    | '/api/public/hooks/deliver-ebook-batch'
     | '/api/public/sessions/$action'
+    | '/api/public/webhooks/resend'
     | '/instructor'
     | '/workspace'
     | '/workspace/ecommerce/categories'
@@ -400,7 +423,9 @@ export interface FileRouteTypes {
     | '/_authenticated/_internal/workspace/employees'
     | '/_authenticated/_internal/workspace/instructors'
     | '/_authenticated/_internal/workspace/profile'
+    | '/api/public/hooks/deliver-ebook-batch'
     | '/api/public/sessions/$action'
+    | '/api/public/webhooks/resend'
     | '/_authenticated/_internal/instructor/'
     | '/_authenticated/_internal/workspace/'
     | '/_authenticated/_internal/workspace/ecommerce/categories'
@@ -423,7 +448,9 @@ export interface RootRouteChildren {
   CheckoutSuccessRoute: typeof CheckoutSuccessRoute
   ProductSlugRoute: typeof ProductSlugRoute
   CheckoutIndexRoute: typeof CheckoutIndexRoute
+  ApiPublicHooksDeliverEbookBatchRoute: typeof ApiPublicHooksDeliverEbookBatchRoute
   ApiPublicSessionsActionRoute: typeof ApiPublicSessionsActionRoute
+  ApiPublicWebhooksResendRoute: typeof ApiPublicWebhooksResendRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -582,11 +609,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInternalInstructorIndexRouteImport
       parentRoute: typeof AuthenticatedInternalInstructorRoute
     }
+    '/api/public/webhooks/resend': {
+      id: '/api/public/webhooks/resend'
+      path: '/api/public/webhooks/resend'
+      fullPath: '/api/public/webhooks/resend'
+      preLoaderRoute: typeof ApiPublicWebhooksResendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/sessions/$action': {
       id: '/api/public/sessions/$action'
       path: '/api/public/sessions/$action'
       fullPath: '/api/public/sessions/$action'
       preLoaderRoute: typeof ApiPublicSessionsActionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/deliver-ebook-batch': {
+      id: '/api/public/hooks/deliver-ebook-batch'
+      path: '/api/public/hooks/deliver-ebook-batch'
+      fullPath: '/api/public/hooks/deliver-ebook-batch'
+      preLoaderRoute: typeof ApiPublicHooksDeliverEbookBatchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/_internal/workspace/profile': {
@@ -772,7 +813,9 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutSuccessRoute: CheckoutSuccessRoute,
   ProductSlugRoute: ProductSlugRoute,
   CheckoutIndexRoute: CheckoutIndexRoute,
+  ApiPublicHooksDeliverEbookBatchRoute: ApiPublicHooksDeliverEbookBatchRoute,
   ApiPublicSessionsActionRoute: ApiPublicSessionsActionRoute,
+  ApiPublicWebhooksResendRoute: ApiPublicWebhooksResendRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
