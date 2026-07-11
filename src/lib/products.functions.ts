@@ -57,6 +57,7 @@ function mapProduct(row: any, subs: { slug: string; kind: string }[]): Product {
     featured: row.is_featured,
     isActive: row.is_active,
     isOnlineBook: row.is_online_book ?? false,
+    ebookFileUrl: row.ebook_file_url ?? null,
   };
 }
 
