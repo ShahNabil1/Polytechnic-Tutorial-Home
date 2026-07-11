@@ -35,6 +35,7 @@ import { Route as ApiPublicWebhooksResendRouteImport } from './routes/api/public
 import { Route as ApiPublicSessionsActionRouteImport } from './routes/api/public/sessions.$action'
 import { Route as ApiPublicHooksDeliverEbookBatchRouteImport } from './routes/api/public/hooks/deliver-ebook-batch'
 import { Route as AuthenticatedInternalWorkspaceProfileRouteImport } from './routes/_authenticated/_internal.workspace.profile'
+import { Route as AuthenticatedInternalWorkspaceLmsAndCoursesRouteImport } from './routes/_authenticated/_internal.workspace.lms-and-courses'
 import { Route as AuthenticatedInternalWorkspaceInstructorsRouteImport } from './routes/_authenticated/_internal.workspace.instructors'
 import { Route as AuthenticatedInternalWorkspaceEmployeesRouteImport } from './routes/_authenticated/_internal.workspace.employees'
 import { Route as AuthenticatedInternalInstructorProfileRouteImport } from './routes/_authenticated/_internal.instructor.profile'
@@ -183,6 +184,12 @@ const AuthenticatedInternalWorkspaceProfileRoute =
     path: '/profile',
     getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
   } as any)
+const AuthenticatedInternalWorkspaceLmsAndCoursesRoute =
+  AuthenticatedInternalWorkspaceLmsAndCoursesRouteImport.update({
+    id: '/lms-and-courses',
+    path: '/lms-and-courses',
+    getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
+  } as any)
 const AuthenticatedInternalWorkspaceInstructorsRoute =
   AuthenticatedInternalWorkspaceInstructorsRouteImport.update({
     id: '/instructors',
@@ -272,6 +279,7 @@ export interface FileRoutesByFullPath {
   '/instructor/profile': typeof AuthenticatedInternalInstructorProfileRoute
   '/workspace/employees': typeof AuthenticatedInternalWorkspaceEmployeesRoute
   '/workspace/instructors': typeof AuthenticatedInternalWorkspaceInstructorsRoute
+  '/workspace/lms-and-courses': typeof AuthenticatedInternalWorkspaceLmsAndCoursesRoute
   '/workspace/profile': typeof AuthenticatedInternalWorkspaceProfileRoute
   '/api/public/hooks/deliver-ebook-batch': typeof ApiPublicHooksDeliverEbookBatchRoute
   '/api/public/sessions/$action': typeof ApiPublicSessionsActionRoute
@@ -306,6 +314,7 @@ export interface FileRoutesByTo {
   '/instructor/profile': typeof AuthenticatedInternalInstructorProfileRoute
   '/workspace/employees': typeof AuthenticatedInternalWorkspaceEmployeesRoute
   '/workspace/instructors': typeof AuthenticatedInternalWorkspaceInstructorsRoute
+  '/workspace/lms-and-courses': typeof AuthenticatedInternalWorkspaceLmsAndCoursesRoute
   '/workspace/profile': typeof AuthenticatedInternalWorkspaceProfileRoute
   '/api/public/hooks/deliver-ebook-batch': typeof ApiPublicHooksDeliverEbookBatchRoute
   '/api/public/sessions/$action': typeof ApiPublicSessionsActionRoute
@@ -346,6 +355,7 @@ export interface FileRoutesById {
   '/_authenticated/_internal/instructor/profile': typeof AuthenticatedInternalInstructorProfileRoute
   '/_authenticated/_internal/workspace/employees': typeof AuthenticatedInternalWorkspaceEmployeesRoute
   '/_authenticated/_internal/workspace/instructors': typeof AuthenticatedInternalWorkspaceInstructorsRoute
+  '/_authenticated/_internal/workspace/lms-and-courses': typeof AuthenticatedInternalWorkspaceLmsAndCoursesRoute
   '/_authenticated/_internal/workspace/profile': typeof AuthenticatedInternalWorkspaceProfileRoute
   '/api/public/hooks/deliver-ebook-batch': typeof ApiPublicHooksDeliverEbookBatchRoute
   '/api/public/sessions/$action': typeof ApiPublicSessionsActionRoute
@@ -385,6 +395,7 @@ export interface FileRouteTypes {
     | '/instructor/profile'
     | '/workspace/employees'
     | '/workspace/instructors'
+    | '/workspace/lms-and-courses'
     | '/workspace/profile'
     | '/api/public/hooks/deliver-ebook-batch'
     | '/api/public/sessions/$action'
@@ -419,6 +430,7 @@ export interface FileRouteTypes {
     | '/instructor/profile'
     | '/workspace/employees'
     | '/workspace/instructors'
+    | '/workspace/lms-and-courses'
     | '/workspace/profile'
     | '/api/public/hooks/deliver-ebook-batch'
     | '/api/public/sessions/$action'
@@ -458,6 +470,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_internal/instructor/profile'
     | '/_authenticated/_internal/workspace/employees'
     | '/_authenticated/_internal/workspace/instructors'
+    | '/_authenticated/_internal/workspace/lms-and-courses'
     | '/_authenticated/_internal/workspace/profile'
     | '/api/public/hooks/deliver-ebook-batch'
     | '/api/public/sessions/$action'
@@ -677,6 +690,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInternalWorkspaceProfileRouteImport
       parentRoute: typeof AuthenticatedInternalWorkspaceRoute
     }
+    '/_authenticated/_internal/workspace/lms-and-courses': {
+      id: '/_authenticated/_internal/workspace/lms-and-courses'
+      path: '/lms-and-courses'
+      fullPath: '/workspace/lms-and-courses'
+      preLoaderRoute: typeof AuthenticatedInternalWorkspaceLmsAndCoursesRouteImport
+      parentRoute: typeof AuthenticatedInternalWorkspaceRoute
+    }
     '/_authenticated/_internal/workspace/instructors': {
       id: '/_authenticated/_internal/workspace/instructors'
       path: '/instructors'
@@ -778,6 +798,7 @@ const AuthenticatedInternalInstructorRouteWithChildren =
 interface AuthenticatedInternalWorkspaceRouteChildren {
   AuthenticatedInternalWorkspaceEmployeesRoute: typeof AuthenticatedInternalWorkspaceEmployeesRoute
   AuthenticatedInternalWorkspaceInstructorsRoute: typeof AuthenticatedInternalWorkspaceInstructorsRoute
+  AuthenticatedInternalWorkspaceLmsAndCoursesRoute: typeof AuthenticatedInternalWorkspaceLmsAndCoursesRoute
   AuthenticatedInternalWorkspaceProfileRoute: typeof AuthenticatedInternalWorkspaceProfileRoute
   AuthenticatedInternalWorkspaceIndexRoute: typeof AuthenticatedInternalWorkspaceIndexRoute
   AuthenticatedInternalWorkspaceEcommerceCategoriesRoute: typeof AuthenticatedInternalWorkspaceEcommerceCategoriesRoute
@@ -795,6 +816,8 @@ const AuthenticatedInternalWorkspaceRouteChildren: AuthenticatedInternalWorkspac
       AuthenticatedInternalWorkspaceEmployeesRoute,
     AuthenticatedInternalWorkspaceInstructorsRoute:
       AuthenticatedInternalWorkspaceInstructorsRoute,
+    AuthenticatedInternalWorkspaceLmsAndCoursesRoute:
+      AuthenticatedInternalWorkspaceLmsAndCoursesRoute,
     AuthenticatedInternalWorkspaceProfileRoute:
       AuthenticatedInternalWorkspaceProfileRoute,
     AuthenticatedInternalWorkspaceIndexRoute:
