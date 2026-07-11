@@ -563,7 +563,11 @@ export type Database = {
           source_detail: string | null
           status: string
           steadfast_consignment_id: string | null
+          steadfast_delivery_status: string | null
+          steadfast_last_error: string | null
+          steadfast_retry_count: number
           steadfast_status: string | null
+          steadfast_status_updated_at: string | null
           steadfast_synced_at: string | null
           steadfast_tracking_code: string | null
           subtotal_bdt: number
@@ -610,7 +614,11 @@ export type Database = {
           source_detail?: string | null
           status?: string
           steadfast_consignment_id?: string | null
+          steadfast_delivery_status?: string | null
+          steadfast_last_error?: string | null
+          steadfast_retry_count?: number
           steadfast_status?: string | null
+          steadfast_status_updated_at?: string | null
           steadfast_synced_at?: string | null
           steadfast_tracking_code?: string | null
           subtotal_bdt?: number
@@ -657,7 +665,11 @@ export type Database = {
           source_detail?: string | null
           status?: string
           steadfast_consignment_id?: string | null
+          steadfast_delivery_status?: string | null
+          steadfast_last_error?: string | null
+          steadfast_retry_count?: number
           steadfast_status?: string | null
+          steadfast_status_updated_at?: string | null
           steadfast_synced_at?: string | null
           steadfast_tracking_code?: string | null
           subtotal_bdt?: number
@@ -962,6 +974,50 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      steadfast_status_events: {
+        Row: {
+          consignment_id: string | null
+          created_at: string
+          id: string
+          invoice: string | null
+          order_id: string | null
+          raw: Json
+          received_at: string
+          status: string
+          tracking_code: string | null
+        }
+        Insert: {
+          consignment_id?: string | null
+          created_at?: string
+          id?: string
+          invoice?: string | null
+          order_id?: string | null
+          raw?: Json
+          received_at?: string
+          status: string
+          tracking_code?: string | null
+        }
+        Update: {
+          consignment_id?: string | null
+          created_at?: string
+          id?: string
+          invoice?: string | null
+          order_id?: string | null
+          raw?: Json
+          received_at?: string
+          status?: string
+          tracking_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "steadfast_status_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_permissions: {
         Row: {
