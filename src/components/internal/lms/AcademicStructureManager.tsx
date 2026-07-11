@@ -180,7 +180,22 @@ export function AcademicStructureManager() {
                         <Save className="w-4 h-4" />
                       )}
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(r)}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={async () => {
+                        if (
+                          await confirm({
+                            title: `Delete ${r.name || "entry"}?`,
+                            description: "This will remove the entry. Subjects linked to it lose the association.",
+                            variant: "danger",
+                            confirmLabel: "Delete",
+                          })
+                        ) {
+                          doDelete(r);
+                        }
+                      }}
+                    >
                       <Trash2 className="w-4 h-4 text-red-500" />
                     </Button>
                   </td>
