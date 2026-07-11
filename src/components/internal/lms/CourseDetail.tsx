@@ -27,9 +27,12 @@ type Props = { deptSlug: string; semSlug: string };
 export function CourseDetail({ deptSlug, semSlug }: Props) {
   const getFn = useServerFn(getCourseByPair);
   const listTax = useServerFn(listAcademicTaxonomy);
+  const listCurr = useServerFn(listCourseCurriculum);
 
   const [taxonomy, setTaxonomy] = useState<AcademicCategory[]>([]);
   const [course, setCourse] = useState<LmsCourse | null>(null);
+  const [curriculum, setCurriculum] = useState<CurriculumSubject[]>([]);
+  const [openSubjects, setOpenSubjects] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
 
@@ -42,6 +45,14 @@ export function CourseDetail({ deptSlug, semSlug }: Props) {
     [taxonomy, semSlug],
   );
 
+  const totals = useMemo(() => {
+    const subjects = curriculum.length;
+    const modules = curriculum.reduce((a, s) => a + s.module_count, 0);
+    const lessons = curriculum.reduce((a, s) => a + s.lesson_count, 0);
+    const videos = curriculum.reduce((a, s) => a + s.video_count, 0);
+    return { subjects, modules, lessons, videos };
+  }, [curriculum]);
+
   async function refetch() {
     setLoading(true);
     try {
@@ -50,10 +61,15 @@ export function CourseDetail({ deptSlug, semSlug }: Props) {
       const d = tax.find((t) => t.kind === "department" && t.slug === deptSlug);
       const s = tax.find((t) => t.kind === "semester" && t.slug === semSlug);
       if (d && s) {
-        const c = (await getFn({ data: { department_id: d.id, semester_id: s.id } } as never)) as LmsCourse | null;
+        const [c, curr] = await Promise.all([
+          getFn({ data: { department_id: d.id, semester_id: s.id } } as never) as Promise<LmsCourse | null>,
+          listCurr({ data: { department_id: d.id, semester_id: s.id } } as never) as Promise<CurriculumSubject[]>,
+        ]);
         setCourse(c);
+        setCurriculum(curr ?? []);
       } else {
         setCourse(null);
+        setCurriculum([]);
       }
     } catch (e: any) {
       toast.error(e?.message ?? "Failed to load");
