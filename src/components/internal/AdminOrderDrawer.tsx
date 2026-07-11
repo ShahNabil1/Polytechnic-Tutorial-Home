@@ -1660,3 +1660,172 @@ function FulfillmentSection({
     </div>
   );
 }
+
+// ---------- Customer SMS Section ----------
+
+function renderTemplateBody(body: string, vars: Record<string, string>): string {
+  let out = (body ?? "").replace(/\{\{\s*newline\s*\}\}/gi, "\n");
+  for (const [k, v] of Object.entries(vars)) {
+    const re = new RegExp(`\\{\\{\\s*${k}\\s*\\}\\}`, "gi");
+    out = out.replace(re, v ?? "");
+  }
+  return out;
+}
+
+function CustomerSmsSection({ orderId, order }: { orderId: string; order: Order | null }) {
+  const fetchTpls = useServerFn(listSmsTemplates);
+  const send = useServerFn(sendOrderSms);
+  const { data: tplData } = useQuery({
+    queryKey: ["sms-templates"],
+    queryFn: () => fetchTpls(undefined as never),
+  });
+  const templates = (tplData?.templates ?? []).filter(
+    (t: any) => t.key !== "signup_otp" && t.key !== "reset_otp",
+  );
+
+  const [selectedId, setSelectedId] = useState<string>("");
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const textRef = React.useRef<HTMLTextAreaElement | null>(null);
+
+  const vars = useMemo<Record<string, string>>(() => {
+    if (!order) return {};
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    return {
+      name: order.customer_name ?? "",
+      order_no: order.order_no ?? "",
+      amount: String(order.total_bdt ?? ""),
+      receipt_url: origin ? `${origin}/checkout/success?order=${order.order_no}` : "",
+      phone: order.customer_phone ?? "",
+    };
+  }, [order]);
+
+  const availableVars = ["name", "order_no", "amount", "receipt_url", "phone"];
+
+  function applyTemplate(id: string) {
+    setSelectedId(id);
+    const tpl = templates.find((t: any) => t.id === id);
+    if (tpl) setMessage(renderTemplateBody(tpl.body, vars));
+  }
+
+  function insertVar(v: string) {
+    const token = `{{${v}}}`;
+    // Insert at cursor if focused, else append
+    const el = textRef.current;
+    if (el) {
+      const start = el.selectionStart ?? message.length;
+      const end = el.selectionEnd ?? message.length;
+      const next = message.slice(0, start) + token + message.slice(end);
+      setMessage(next);
+      requestAnimationFrame(() => {
+        el.focus();
+        el.setSelectionRange(start + token.length, start + token.length);
+      });
+    } else {
+      setMessage((m) => m + token);
+    }
+    navigator.clipboard?.writeText(token).catch(() => {});
+    toast.success(`Inserted ${token}`);
+  }
+
+  async function doSend() {
+    if (!order?.customer_phone) {
+      toast.error("Customer phone missing");
+      return;
+    }
+    // Replace any remaining {{var}} with live values before sending
+    const finalMsg = renderTemplateBody(message, vars).trim();
+    if (!finalMsg) {
+      toast.error("Message is empty");
+      return;
+    }
+    if (finalMsg.length > 1000) {
+      toast.error("Message too long (max 1000 chars)");
+      return;
+    }
+    setSending(true);
+    try {
+      await send({ data: { orderId, message: finalMsg } });
+      toast.success(`SMS sent to ${order.customer_phone}`);
+      setMessage("");
+      setSelectedId("");
+    } catch (e: any) {
+      toast.error(e.message || "SMS failed");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <Section title="Send SMS to customer" icon={MessageSquareText}>
+      <div className="space-y-3">
+        <div>
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            Template
+          </label>
+          <select
+            value={selectedId}
+            onChange={(e) => applyTemplate(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2 text-sm"
+          >
+            <option value="">— Select or write your own —</option>
+            {templates.map((t: any) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            Variables (click to insert & copy)
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {availableVars.map((v) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => insertVar(v)}
+                className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 font-mono text-[11px] font-semibold text-slate-700 hover:bg-brand/5 hover:text-brand"
+                title={vars[v] || ""}
+              >
+                <Copy className="size-3" />
+                {`{{${v}}}`}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            Message
+          </label>
+          <textarea
+            ref={textRef}
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            rows={5}
+            placeholder="আপনার SMS টাইপ করুন — variables ব্যবহার করুন personalized করতে"
+            className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2 font-mono text-sm"
+          />
+          <p className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
+            <span>Sends to: <span className="font-mono font-semibold text-slate-700">{order?.customer_phone ?? "—"}</span></span>
+            <span>{message.length}/1000</span>
+          </p>
+        </div>
+
+        <div className="flex justify-end">
+          <button
+            onClick={doSend}
+            disabled={sending || !message.trim() || !order?.customer_phone}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-bold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {sending ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
+            Send SMS
+          </button>
+        </div>
+      </div>
+    </Section>
+  );
+}
