@@ -53,7 +53,7 @@ import {
 } from "@/lib/orders";
 import { formatBDTEn, waLinkBD } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { confirm as confirmDialog, promptText } from "@/components/ui/confirm-dialog";
+import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
 
 export function AdminOrderDrawer({
