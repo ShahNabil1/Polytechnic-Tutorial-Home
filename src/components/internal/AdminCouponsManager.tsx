@@ -128,7 +128,7 @@ export function AdminCouponsManager() {
       title: `Delete coupon ${row.code}?`,
       description: "Coupon will be hidden but can be restored later.",
       confirmText: "Delete",
-      variant: "destructive",
+      variant: "danger",
     });
     if (!ok) return;
     try {
