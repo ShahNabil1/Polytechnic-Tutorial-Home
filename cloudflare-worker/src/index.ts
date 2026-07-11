@@ -3,7 +3,6 @@ import { cors } from "hono/cors";
 import { verifyLovableHmac } from "./hmac";
 import {
   createOrder,
-  createOrderBulk,
   getBalance,
   getStatusByCid,
   type SteadfastCreatePayload,
