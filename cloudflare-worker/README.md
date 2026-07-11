@@ -48,7 +48,7 @@ Editor এ বামের file tree তে:
 {
   "name": "pth-steadfast",
   "main": "src/index.ts",
-  "compatibility_date": "2024-11-27",
+  "compatibility_date": "2024-11-11",
   "compatibility_flags": ["nodejs_compat"],
   "dependencies": {
     "hono": "^4.6.14"
@@ -69,7 +69,7 @@ Dashboard editor থেকে **←** back → Worker এর overview page → *
 ### 4a. Compatibility
 
 **Settings → Build → Runtime**
-- Compatibility date: `2024-11-27`
+- Compatibility date: `2024-11-11`
 - Compatibility flags: `nodejs_compat` যোগ করুন
 - **Save**
 
