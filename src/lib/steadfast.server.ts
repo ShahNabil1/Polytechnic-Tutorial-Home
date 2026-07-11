@@ -134,6 +134,12 @@ function extractConsignment(body: unknown, invoice: string): SteadfastConsignmen
   return null;
 }
 
+function normalizeDeliveryStatus(status: string | undefined): string {
+  // Bulk-style rows use `status: "success"` to mean API success, not courier
+  // delivery state. Store the initial Steadfast delivery state consistently.
+  return !status || status === "success" ? "in_review" : status;
+}
+
 /**
  * Create a single consignment. Returns the consignment on success,
  * throws Error with the exact Steadfast error message on failure.
@@ -158,7 +164,7 @@ export async function createSingleOrder(
     consignment_id: c.consignment_id,
     invoice: c.invoice || payload.invoice,
     tracking_code: c.tracking_code,
-    status: c.status,
+    status: normalizeDeliveryStatus(c.status),
   };
 }
 
