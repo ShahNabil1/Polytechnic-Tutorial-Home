@@ -256,11 +256,12 @@ export function AdminOrderDrawer({
     }
   }
 
-  async function changeStatus(s: OrderStatus, note?: string) {
+  async function changeStatus(s: OrderStatus, note?: string, confirmed = false) {
     if (!order || s === order.status) return;
 
-    // Hold / Cancel show an inline reason input instead of committing immediately.
-    if ((s === "hold" || s === "cancelled") && !note) {
+    // Hold / Cancel / Ready-to-ship show an inline confirmation instead of committing immediately.
+    const needsConfirm = s === "hold" || s === "cancelled" || s === "ready_to_ship";
+    if (needsConfirm && !confirmed) {
       setPendingStatus(s);
       setReasonDraft("");
       return;
@@ -280,12 +281,17 @@ export function AdminOrderDrawer({
 
   async function confirmPendingStatus() {
     if (!pendingStatus) return;
-    const reason = reasonDraft.trim();
-    if (reason.length < 3) {
-      toast.error("Please write at least 3 characters");
+    if (pendingStatus === "hold" || pendingStatus === "cancelled") {
+      const reason = reasonDraft.trim();
+      if (reason.length < 3) {
+        toast.error("Please write at least 3 characters");
+        return;
+      }
+      await changeStatus(pendingStatus, reason, true);
       return;
     }
-    await changeStatus(pendingStatus, reason);
+    // ready_to_ship: no reason required, just confirm
+    await changeStatus(pendingStatus, undefined, true);
   }
 
   async function submitNote() {
@@ -399,38 +405,52 @@ export function AdminOrderDrawer({
                   "w-full max-w-sm rounded-xl border p-2.5 shadow-sm animate-in fade-in slide-in-from-top-1",
                   pendingStatus === "hold"
                     ? "border-amber-300 bg-gradient-to-br from-amber-50 to-yellow-50"
-                    : "border-rose-300 bg-gradient-to-br from-rose-50 to-red-50",
+                    : pendingStatus === "cancelled"
+                    ? "border-rose-300 bg-gradient-to-br from-rose-50 to-red-50"
+                    : "border-sky-300 bg-gradient-to-br from-sky-50 to-cyan-50",
                 )}
               >
                 <label
                   className={cn(
                     "mb-1 block text-[11px] font-extrabold uppercase tracking-wide",
-                    pendingStatus === "hold" ? "text-amber-700" : "text-rose-700",
+                    pendingStatus === "hold"
+                      ? "text-amber-700"
+                      : pendingStatus === "cancelled"
+                      ? "text-rose-700"
+                      : "text-sky-700",
                   )}
                 >
-                  {pendingStatus === "hold" ? "Reason for Hold" : "Reason for Cancel"}
+                  {pendingStatus === "hold"
+                    ? "Reason for Hold"
+                    : pendingStatus === "cancelled"
+                    ? "Reason for Cancel"
+                    : "Confirm: Mark as Ready to Ship?"}
                 </label>
-                <textarea
-                  autoFocus
-                  value={reasonDraft}
-                  onChange={(e) => setReasonDraft(e.target.value)}
-                  rows={2}
-                  maxLength={500}
-                  placeholder={
-                    pendingStatus === "hold"
-                      ? "e.g. Customer asked to pause, awaiting stock…"
-                      : "e.g. Customer requested cancellation, duplicate…"
-                  }
-                  className={cn(
-                    "w-full resize-none rounded-lg border bg-white px-2.5 py-1.5 text-xs font-medium text-slate-800 outline-none focus:ring-2",
-                    pendingStatus === "hold"
-                      ? "border-amber-200 focus:ring-amber-400"
-                      : "border-rose-200 focus:ring-rose-400",
-                  )}
-                />
+                {pendingStatus !== "ready_to_ship" && (
+                  <textarea
+                    autoFocus
+                    value={reasonDraft}
+                    onChange={(e) => setReasonDraft(e.target.value)}
+                    rows={2}
+                    maxLength={500}
+                    placeholder={
+                      pendingStatus === "hold"
+                        ? "e.g. Customer asked to pause, awaiting stock…"
+                        : "e.g. Customer requested cancellation, duplicate…"
+                    }
+                    className={cn(
+                      "w-full resize-none rounded-lg border bg-white px-2.5 py-1.5 text-xs font-medium text-slate-800 outline-none focus:ring-2",
+                      pendingStatus === "hold"
+                        ? "border-amber-200 focus:ring-amber-400"
+                        : "border-rose-200 focus:ring-rose-400",
+                    )}
+                  />
+                )}
                 <div className="mt-1.5 flex items-center justify-between gap-2">
                   <span className="text-[10px] font-semibold text-slate-500">
-                    {reasonDraft.trim().length}/500
+                    {pendingStatus === "ready_to_ship"
+                      ? "This will notify the shipping stage."
+                      : `${reasonDraft.trim().length}/500`}
                   </span>
                   <div className="flex items-center gap-1.5">
                     <button
@@ -444,15 +464,24 @@ export function AdminOrderDrawer({
                     </button>
                     <button
                       onClick={confirmPendingStatus}
-                      disabled={reasonDraft.trim().length < 3}
+                      disabled={
+                        pendingStatus !== "ready_to_ship" &&
+                        reasonDraft.trim().length < 3
+                      }
                       className={cn(
                         "rounded-lg px-3 py-1 text-[11px] font-extrabold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-50",
                         pendingStatus === "hold"
                           ? "bg-amber-600 hover:bg-amber-700"
-                          : "bg-rose-600 hover:bg-rose-700",
+                          : pendingStatus === "cancelled"
+                          ? "bg-rose-600 hover:bg-rose-700"
+                          : "bg-sky-600 hover:bg-sky-700",
                       )}
                     >
-                      {pendingStatus === "hold" ? "Confirm Hold" : "Confirm Cancel"}
+                      {pendingStatus === "hold"
+                        ? "Confirm Hold"
+                        : pendingStatus === "cancelled"
+                        ? "Confirm Cancel"
+                        : "Confirm RTS"}
                     </button>
                   </div>
                 </div>
