@@ -845,10 +845,16 @@ function DeviceSecuritySection({
 
   async function doBlock() {
     if (!selectedToBlock.length) return;
-    const reason = prompt(`Reason for blocking ${selectedToBlock.length} identifier(s):`) || undefined;
+    const ok = await confirmDialog({
+      variant: "danger",
+      title: `Block ${selectedToBlock.length} identifier(s)?`,
+      description: "Once blocked, this device, IP or phone cannot place new orders. You can unblock any time.",
+      confirmLabel: "Block",
+    });
+    if (!ok) return;
     setBusy(true);
     try {
-      await bulkBlock({ data: { items: selectedToBlock.map((i) => ({ kind: i.kind, value: i.value })), reason } });
+      await bulkBlock({ data: { items: selectedToBlock.map((i) => ({ kind: i.kind, value: i.value })) } });
       toast.success(`Blocked ${selectedToBlock.length} identifier(s)`);
       clearSel();
       statusQuery.refetch();
@@ -861,7 +867,13 @@ function DeviceSecuritySection({
 
   async function doUnblock() {
     if (!selectedToUnblock.length) return;
-    if (!confirm(`Unblock ${selectedToUnblock.length} identifier(s)?`)) return;
+    const ok = await confirmDialog({
+      variant: "warning",
+      title: `Unblock ${selectedToUnblock.length} identifier(s)?`,
+      description: "These identifiers will be allowed to place orders again.",
+      confirmLabel: "Unblock",
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       await bulkUnblock({ data: { items: selectedToUnblock.map((i) => ({ kind: i.kind, value: i.value })) } });
