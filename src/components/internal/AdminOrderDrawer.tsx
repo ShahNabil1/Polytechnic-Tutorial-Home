@@ -574,6 +574,86 @@ export function AdminOrderDrawer({
           </div>
         ) : (
           <div className="flex-1 space-y-5 overflow-y-auto p-6">
+            {/* Steadfast — only shown for physical / mixed orders */}
+            {order.has_physical && (
+              <div className="space-y-2 rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-50/60 to-teal-50/60 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <SteadfastLogo className="size-4 text-emerald-700" />
+                    <p className="text-sm font-extrabold text-emerald-900">Steadfast Courier</p>
+                  </div>
+                  {(order as any).steadfast_consignment_id ? (
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 ring-1 ring-emerald-300">
+                      Dispatched
+                    </span>
+                  ) : (order as any).steadfast_last_error ? (
+                    <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-rose-800 ring-1 ring-rose-300">
+                      Failed RTS
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-700 ring-1 ring-slate-300">
+                      Not sent
+                    </span>
+                  )}
+                </div>
+
+                {(order as any).steadfast_consignment_id && (
+                  <SteadfastTrackingCard
+                    consignmentId={(order as any).steadfast_consignment_id}
+                    trackingCode={(order as any).steadfast_tracking_code}
+                  />
+                )}
+
+                <SteadfastEventChips
+                  orderId={order.id}
+                  fallbackStatus={
+                    (order as any).steadfast_delivery_status ??
+                    (order as any).steadfast_status ??
+                    null
+                  }
+                />
+
+                {(order as any).steadfast_last_error && (
+                  <div className="mt-2 rounded-lg border border-rose-200 bg-rose-50 p-3">
+                    <p className="text-[11px] font-extrabold uppercase tracking-wider text-rose-800">
+                      Last Steadfast error
+                    </p>
+                    <p className="mt-1 whitespace-pre-wrap text-xs font-semibold text-rose-900">
+                      {String((order as any).steadfast_last_error)}
+                    </p>
+                    {!(order as any).steadfast_consignment_id && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (retryingSF) return;
+                          setRetryingSF(true);
+                          try {
+                            await retrySF({ data: { id: orderId } });
+                            toast.success("Dispatched to Steadfast");
+                            refetch();
+                            onChanged?.();
+                          } catch (err: any) {
+                            toast.error(err?.message ?? "Retry failed");
+                          } finally {
+                            setRetryingSF(false);
+                          }
+                        }}
+                        disabled={retryingSF}
+                        className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-rose-700 px-3 py-1.5 text-xs font-extrabold text-white shadow-sm transition-transform hover:bg-rose-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {retryingSF ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          <Truck className="size-3.5" />
+                        )}
+                        Retry Steadfast Dispatch
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Logged-in profile snapshot */}
             {profile && (
               <Section title="Customer Profile (Signed-in User)" icon={User}>
