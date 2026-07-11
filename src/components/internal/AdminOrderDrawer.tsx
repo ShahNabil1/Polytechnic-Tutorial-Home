@@ -312,7 +312,8 @@ export function AdminOrderDrawer({
   }
 
   async function submitNote() {
-    if (!noteBody.trim()) return;
+    if (!noteBody.trim() || submittingNote) return;
+    setSubmittingNote(true);
     try {
       await addNote({ data: { id: orderId, body: noteBody.trim() } });
       setNoteBody("");
@@ -320,6 +321,8 @@ export function AdminOrderDrawer({
       refetch();
     } catch (e: any) {
       toast.error(e.message || "Failed");
+    } finally {
+      setSubmittingNote(false);
     }
   }
 
