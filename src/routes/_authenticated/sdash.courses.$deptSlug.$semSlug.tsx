@@ -12,7 +12,7 @@ import {
   GraduationCap,
 } from "lucide-react";
 import { toast } from "sonner";
-import { getCourseContentForUser } from "@/lib/lms.functions";
+import { getCourseContentForUser, enrollInCourseTest } from "@/lib/lms.functions";
 import type { LmsCourseContent } from "@/lib/lms";
 
 export const Route = createFileRoute("/_authenticated/sdash/courses/$deptSlug/$semSlug")({
@@ -25,27 +25,45 @@ function StudentCourseView() {
     semSlug: string;
   };
   const fn = useServerFn(getCourseContentForUser);
+  const enrollFn = useServerFn(enrollInCourseTest);
   const [data, setData] = useState<LmsCourseContent | null>(null);
   const [loading, setLoading] = useState(true);
+  const [enrolling, setEnrolling] = useState(false);
   const [activeLesson, setActiveLesson] = useState<any | null>(null);
   const [openSubjects, setOpenSubjects] = useState<Record<string, boolean>>({});
 
+  async function refetch() {
+    setLoading(true);
+    try {
+      const res = (await fn({
+        data: { dept_slug: deptSlug, sem_slug: semSlug },
+      } as never)) as LmsCourseContent;
+      setData(res);
+      if (res.subjects[0]) setOpenSubjects((p) => (Object.keys(p).length ? p : { [res.subjects[0].id]: true }));
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to load");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleEnroll() {
+    if (!data) return;
+    setEnrolling(true);
+    try {
+      await enrollFn({ data: { course_id: data.course.id } } as never);
+      toast.success("এনরোলমেন্ট সফল! কোর্সে এ্যাক্সেস পেয়েছেন।");
+      await refetch();
+    } catch (e: any) {
+      toast.error(e?.message ?? "এনরোল ব্যর্থ হয়েছে");
+    } finally {
+      setEnrolling(false);
+    }
+  }
+
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const res = (await fn({
-          data: { dept_slug: deptSlug, sem_slug: semSlug },
-        } as never)) as LmsCourseContent;
-        setData(res);
-        // open first subject by default
-        if (res.subjects[0]) setOpenSubjects({ [res.subjects[0].id]: true });
-      } catch (e: any) {
-        toast.error(e?.message ?? "Failed to load");
-      } finally {
-        setLoading(false);
-      }
-    })();
+    refetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deptSlug, semSlug]);
 
   if (loading) {
@@ -102,9 +120,17 @@ function StudentCourseView() {
                       ৳{course.compare_at_price_bdt.toLocaleString()}
                     </span>
                   )}
-                  <button className="rounded-lg bg-brand text-brand-foreground px-4 py-2 text-sm font-medium hover:bg-brand/90">
-                    এনরোল করুন
+                  <button
+                    onClick={handleEnroll}
+                    disabled={enrolling}
+                    className="inline-flex items-center gap-1 rounded-lg bg-brand text-brand-foreground px-4 py-2 text-sm font-medium hover:bg-brand/90 disabled:opacity-60"
+                  >
+                    {enrolling && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {enrolling ? "প্রসেসিং..." : "Buy Now — এনরোল করুন"}
                   </button>
+                  <span className="text-[11px] text-muted-foreground">
+                    (টেস্ট মোড: Paystation gateway এর জায়গায় ইনস্ট্যান্ট এনরোল)
+                  </span>
                 </div>
               )}
             </div>
