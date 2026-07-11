@@ -33,11 +33,19 @@ async function hmacSha256Hex(secret: string, msg: string): Promise<string> {
   return bytesToHex(sig);
 }
 
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [k: string]: JsonValue };
+
 async function callWorker(opts: {
   method: "GET" | "POST";
   path: string;
   body?: unknown;
-}): Promise<{ status: number; data: unknown }> {
+}): Promise<{ status: number; data: JsonValue }> {
   const base = process.env.STEADFAST_WORKER_URL;
   const secret = process.env.LOVABLE_HMAC_SECRET;
   if (!base) throw new Error("STEADFAST_WORKER_URL is not configured");
