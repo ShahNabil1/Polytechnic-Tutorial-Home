@@ -747,7 +747,46 @@ function TextField({
 }
 
 
-type BlockKind = "ip" | "fingerprint" | "phone";
+// ---------- Source attribution ----------
+const SOURCE_META: Record<string, { label: string; className: string }> = {
+  website: { label: "Website", className: "bg-sky-100 text-sky-700 ring-sky-200" },
+  direct: { label: "Direct", className: "bg-slate-100 text-slate-700 ring-slate-200" },
+  manual: { label: "Manual", className: "bg-violet-100 text-violet-700 ring-violet-200" },
+  fb_utm: { label: "Facebook / UTM", className: "bg-indigo-100 text-indigo-700 ring-indigo-200" },
+  google: { label: "Google", className: "bg-emerald-100 text-emerald-700 ring-emerald-200" },
+  other: { label: "Other", className: "bg-amber-100 text-amber-800 ring-amber-200" },
+};
+
+function SourceSection({ order }: { order: Order & { created_by_name?: string | null } }) {
+  const src = (order as any).source || "website";
+  const meta = SOURCE_META[src] ?? SOURCE_META.other;
+  const detail = (order as any).source_detail as string | null | undefined;
+  const empName = (order as any).created_by_name as string | null | undefined;
+  return (
+    <Section title="Order Source" icon={Tag}>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-extrabold ring-1", meta.className)}>
+          <Tag className="size-3" /> {meta.label}
+        </span>
+        {detail && (
+          <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
+            {detail}
+          </span>
+        )}
+        {src === "manual" && empName && (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-fuchsia-100 px-2.5 py-1 text-xs font-bold text-fuchsia-700 ring-1 ring-fuchsia-200">
+            <User className="size-3" /> {empName}
+          </span>
+        )}
+        {!detail && src === "website" && (
+          <span className="text-[11px] text-slate-500">Placed via the storefront checkout.</span>
+        )}
+      </div>
+    </Section>
+  );
+}
+
+
 
 function DeviceSecuritySection({
   order,
