@@ -87,6 +87,8 @@ export function AdminOrderDrawer({
   const bulkUnblock = useServerFn(bulkUnblockIdentifiers);
   const fetchBlockStatus = useServerFn(getBlockStatus);
   const searchProducts = useServerFn(searchProductsForOrder);
+  const retrySF = useServerFn(retrySteadfastDispatch);
+  const [retryingSF, setRetryingSF] = useState(false);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["admin-order", orderId],
