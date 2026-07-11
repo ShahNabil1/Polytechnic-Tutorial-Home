@@ -420,3 +420,181 @@ export const deleteLesson = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// ==================== Courses (Department × Semester) ====================
+
+function toCourseRow(row: any, subjectCount = 0): LmsCourse {
+  return {
+    id: row.id,
+    department_id: row.department_id,
+    semester_id: row.semester_id,
+    title: row.title,
+    slug: row.slug,
+    description: row.description ?? null,
+    cover_image_url: row.cover_image_url ?? null,
+    price_bdt: Number(row.price_bdt ?? 0),
+    compare_at_price_bdt: row.compare_at_price_bdt != null ? Number(row.compare_at_price_bdt) : null,
+    is_active: row.is_active,
+    sort_order: row.sort_order,
+    subject_count: subjectCount,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
+export const listCourses = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("lms_courses")
+      .select("*")
+      .order("sort_order")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    const list = (rows ?? []) as any[];
+    if (list.length === 0) return [] as LmsCourse[];
+
+    // Subject count per (dept, sem) via placements
+    const { data: placeRows, error: pErr } = await context.supabase
+      .from("lms_subject_placements")
+      .select("department_id, semester_id, subject_id");
+    if (pErr) throw new Error(pErr.message);
+
+    const key = (d: string, s: string) => `${d}:${s}`;
+    const counts = new Map<string, Set<string>>();
+    for (const p of (placeRows ?? []) as any[]) {
+      const k = key(p.department_id, p.semester_id);
+      const set = counts.get(k) ?? new Set<string>();
+      set.add(p.subject_id);
+      counts.set(k, set);
+    }
+    return list.map((r) => toCourseRow(r, counts.get(key(r.department_id, r.semester_id))?.size ?? 0));
+  });
+
+export const getCourseByPair = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z.object({ department_id: z.string().uuid(), semester_id: z.string().uuid() }).parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("lms_courses")
+      .select("*")
+      .eq("department_id", data.department_id)
+      .eq("semester_id", data.semester_id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) return null;
+    return toCourseRow(row);
+  });
+
+const CoursePatch = z.object({
+  title: z.string().trim().min(1).max(200),
+  slug: z
+    .string()
+    .trim()
+    .min(1)
+    .max(120)
+    .regex(/^[a-z0-9-]+$/i)
+    .optional(),
+  description: z.string().max(10000).optional().nullable(),
+  cover_image_url: z.string().url().max(1000).optional().nullable().or(z.literal("")),
+  price_bdt: z.number().min(0).max(1_000_000).default(0),
+  compare_at_price_bdt: z.number().min(0).max(1_000_000).optional().nullable(),
+  is_active: z.boolean().default(true),
+  sort_order: z.number().int().min(0).max(9999).default(0),
+});
+
+export const upsertCourse = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z
+      .object({
+        id: z.string().uuid().optional(),
+        department_id: z.string().uuid(),
+        semester_id: z.string().uuid(),
+        patch: CoursePatch,
+      })
+      .parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureCanManage(context);
+    const payload: any = {
+      department_id: data.department_id,
+      semester_id: data.semester_id,
+      title: data.patch.title.trim(),
+      slug: data.patch.slug?.trim() || slugify(data.patch.title),
+      description: data.patch.description ?? null,
+      cover_image_url:
+        data.patch.cover_image_url && data.patch.cover_image_url !== ""
+          ? data.patch.cover_image_url
+          : null,
+      price_bdt: data.patch.price_bdt,
+      compare_at_price_bdt: data.patch.compare_at_price_bdt ?? null,
+      is_active: data.patch.is_active,
+      sort_order: data.patch.sort_order,
+    };
+    if (data.id) {
+      const { error } = await context.supabase.from("lms_courses").update(payload).eq("id", data.id);
+      if (error) throw new Error(error.message);
+      return { ok: true, id: data.id };
+    }
+    payload.created_by = context.userId;
+    const { data: row, error } = await context.supabase
+      .from("lms_courses")
+      .insert(payload)
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    return { ok: true, id: (row as any).id as string };
+  });
+
+export const deleteCourse = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
+  .handler(async ({ data, context }) => {
+    await ensureCanManage(context);
+    const { error } = await context.supabase.from("lms_courses").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// Auto-generate a course row for every (dept × sem) pair missing one.
+export const generateMissingCourses = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await ensureCanManage(context);
+    const [depsRes, semsRes, coursesRes] = await Promise.all([
+      context.supabase.from("lms_departments").select("id, name, slug").eq("is_active", true),
+      context.supabase.from("lms_semesters").select("id, name, slug").eq("is_active", true),
+      context.supabase.from("lms_courses").select("department_id, semester_id"),
+    ]);
+    if (depsRes.error) throw new Error(depsRes.error.message);
+    if (semsRes.error) throw new Error(semsRes.error.message);
+    if (coursesRes.error) throw new Error(coursesRes.error.message);
+
+    const existing = new Set(
+      ((coursesRes.data ?? []) as any[]).map((c) => `${c.department_id}:${c.semester_id}`),
+    );
+    const rows: any[] = [];
+    for (const d of (depsRes.data ?? []) as any[]) {
+      for (const s of (semsRes.data ?? []) as any[]) {
+        if (existing.has(`${d.id}:${s.id}`)) continue;
+        const baseSlug = slugify(`${d.slug}-${s.slug}`);
+        rows.push({
+          department_id: d.id,
+          semester_id: s.id,
+          title: `${d.name} — ${s.name}`,
+          slug: `${baseSlug}-${Math.random().toString(36).slice(2, 6)}`,
+          price_bdt: 0,
+          is_active: true,
+          created_by: context.userId,
+        });
+      }
+    }
+    if (rows.length === 0) return { ok: true, created: 0 };
+    const { error } = await context.supabase.from("lms_courses").insert(rows);
+    if (error) throw new Error(error.message);
+    return { ok: true, created: rows.length };
+  });
+
