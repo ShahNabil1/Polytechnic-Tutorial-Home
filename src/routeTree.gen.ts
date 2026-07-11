@@ -135,9 +135,9 @@ const AuthenticatedSdashIndexRoute = AuthenticatedSdashIndexRouteImport.update({
   getParentRoute: () => AuthenticatedSdashRoute,
 } as any)
 const CoursesDeptSlugSemSlugRoute = CoursesDeptSlugSemSlugRouteImport.update({
-  id: '/courses/$deptSlug/$semSlug',
-  path: '/courses/$deptSlug/$semSlug',
-  getParentRoute: () => rootRouteImport,
+  id: '/$deptSlug/$semSlug',
+  path: '/$deptSlug/$semSlug',
+  getParentRoute: () => CoursesRoute,
 } as any)
 const AuthenticatedSdashShopRoute = AuthenticatedSdashShopRouteImport.update({
   id: '/shop',
@@ -608,7 +608,6 @@ export interface RootRouteChildren {
   ProductSlugRoute: typeof ProductSlugRoute
   CheckoutIndexRoute: typeof CheckoutIndexRoute
   CoursesIndexRoute: typeof CoursesIndexRoute
-  CoursesDeptSlugSemSlugRoute: typeof CoursesDeptSlugSemSlugRoute
   ApiPublicHooksDeliverEbookBatchRoute: typeof ApiPublicHooksDeliverEbookBatchRoute
   ApiPublicSessionsActionRoute: typeof ApiPublicSessionsActionRoute
   ApiPublicWebhooksResendRoute: typeof ApiPublicWebhooksResendRoute
@@ -731,10 +730,10 @@ declare module '@tanstack/react-router' {
     }
     '/courses/$deptSlug/$semSlug': {
       id: '/courses/$deptSlug/$semSlug'
-      path: '/courses/$deptSlug/$semSlug'
+      path: '/$deptSlug/$semSlug'
       fullPath: '/courses/$deptSlug/$semSlug'
       preLoaderRoute: typeof CoursesDeptSlugSemSlugRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof CoursesRoute
     }
     '/_authenticated/sdash/shop': {
       id: '/_authenticated/sdash/shop'
@@ -1123,7 +1122,6 @@ const rootRouteChildren: RootRouteChildren = {
   ProductSlugRoute: ProductSlugRoute,
   CheckoutIndexRoute: CheckoutIndexRoute,
   CoursesIndexRoute: CoursesIndexRoute,
-  CoursesDeptSlugSemSlugRoute: CoursesDeptSlugSemSlugRoute,
   ApiPublicHooksDeliverEbookBatchRoute: ApiPublicHooksDeliverEbookBatchRoute,
   ApiPublicSessionsActionRoute: ApiPublicSessionsActionRoute,
   ApiPublicWebhooksResendRoute: ApiPublicWebhooksResendRoute,
@@ -1132,3 +1130,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
