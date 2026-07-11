@@ -32,7 +32,7 @@ export function AcademicStructureManager() {
   const [rows, setRows] = useState<Draft[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState<Draft | null>(null);
+  
 
   async function refetch() {
     setLoading(true);
