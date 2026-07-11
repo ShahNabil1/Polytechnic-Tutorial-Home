@@ -36,20 +36,23 @@ export const upsertEmailTemplate = createServerFn({ method: "POST" })
         subject: z.string().min(1).max(300),
         body_html: z.string().min(1).max(50000),
         variables: z.array(z.string().max(60)).max(40).optional(),
+        category: z.string().min(1).max(40).optional(),
       })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
     await ensureStaff(context);
     if (data.id) {
+      const patch: Record<string, unknown> = {
+        name: data.name,
+        subject: data.subject,
+        body_html: data.body_html,
+        variables: data.variables ?? [],
+      };
+      if (data.category) patch.category = data.category;
       const { error } = await context.supabase
         .from("email_templates")
-        .update({
-          name: data.name,
-          subject: data.subject,
-          body_html: data.body_html,
-          variables: data.variables ?? [],
-        })
+        .update(patch)
         .eq("id", data.id);
       if (error) throw new Error(error.message);
       return { ok: true, id: data.id };
@@ -61,6 +64,7 @@ export const upsertEmailTemplate = createServerFn({ method: "POST" })
         subject: data.subject,
         body_html: data.body_html,
         variables: data.variables ?? [],
+        category: data.category ?? "other",
         is_system: false,
         created_by: context.userId,
       })
