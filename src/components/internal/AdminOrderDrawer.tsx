@@ -1686,7 +1686,7 @@ function CustomerSmsSection({ orderId, order }: { orderId: string; order: Order 
   const [selectedId, setSelectedId] = useState<string>("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
-  const textRef = React.useRef<HTMLTextAreaElement | null>(null);
+  const textRef = useRef<HTMLTextAreaElement | null>(null);
 
   const vars = useMemo<Record<string, string>>(() => {
     if (!order) return {} as Record<string, string>;
