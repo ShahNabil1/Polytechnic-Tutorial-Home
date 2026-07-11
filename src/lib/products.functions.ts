@@ -247,6 +247,7 @@ const ProductUpsertInput = z.object({
   is_active: z.boolean().default(true),
   is_featured: z.boolean().default(false),
   is_online_book: z.boolean().default(false),
+  ebook_file_url: z.string().trim().url().max(1000).optional().nullable().or(z.literal("")),
 });
 
 export const upsertProduct = createServerFn({ method: "POST" })
