@@ -1,14 +1,15 @@
-import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Phone, Eye, Search } from "lucide-react";
-import { listAdminOrders } from "@/lib/orders.functions";
+import { listAdminOrders, getAdminOrderCounts } from "@/lib/orders.functions";
 import { ORDER_STATUSES, STATUS_LABEL, formatDhakaDateTime, type OrderStatus } from "@/lib/orders";
 import { formatBDTEn, waLinkBD } from "@/lib/format";
 import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
 import { cn } from "@/lib/utils";
 import { AdminOrderDrawer } from "@/components/internal/AdminOrderDrawer";
 import { AdminIncompleteCheckouts } from "@/components/internal/AdminIncompleteCheckouts";
+import { supabase } from "@/integrations/supabase/client";
 
 export function AdminOrdersManager() {
   const [tab, setTab] = useState<OrderStatus>("processing");
@@ -16,6 +17,8 @@ export function AdminOrdersManager() {
   const [openId, setOpenId] = useState<string | null>(null);
 
   const fetchOrders = useServerFn(listAdminOrders);
+  const fetchCounts = useServerFn(getAdminOrderCounts);
+  const queryClient = useQueryClient();
   const isIncomplete = tab === "incomplete";
 
   const { data, isLoading, refetch, isFetching } = useQuery({
@@ -24,8 +27,33 @@ export function AdminOrdersManager() {
     enabled: !isIncomplete,
   });
 
+  // Counts fetched independently so badges stay accurate on every tab, including Incomplete.
+  const { data: countsData } = useQuery({
+    queryKey: ["admin-order-counts"],
+    queryFn: () => fetchCounts(),
+    refetchOnWindowFocus: true,
+  });
+
+  // Realtime: any change in orders or incomplete_checkouts refreshes the visible list and counts.
+  useEffect(() => {
+    const channel = supabase
+      .channel("admin-orders-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["admin-order-counts"] });
+        queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "incomplete_checkouts" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["admin-order-counts"] });
+        queryClient.invalidateQueries({ queryKey: ["admin-incomplete"] });
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   const orders = data?.orders ?? [];
-  const counts = data?.counts ?? {};
+  const counts = countsData?.counts ?? data?.counts ?? {};
 
   return (
     <div className="space-y-4">
