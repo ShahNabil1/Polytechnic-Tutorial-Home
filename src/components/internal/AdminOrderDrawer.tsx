@@ -786,7 +786,7 @@ function SourceSection({ order }: { order: Order & { created_by_name?: string | 
   );
 }
 
-
+type BlockKind = "ip" | "fingerprint" | "phone";
 
 function DeviceSecuritySection({
   order,
