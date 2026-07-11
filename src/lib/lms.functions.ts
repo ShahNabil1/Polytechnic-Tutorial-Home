@@ -497,6 +497,13 @@ export const getCourseByPair = createServerFn({ method: "GET" })
     return toCourseRow(row);
   });
 
+const MediaItemSchema = z.object({
+  id: z.string().min(1),
+  type: z.enum(["image", "video"]),
+  url: z.string().url().max(1000),
+  alt: z.string().max(300).optional().nullable(),
+});
+
 const CoursePatch = z.object({
   title: z.string().trim().min(1).max(200),
   slug: z
@@ -508,6 +515,20 @@ const CoursePatch = z.object({
     .optional(),
   description: z.string().max(10000).optional().nullable(),
   cover_image_url: z.string().url().max(1000).optional().nullable().or(z.literal("")),
+  meta_title: z.string().max(200).optional().nullable(),
+  meta_description: z.string().max(500).optional().nullable(),
+  media_items: z
+    .array(MediaItemSchema)
+    .max(6)
+    .default([])
+    .refine(
+      (arr) => arr.filter((m) => m.type === "image").length <= 5,
+      { message: "Maximum 5 images allowed" },
+    )
+    .refine(
+      (arr) => arr.filter((m) => m.type === "video").length <= 1,
+      { message: "Only 1 video allowed" },
+    ),
   price_bdt: z.number().min(0).max(1_000_000).default(0),
   compare_at_price_bdt: z.number().min(0).max(1_000_000).optional().nullable(),
   is_active: z.boolean().default(true),
@@ -528,6 +549,8 @@ export const upsertCourse = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await ensureCanManage(context);
+    const media = data.patch.media_items ?? [];
+    const firstImage = media.find((m) => m.type === "image");
     const payload: any = {
       department_id: data.department_id,
       semester_id: data.semester_id,
@@ -535,9 +558,13 @@ export const upsertCourse = createServerFn({ method: "POST" })
       slug: data.patch.slug?.trim() || slugify(data.patch.title),
       description: data.patch.description ?? null,
       cover_image_url:
-        data.patch.cover_image_url && data.patch.cover_image_url !== ""
+        firstImage?.url ||
+        (data.patch.cover_image_url && data.patch.cover_image_url !== ""
           ? data.patch.cover_image_url
-          : null,
+          : null),
+      meta_title: data.patch.meta_title?.trim() || null,
+      meta_description: data.patch.meta_description?.trim() || null,
+      media_items: media,
       price_bdt: data.patch.price_bdt,
       compare_at_price_bdt: data.patch.compare_at_price_bdt ?? null,
       is_active: data.patch.is_active,
