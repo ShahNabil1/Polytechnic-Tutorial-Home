@@ -381,11 +381,13 @@ export type Database = {
           error_reason: string | null
           from_email: string | null
           id: string
+          kind: string
           next_retry_at: string | null
           opened_at: string | null
           order_id: string
           provider_payload: Json | null
           resend_email_id: string | null
+          sender_user_id: string | null
           sent_at: string | null
           status: Database["public"]["Enums"]["email_delivery_status"]
           subject: string | null
@@ -402,11 +404,13 @@ export type Database = {
           error_reason?: string | null
           from_email?: string | null
           id?: string
+          kind?: string
           next_retry_at?: string | null
           opened_at?: string | null
           order_id: string
           provider_payload?: Json | null
           resend_email_id?: string | null
+          sender_user_id?: string | null
           sent_at?: string | null
           status?: Database["public"]["Enums"]["email_delivery_status"]
           subject?: string | null
@@ -423,11 +427,13 @@ export type Database = {
           error_reason?: string | null
           from_email?: string | null
           id?: string
+          kind?: string
           next_retry_at?: string | null
           opened_at?: string | null
           order_id?: string
           provider_payload?: Json | null
           resend_email_id?: string | null
+          sender_user_id?: string | null
           sent_at?: string | null
           status?: Database["public"]["Enums"]["email_delivery_status"]
           subject?: string | null
@@ -525,6 +531,65 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_sms_deliveries: {
+        Row: {
+          body: string
+          created_at: string
+          error_reason: string | null
+          id: string
+          is_unicode: boolean
+          kind: string
+          order_id: string
+          provider_response: string | null
+          provider_status: number | null
+          sender_user_id: string | null
+          sms_count: number
+          status: string
+          to_phone: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          error_reason?: string | null
+          id?: string
+          is_unicode?: boolean
+          kind?: string
+          order_id: string
+          provider_response?: string | null
+          provider_status?: number | null
+          sender_user_id?: string | null
+          sms_count?: number
+          status?: string
+          to_phone: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          error_reason?: string | null
+          id?: string
+          is_unicode?: boolean
+          kind?: string
+          order_id?: string
+          provider_response?: string | null
+          provider_status?: number | null
+          sender_user_id?: string | null
+          sms_count?: number
+          status?: string
+          to_phone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_sms_deliveries_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
