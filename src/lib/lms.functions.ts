@@ -214,8 +214,15 @@ const SubjectInput = z.object({
   cover_image_url: z.string().url().max(1000).optional().nullable().or(z.literal("")),
   is_active: z.boolean().default(true),
   sort_order: z.number().int().min(0).max(9999).default(0),
-  department_ids: z.array(z.string().uuid()).max(50).default([]),
-  semester_ids: z.array(z.string().uuid()).max(50).default([]),
+  placements: z
+    .array(
+      z.object({
+        department_id: z.string().uuid(),
+        semester_id: z.string().uuid(),
+      }),
+    )
+    .max(200)
+    .default([]),
 });
 
 export const upsertSubject = createServerFn({ method: "POST" })
@@ -225,7 +232,7 @@ export const upsertSubject = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await ensureCanManage(context);
-    const { department_ids, semester_ids, ...rest } = data.patch;
+    const { placements, ...rest } = data.patch;
     const payload: any = {
       name: rest.name,
       code: rest.code?.trim() ? rest.code.trim() : null,
@@ -252,25 +259,29 @@ export const upsertSubject = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       subjectId = (row as any).id;
     }
-    // reset joins
-    await Promise.all([
-      context.supabase.from("lms_subject_departments").delete().eq("subject_id", subjectId!),
-      context.supabase.from("lms_subject_semesters").delete().eq("subject_id", subjectId!),
-    ]);
-    if (department_ids.length > 0) {
-      const { error } = await context.supabase
-        .from("lms_subject_departments")
-        .insert(department_ids.map((cid) => ({ subject_id: subjectId!, category_id: cid })));
-      if (error) throw new Error(error.message);
-    }
-    if (semester_ids.length > 0) {
-      const { error } = await context.supabase
-        .from("lms_subject_semesters")
-        .insert(semester_ids.map((cid) => ({ subject_id: subjectId!, category_id: cid })));
+    // reset placements
+    await context.supabase.from("lms_subject_placements").delete().eq("subject_id", subjectId!);
+    if (placements.length > 0) {
+      // Dedupe pairs
+      const seen = new Set<string>();
+      const rows = placements
+        .filter((p) => {
+          const k = `${p.department_id}:${p.semester_id}`;
+          if (seen.has(k)) return false;
+          seen.add(k);
+          return true;
+        })
+        .map((p) => ({
+          subject_id: subjectId!,
+          department_id: p.department_id,
+          semester_id: p.semester_id,
+        }));
+      const { error } = await context.supabase.from("lms_subject_placements").insert(rows);
       if (error) throw new Error(error.message);
     }
     return { ok: true, id: subjectId! };
   });
+
 
 export const deleteSubject = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
