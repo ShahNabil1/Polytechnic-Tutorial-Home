@@ -1,17 +1,30 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Mail, Plus, Trash2, Save, Copy, Loader2, Lock, Eye, Code2 } from "lucide-react";
+import {
+  Mail,
+  Plus,
+  Trash2,
+  Save,
+  Copy,
+  Loader2,
+  Lock,
+  Eye,
+  Code2,
+  Pencil,
+  X,
+} from "lucide-react";
 import {
   listEmailTemplates,
   upsertEmailTemplate,
   deleteEmailTemplate,
+  setEmailTemplateEnabled,
 } from "@/lib/email-templates.functions";
 import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
-// Sample data used for the live preview render.
 const SAMPLE_VARS: Record<string, string> = {
   order_no: "PTH123",
   customer_name: "রহিম আহমেদ",
@@ -31,6 +44,7 @@ const SYSTEM_VARS: Record<string, string[]> = {
   order_confirmation: ["order_no", "customer_name", "amount", "receipt_url"],
 };
 
+const AUTO_KEYS = new Set(["order_confirmation", "ebook_delivery"]);
 const DEFAULT_VARS = ["order_no", "customer_name", "amount", "receipt_url", "phone"];
 
 function renderPreview(html: string, subject: string) {
@@ -49,6 +63,7 @@ export function EmailTemplatesManager() {
   const fetchList = useServerFn(listEmailTemplates);
   const upsert = useServerFn(upsertEmailTemplate);
   const del = useServerFn(deleteEmailTemplate);
+  const setEnabled = useServerFn(setEmailTemplateEnabled);
 
   const { data, isLoading } = useQuery({
     queryKey: ["email-templates"],
@@ -57,9 +72,13 @@ export function EmailTemplatesManager() {
   const templates = data?.templates ?? [];
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isNew, setIsNew] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const editorRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    if (!selectedId && templates.length) setSelectedId(templates[0].id);
-  }, [templates, selectedId]);
+    if (!selectedId && !isNew && templates.length) setSelectedId(templates[0].id);
+  }, [templates, selectedId, isNew]);
   const selected = useMemo(
     () => templates.find((t: any) => t.id === selectedId) ?? null,
     [templates, selectedId],
@@ -68,7 +87,7 @@ export function EmailTemplatesManager() {
   const [name, setName] = useState("");
   const [subject, setSubject] = useState("");
   const [bodyHtml, setBodyHtml] = useState("");
-  const [tab, setTab] = useState<"code" | "preview">("code");
+  const [tab, setTab] = useState<"code" | "preview">("preview");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -76,10 +95,9 @@ export function EmailTemplatesManager() {
       setName(selected.name);
       setSubject(selected.subject);
       setBodyHtml(selected.body_html);
-    } else {
-      setName("");
-      setSubject("");
-      setBodyHtml("");
+      setIsNew(false);
+      setIsEditing(false);
+      setTab("preview");
     }
   }, [selected?.id]);
 
@@ -111,7 +129,13 @@ export function EmailTemplatesManager() {
       });
       toast.success("Template saved");
       qc.invalidateQueries({ queryKey: ["email-templates"] });
-      if (!selected?.id && res.id) setSelectedId(res.id);
+      if (isNew && res.id) {
+        setSelectedId(res.id);
+        setIsNew(false);
+      }
+      setIsEditing(false);
+      setTab("preview");
+      editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (e: any) {
       toast.error(e.message || "Failed to save");
     } finally {
@@ -121,6 +145,8 @@ export function EmailTemplatesManager() {
 
   function createNew() {
     setSelectedId(null);
+    setIsNew(true);
+    setIsEditing(true);
     setName("New email template");
     setSubject("");
     setBodyHtml(
@@ -130,6 +156,20 @@ export function EmailTemplatesManager() {
 </div>`,
     );
     setTab("code");
+    setTimeout(() => editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  }
+
+  function cancelEdit() {
+    if (isNew) {
+      setIsNew(false);
+      if (templates[0]) setSelectedId(templates[0].id);
+    } else if (selected) {
+      setName(selected.name);
+      setSubject(selected.subject);
+      setBodyHtml(selected.body_html);
+    }
+    setIsEditing(false);
+    setTab("preview");
   }
 
   async function remove() {
@@ -138,15 +178,29 @@ export function EmailTemplatesManager() {
       title: "Delete template?",
       description: `"${selected.name}" delete করা হবে`,
       variant: "danger",
+      confirmLabel: "Delete",
     });
     if (!ok) return;
     try {
       await del({ data: { id: selected.id } });
       toast.success("Template deleted");
       setSelectedId(null);
+      setIsEditing(false);
       qc.invalidateQueries({ queryKey: ["email-templates"] });
     } catch (e: any) {
       toast.error(e.message || "Delete failed");
+    }
+  }
+
+  async function toggleEnabled(t: any, next: boolean) {
+    try {
+      await setEnabled({ data: { id: t.id, enabled: next } });
+      qc.setQueryData(["email-templates"], (old: any) => ({
+        templates: (old?.templates ?? []).map((x: any) => (x.id === t.id ? { ...x, enabled: next } : x)),
+      }));
+      toast.success(next ? "Auto-send enabled" : "Auto-send disabled");
+    } catch (e: any) {
+      toast.error(e.message || "Failed");
     }
   }
 
@@ -154,6 +208,8 @@ export function EmailTemplatesManager() {
     const token = `{{${v}}}`;
     navigator.clipboard.writeText(token).then(() => toast.success(`Copied ${token}`));
   }
+
+  const showEditor = selected || isNew;
 
   return (
     <div className="mx-auto max-w-7xl p-4 md:p-6">
@@ -164,19 +220,18 @@ export function EmailTemplatesManager() {
             Email Templates
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            E-book delivery, order confirmation, এবং custom CRM email templates এখান থেকে edit করো।
-            Variables ব্যবহার করে personalized email পাঠাও (Resend দিয়ে delivery হবে)।
+            E-book delivery, order confirmation, এবং custom CRM email templates এখান থেকে edit করো (Resend delivery)।
           </p>
         </div>
         <button
           onClick={createNew}
-          className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-bold text-white hover:bg-slate-800"
+          className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-bold text-white transition-transform hover:bg-slate-800 active:scale-95"
         >
           <Plus className="size-4" /> New template
         </button>
       </header>
 
-      <div className="grid gap-4 md:grid-cols-[260px_1fr]">
+      <div className="grid gap-4 md:grid-cols-[300px_1fr]">
         <aside className="rounded-xl border border-slate-200 bg-white">
           {isLoading && (
             <div className="p-4 text-center text-sm text-slate-500">
@@ -186,23 +241,35 @@ export function EmailTemplatesManager() {
           <ul className="divide-y divide-slate-100">
             {templates.map((t: any) => (
               <li key={t.id}>
-                <button
-                  onClick={() => setSelectedId(t.id)}
+                <div
                   className={cn(
-                    "flex w-full items-start justify-between gap-2 px-3 py-2.5 text-left text-sm hover:bg-slate-50",
+                    "flex items-center gap-2 px-3 py-2.5 text-sm",
                     selectedId === t.id && "bg-brand/5",
                   )}
                 >
-                  <div className="min-w-0 flex-1">
+                  <button
+                    onClick={() => {
+                      setSelectedId(t.id);
+                      setIsNew(false);
+                    }}
+                    className="min-w-0 flex-1 text-left hover:opacity-80"
+                  >
                     <p className="truncate font-semibold text-slate-900">{t.name}</p>
                     {t.key && (
                       <p className="mt-0.5 font-mono text-[10px] uppercase tracking-wider text-slate-400">
                         {t.key}
                       </p>
                     )}
-                  </div>
-                  {t.is_system && <Lock className="mt-0.5 size-3.5 shrink-0 text-slate-400" />}
-                </button>
+                  </button>
+                  {t.key && AUTO_KEYS.has(t.key) && (
+                    <Switch
+                      checked={t.enabled !== false}
+                      onCheckedChange={(v) => toggleEnabled(t, v)}
+                      title={t.enabled !== false ? "Auto-send on" : "Auto-send off"}
+                    />
+                  )}
+                  {t.is_system && <Lock className="size-3.5 shrink-0 text-slate-400" />}
+                </div>
               </li>
             ))}
             {!isLoading && templates.length === 0 && (
@@ -211,18 +278,40 @@ export function EmailTemplatesManager() {
           </ul>
         </aside>
 
-        <section className="rounded-xl border border-slate-200 bg-white p-4">
-          {!selected && !name ? (
+        <section ref={editorRef} className="rounded-xl border border-slate-200 bg-white p-4">
+          {!showEditor ? (
             <p className="text-sm text-slate-500">Select a template or create a new one.</p>
           ) : (
             <>
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {selected?.is_system ? (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500">
+                      <Lock className="size-3.5" /> System template
+                    </span>
+                  ) : (
+                    <span className="text-xs font-semibold text-slate-500">
+                      {isNew ? "New template" : "Custom template"}
+                    </span>
+                  )}
+                </div>
+                {!isEditing && !isNew && (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-bold text-slate-700 transition-all hover:border-brand hover:text-brand active:scale-95"
+                  >
+                    <Pencil className="size-3.5" /> Edit
+                  </button>
+                )}
+              </div>
+
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
                 Template name
               </label>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                disabled={selected?.is_system}
+                disabled={!isEditing || selected?.is_system}
                 className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2 text-sm disabled:bg-slate-50"
               />
 
@@ -232,7 +321,8 @@ export function EmailTemplatesManager() {
               <input
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2 text-sm"
+                disabled={!isEditing}
+                className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2 text-sm disabled:bg-slate-50"
                 placeholder="আপনার অর্ডার কনফার্ম হয়েছে — {{order_no}}"
               />
 
@@ -246,7 +336,7 @@ export function EmailTemplatesManager() {
                       key={v}
                       type="button"
                       onClick={() => copyVar(v)}
-                      className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 font-mono text-[11px] font-semibold text-slate-700 hover:bg-brand/5 hover:text-brand"
+                      className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 font-mono text-[11px] font-semibold text-slate-700 transition-colors hover:bg-brand/5 hover:text-brand"
                     >
                       <Copy className="size-3" />
                       {`{{${v}}}`}
@@ -284,8 +374,9 @@ export function EmailTemplatesManager() {
                 <textarea
                   value={bodyHtml}
                   onChange={(e) => setBodyHtml(e.target.value)}
+                  disabled={!isEditing}
                   rows={18}
-                  className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-xs leading-relaxed"
+                  className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-xs leading-relaxed disabled:bg-slate-100"
                 />
               ) : (
                 <div className="mt-2 rounded-lg border border-slate-200 bg-[#f6f8fa] p-4">
@@ -301,27 +392,41 @@ export function EmailTemplatesManager() {
                 </div>
               )}
 
-              <div className="mt-4 flex items-center justify-between">
-                <button
-                  onClick={remove}
-                  disabled={!selected || selected.is_system}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-bold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <Trash2 className="size-3.5" /> Delete
-                </button>
-                <button
-                  onClick={save}
-                  disabled={saving}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-60"
-                >
-                  {saving ? (
-                    <Loader2 className="size-3.5 animate-spin" />
-                  ) : (
-                    <Save className="size-3.5" />
-                  )}
-                  Save template
-                </button>
-              </div>
+              {isEditing && (
+                <div className="mt-4 flex animate-fade-in items-center justify-between">
+                  <div>
+                    {selected && !selected.is_system && (
+                      <button
+                        onClick={remove}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-bold text-red-600 transition-all hover:bg-red-50 active:scale-95"
+                      >
+                        <Trash2 className="size-3.5" /> Delete
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={cancelEdit}
+                      disabled={saving}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 active:scale-95"
+                    >
+                      <X className="size-3.5" /> Cancel
+                    </button>
+                    <button
+                      onClick={save}
+                      disabled={saving}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-bold text-white transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-60"
+                    >
+                      {saving ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <Save className="size-3.5" />
+                      )}
+                      {saving ? "Saving…" : "Save template"}
+                    </button>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </section>
