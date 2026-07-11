@@ -957,9 +957,15 @@ export const revokeEnrollment = createServerFn({ method: "POST" })
 
 export const enrollInCourseTest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ course_id: z.string().uuid() }).parse(i))
+  .inputValidator((i: unknown) =>
+    z
+      .object({
+        course_id: z.string().uuid(),
+        coupon_code: z.string().trim().min(1).max(60).optional().nullable(),
+      })
+      .parse(i),
+  )
   .handler(async ({ data, context }) => {
-    // Only allow the 'student' role to self-enroll
     const { data: isStudent, error: rErr } = await context.supabase.rpc("has_role", {
       _user_id: context.userId,
       _role: "student",
@@ -969,10 +975,9 @@ export const enrollInCourseTest = createServerFn({ method: "POST" })
       throw new Error("শুধু স্টুডেন্ট রোলের ইউজার এনরোল করতে পারবে।");
     }
 
-    // Verify course exists and is active
     const { data: course, error: cErr } = await context.supabase
       .from("lms_courses")
-      .select("id, is_active")
+      .select("id, is_active, price_bdt")
       .eq("id", data.course_id)
       .maybeSingle();
     if (cErr) throw new Error(cErr.message);
@@ -980,12 +985,40 @@ export const enrollInCourseTest = createServerFn({ method: "POST" })
       throw new Error("এই কোর্সটি এখন উপলব্ধ নয়।");
     }
 
+    // Optional coupon validation. In test-mode we don't process real payment,
+    // so we just re-validate against the coupons RPC and record the code +
+    // discount amount in the enrollment note for CRM/audit purposes. A bad
+    // coupon rejects the enrollment so the client can retry without it.
+    let note = "test-mode: instant enroll (Paystation stub)";
+    if (data.coupon_code) {
+      const subtotal = Number((course as any).price_bdt ?? 0);
+      const { data: res, error: vErr } = await context.supabase.rpc("validate_coupon", {
+        _code: data.coupon_code,
+        _subtotal: subtotal,
+        _product_ids: [] as string[],
+        _category_ids: [data.course_id],
+        _phone: null,
+        _user_id: context.userId,
+        _scope: "course",
+      } as any);
+      if (vErr) throw new Error(vErr.message);
+      const r = (res ?? {}) as any;
+      if (!r.ok) {
+        throw new Error(
+          r.reason === "min_spend"
+            ? "কুপন প্রয়োগ করা যাচ্ছে না (মিনিমাম স্পেন্ড পূরণ হয়নি)।"
+            : "কুপন অবৈধ বা মেয়াদোত্তীর্ণ।",
+        );
+      }
+      note = `test-mode enroll · coupon=${r.code} · discount=৳${Number(r.discount ?? 0)}`;
+    }
+
     const { error } = await context.supabase.from("lms_enrollments").upsert(
       {
         user_id: context.userId,
         course_id: data.course_id,
         granted_by: context.userId,
-        note: "test-mode: instant enroll (Paystation stub)",
+        note,
       } as never,
       { onConflict: "user_id,course_id" },
     );
