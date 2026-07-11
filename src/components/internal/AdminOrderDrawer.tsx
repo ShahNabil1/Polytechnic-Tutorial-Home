@@ -593,15 +593,16 @@ export function AdminOrderDrawer({
                     </button>
                     <button
                       onClick={saveCustomer}
-                      className="btn-sm-primary disabled:opacity-60"
-                      disabled={savingCustomer}
+                      className="btn-sm-primary transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
+                      disabled={savingCustomer || !customerDirty}
+                      title={!customerDirty ? "কোনো পরিবর্তন নেই" : "Save customer details"}
                     >
                       {savingCustomer ? (
                         <Loader2 className="size-3.5 animate-spin" />
                       ) : (
                         <Save className="size-3.5" />
                       )}
-                      {savingCustomer ? "Saving…" : "Save"}
+                      {savingCustomer ? "Saving…" : customerDirty ? "Save" : "Saved"}
                     </button>
                   </>
                 ) : (
