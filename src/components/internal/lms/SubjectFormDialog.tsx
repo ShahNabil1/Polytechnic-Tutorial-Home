@@ -59,6 +59,8 @@ export function SubjectFormDialog({ open, subject, taxonomy, initialPlacements, 
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
+  const dirtyRef = useRef(false);
+  const initRef = useRef(false);
 
   useEffect(() => {
     if (open) {
@@ -72,8 +74,28 @@ export function SubjectFormDialog({ open, subject, taxonomy, initialPlacements, 
       setNewDept("");
       setNewSem("");
       setSlugManuallyEdited(!!subject);
+      initRef.current = false;
+      dirtyRef.current = false;
     }
   }, [open, subject, initialPlacements]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (!initRef.current) {
+      initRef.current = true;
+      return;
+    }
+    dirtyRef.current = true;
+  }, [open, name, code, slug, description, coverUrl, isActive, placements]);
+
+  function attemptClose() {
+    if (saving || uploading) return;
+    if (dirtyRef.current) {
+      const ok = window.confirm("You have unsaved changes. Discard them?");
+      if (!ok) return;
+    }
+    onClose();
+  }
 
   useEffect(() => {
     if (!slugManuallyEdited) setSlug(slugify(name));
