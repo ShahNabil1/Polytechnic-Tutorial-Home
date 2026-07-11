@@ -1,131 +1,151 @@
+# Ebook Auto-Delivery + Resend Webhook Integration
 
-## Coupon System — End-to-End Plan
+## গোল
 
-A unified coupon engine that powers the Workspace › Coupons admin page and the checkout redemption flow, structured for three coupon "scopes" that all share one database + validation core.
-
----
-
-### 1. Three tabs, one engine
-
-Workspace › E-Commerce › Coupons will have 3 tabs, all backed by the same table:
-
-- **Shop Coupons** — for physical books / bundles / online-books (active now)
-- **Course Coupons** — for future courses (schema ready; UI shows an empty state until courses exist)
-- **Special Coupons** — targeted to specific customers (CRM-gated; UI shows "Available after CRM build" until then, but the fields exist)
-
-A `scope` column (`shop | course | special`) filters each tab. Only Shop coupons apply at `/checkout` for now.
+Processing এ আসা অর্ডারের ই-বুক অংশ Resend দিয়ে অটো ডেলিভার হবে। ফিজিক্যাল অংশ আগের RTS/Steadfast ফ্লোতেই চলবে। মিক্সড অর্ডারে দুই পার্ট আলাদাভাবে ট্র্যাক হবে, কিন্তু অর্ডার আইডি এক থাকবে।
 
 ---
 
-### 2. Coupon capabilities
+## Core ধারণা: Fulfillment Split
 
-Each coupon supports:
+একটা `orders` রো তে এখন একটাই `status` — এইটা সব ক্ষেত্রে যথেষ্ট না। তাই দুইটা নতুন সাব-স্ট্যাটাস যোগ করব:
 
-- **Code** (unique, case-insensitive), **Name**, **Description**
-- **Discount type**: `percent` or `flat`
-- **Discount value** (e.g. 20 for 20% or 100 for ৳100 off)
-- **Cap** — max discount amount when percent (e.g. "20% up to ৳100")
-- **Minimum spend** (subtotal threshold)
-- **Max uses total** and **Max uses per customer**
-- **Applies to** (per coupon):
-  - All products
-  - Specific products (multi-select)
-  - Specific categories (multi-select)
-  - (Course scope) specific courses — schema ready
-  - (Special scope) specific customer user_ids — schema ready
-- **Active toggle** (on/off, instantly)
-- **Valid from / Valid until** (date range; either optional)
-- **Stackable** flag (default off)
-- **Excludes shipping** flag (default: discount subtotal only)
-- **Soft-delete + Reactivate** (via `deleted_at`; deleted coupons hidden but recoverable)
-- **Usage counter** (auto-incremented on successful order)
+- `digital_status` — `not_applicable | pending | queued | sent | delivered | bounced | failed | delayed | manual_review`
+- `physical_status` — `not_applicable | pending | ready_to_ship | shipped | delivered | returned | hold` (মূলত আগের flow-ই, আলাদা কলামে)
+
+Order-level `status` এখন derived:
+- Digital-only: `digital_status` → order status
+- Physical-only: `physical_status` → order status
+- Mixed: `delivered` তখনই যখন দুইটাই delivered। যেকোনো একটা delivered হলে UI তে partial badge দেখাবে (e.g. "ই-বুক ডেলিভারড • ফিজিক্যাল শিপড")
+
+এতে ফিজিক্যাল flow break হয় না, ই-বুক flow স্বাধীন।
 
 ---
 
-### 3. Database (single table + one child table)
+## ডাটা মডেল
 
-```text
-coupons
-  id, scope, code (unique lower), name, description,
-  discount_type, discount_value, cap_amount,
-  min_spend, max_uses_total, max_uses_per_customer,
-  applies_to ('all' | 'products' | 'categories' | 'courses' | 'customers'),
-  starts_at, ends_at, is_active,
-  stackable, exclude_shipping,
-  uses_count, created_by, deleted_at,
-  created_at, updated_at
+নতুন টেবিল **`order_email_deliveries`** — এক অর্ডারের প্রতিটা ই-মেইল অ্যাটেম্পটের ট্রেইল:
 
-coupon_targets
-  coupon_id, target_type ('product'|'category'|'course'|'customer'), target_id
-  (PK: coupon_id + target_type + target_id)
+- `order_id`, `attempt_no` (১, ২, ৩…), `resend_email_id`, `to_email`
+- `status` (`queued | sent | delivered | bounced | delayed | failed | opened | clicked`)
+- `error_reason`, `bounce_type`, `provider_payload jsonb`
+- `sent_at`, `delivered_at`, `next_retry_at`, timestamps
 
-coupon_redemptions
-  id, coupon_id, order_id, user_id (nullable for guests), phone,
-  discount_amount, redeemed_at
+`orders` এ নতুন কলাম:
+- `digital_status`, `physical_status`
+- `digital_delivered_at`, `digital_locked_until` (view lock timer)
+- `digital_last_error`
+
+`ebook_assets` (নতুন, বা `products` এ কলাম) — প্রতি ই-বুকের জন্য signed download URL generator তথ্য: `storage_key`, `bucket`, `expires_in_seconds`।
+
+---
+
+## ফ্লো
+
+### 1. Payment verified → Processing
+`orders.status = 'processing'` এবং:
+- যদি অর্ডারে ই-বুক থাকে: `digital_status = 'pending'`, `digital_locked_until = now() + 2 min` (View drawer এই সময় locked থাকবে যাতে duplicate trigger না হয়)
+- ফিজিক্যাল থাকলে: `physical_status = 'pending'`
+
+DB trigger বা Processing transition এ **pg_net** দিয়ে Supabase Edge Function `deliver-ebook-order` কল হবে (রিসেন্ড কল edge function এ, TanStack server function এ না — ব্যাচ/queue/retry এর জন্য edge function বেটার আর ইউজার নিজেই edge function চেয়েছে)।
+
+### 2. Edge Function `deliver-ebook-order`
+Input: `order_id`
+
+কাজ:
+1. Order + items লোড, শুধু ই-বুক items ফিল্টার
+2. প্রতিটা ই-বুকের জন্য signed download URL জেনারেট (R2/Supabase Storage, expires ৭ দিন)
+3. **একটাই ইমেইল** — সব লিংক এক টেমপ্লেটে (list layout: বইয়ের নাম + Download বাটন)
+4. Resend API কল (কানেক্টর gateway দিয়ে, `noreply@polytechnictutorial.com` from)
+5. `order_email_deliveries` এ `resend_email_id` সহ `sent` রো ইনসার্ট
+6. Resend ২০০ OK → `orders.digital_status = 'sent'`, `digital_locked_until` ক্লিয়ার
+7. Non-2xx → `digital_status = 'failed'`, `digital_last_error` সেট, retry scheduled
+
+**Queue/Chunking:** একই সাথে অনেক অর্ডার আসলে edge function কে ব্যাচে চালানোর জন্য একটা সিম্পল pattern — pg_cron প্রতি ১ মিনিটে `digital_status IN ('pending','failed')` AND `next_retry_at <= now()` রো গুলা ১০-১৫ টা করে পিক করে edge function কে কল করবে। এক-শট পাথ (payment→processing) আর retry পাথ — দুইটাই same function।
+
+### 3. Resend Webhook
+`/api/public/webhooks/resend` — TanStack server route (public prefix, signature verify করব `svix` HMAC দিয়ে যা Resend ব্যবহার করে; secret `RESEND_WEBHOOK_SECRET` add করব)।
+
+Events → action:
+- `email.sent` → `order_email_deliveries.status = 'sent'`
+- `email.delivered` → delivery row + `orders.digital_status = 'delivered'`, `digital_delivered_at = now()`, তারপর order-level status recompute (নিচে)
+- `email.opened`, `email.clicked` → শুধু log/timestamp
+- `email.delivery_delayed` → `status = 'delayed'`, reason store, order stays in processing
+- `email.bounced` → `status = 'bounced'`, `bounce_type` (hard/soft), `digital_status = 'bounced'`, retry schedule (soft হলে)
+- `email.failed` → `status = 'failed'`, `digital_status = 'failed'`, reason store
+- `email.scheduled` → informational
+
+### 4. Order-level Status Recompute
+একটা DB function `recompute_order_status(order_id)`:
+
+```
+digital = orders.digital_status
+physical = orders.physical_status
+
+IF digital = 'not_applicable' → status = physical
+IF physical = 'not_applicable' → status = map(digital)
+IF both applicable:
+  IF digital = 'delivered' AND physical = 'delivered' → 'delivered'
+  ELSE → 'processing' (কিন্তু UI তে দুই পার্টের badge আলাদা)
 ```
 
-RLS: employees/super_admins manage; `anon` + `authenticated` can call a validation RPC (SECURITY DEFINER) that returns discount info without exposing the table.
+এতে মিক্সড অর্ডারে ই-বুক ডেলিভারড হয়ে গেলেও অর্ডার processing/shipped এই থাকবে যতক্ষণ না Steadfast delivered কনফার্ম করে।
+
+### 5. Retry Cron
+pg_cron job প্রতি ৩০ মিনিটে:
+- `digital_status IN ('sent','failed','bounced','delayed')` AND `digital_delivered_at IS NULL` AND `attempt_no < 3` AND `sent_at < now() - 30 min`
+- Edge function কে আবার কল করে (নতুন `attempt_no` সহ)
+- ৩য় অ্যাটেম্পটেও fail হলে `digital_status = 'manual_review'` — অর্ডার processing এই থাকবে, admin এর জন্য UI তে red badge + "Retry" / "Send manually" বাটন।
+
+### 6. UI (Orders list + View drawer)
+
+Order card এ:
+- ই-বুক থাকলে ছোট badge: 🕐 Sent / ✅ Delivered / ⚠️ Bounced (reason tooltip) / 🔴 Manual review
+- Mixed order: দুইটা badge পাশাপাশি (digital + physical)
+- Processing এ থাকা অবস্থায় ই-বুক pending হলে View drawer এ open হবে কিন্তু "Sending emails… locked for 2 min" নোটিস + edit disabled (`digital_locked_until` চেক)
+
+View drawer এ নতুন section **"Email Delivery"**:
+- প্রতিটা attempt এর timeline: sent → delivered/bounced/opened/clicked, timestamps, error reason
+- Manual "Resend email" বাটন (manual_review হলে বা যেকোনো সময় admin এর জন্য)
 
 ---
 
-### 4. Validation logic (shared)
+## Resend Setup
 
-A single Postgres function `validate_coupon(code, subtotal, cart_json, phone, user_id)` returns:
-
-```json
-{ "ok": true, "discount": 100, "coupon_id": "...", "reason": null }
-```
-
-or
-
-```json
-{ "ok": false, "discount": 0, "reason": "expired" | "min_spend" | "max_uses" | "not_applicable" | "inactive" | "not_found" }
-```
-
-Same function is called by:
-- Checkout UI (via a server function, before order submit)
-- `createOrder` server function (re-validates atomically, records redemption, increments `uses_count`)
-
-This guarantees the client-facing preview and the authoritative server calculation never disagree.
+- Connector সেটাপ আছে — `RESEND_API_KEY` already available via gateway
+- নতুন secret দরকার: `RESEND_WEBHOOK_SECRET` (Resend dashboard এ webhook তৈরি করলে যেই signing secret দেয়) — `add_secret` দিয়ে চাইব
+- Webhook URL Resend এ configure করতে হবে: `https://polytechnictutorial.com/api/public/webhooks/resend` (stable URL) — সব ৮টা event subscribe
 
 ---
 
-### 5. Admin UI — `/workspace/ecommerce/coupons`
+## টেকনিক্যাল সামারি
 
-- **Tabs**: Shop · Course · Special
-- **Toolbar**: search by code/name, filter (active/inactive/expired/deleted), "New Coupon" button
-- **Table**: Code · Name · Discount · Applies to · Uses · Validity · Status · Actions
-- **Actions per row**: Edit · Toggle active · Duplicate · Soft-delete · Reactivate (for deleted)
-- **Create/Edit dialog** — one form covering every field above with a searchable multi-select for products/categories (fetched from existing products/categories tables). Course & Customer selectors are wired but disabled with a "coming soon" hint on the relevant tabs.
+**Migrations:**
+1. `orders` এ digital_status, physical_status, digital_delivered_at, digital_locked_until, digital_last_error কলাম
+2. `order_email_deliveries` টেবিল + RLS + GRANTs
+3. `recompute_order_status(order_id)` SQL function
+4. Trigger: order status → processing হলে pg_net দিয়ে edge function কল
+5. pg_cron: retry job (৩০ min interval)
 
----
+**Edge function:** `deliver-ebook-order` — Resend gateway call, batch support
 
-### 6. Checkout UI — `/checkout`
+**Server route:** `/api/public/webhooks/resend` — signature verify + event handler
 
-New "Promo code" block in the order-summary card:
+**Frontend:**
+- Orders list card: digital/physical badge
+- AdminOrderDrawer: lock during `digital_locked_until`, Email Delivery timeline section, Resend button
+- Realtime subscription on `order_email_deliveries` + `orders` so status updates live
 
-- Input + "Apply" button
-- On apply: calls `validateCoupon` server fn, shows discount line ("Coupon SAVE20 − ৳100") or a friendly Bangla error
-- Applied coupon shown as a pill with an "×" to remove
-- Total updates live; discount passed into `createOrder` so the server can re-validate + record the redemption + increment `uses_count`
-- Persists in cart state so page reloads keep it
-- Adds discount to the incomplete-checkout capture snapshot
-
----
-
-### Technical notes
-
-- New files: `src/lib/coupons.functions.ts` (`validateCoupon`, `listCoupons`, `upsertCoupon`, `toggleCoupon`, `softDeleteCoupon`, `reactivateCoupon`), `src/components/workspace/coupons/*` (Table, FormDialog, TargetPicker), `src/components/checkout/CouponBlock.tsx`
-- `createOrder` extended to accept `couponCode`; re-validates server-side and writes to `coupon_redemptions` in the same transaction as the order.
-- `cart-store` gets `appliedCoupon` state + setter/clear.
-- Migration includes the three tables, GRANTs, RLS, the `validate_coupon` SECURITY DEFINER function, and the redemption trigger to bump `uses_count`.
+**Ebook templates:** React Email template (server-side rendered to HTML), single email lists সব ই-বুকের download links সহ
 
 ---
 
-### Out of scope (this pass)
+## কনফার্মেশন দরকার
 
-- Course-specific redemption flow (courses don't exist in the app yet — schema is ready, checkout wiring will land with the course cart).
-- Customer-targeted (Special) redemption (waits for CRM customer records; admin UI is stubbed with the field disabled).
-- Stacking multiple coupons at once (`stackable` flag stored, but UI enforces one coupon per order for now).
+1. **Ebook file storage** — এখন R2 তে আছে ধরে নিচ্ছি (project এ `r2.server.ts` আছে)। Signed URL expiry কত রাখব — ৭ দিন? না permanent link per order?
+2. **Email template design** — আমি একটা Bangla + English hybrid template বানাব (Polytechnic Tutorial ব্র্যান্ডিং, download buttons)। কোনো specific reference/design আছে?
+3. **Retry count** — ৩০ মিনিট gap এ ২ বার retry বললেন, তার মানে total ৩টা attempt (initial + 2 retries)। ঠিক আছে?
+4. **Manual review পর্যন্ত অর্ডার processing এ** — কনফার্ম? নাকি আলাদা "Attention Required" tab এ সরানো ভাল?
+5. **RESEND_WEBHOOK_SECRET** — Resend dashboard এ webhook বানানোর পর signing secret টা add_secret দিয়ে দিতে হবে। রেডি?
 
-Approve and I'll ship this in one go — migration first, then server fns, admin UI, checkout wiring.
+Approve করলে migration + edge function + webhook route + UI changes সব করে দিব।
