@@ -40,6 +40,8 @@ export function CoursesManager() {
   const [editing, setEditing] = useState<LmsCourse | null>(null);
   const [creating, setCreating] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   async function refetch() {
     setLoading(true);
