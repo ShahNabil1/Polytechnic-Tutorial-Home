@@ -166,6 +166,32 @@ export function AdminOrdersManager() {
     setBulkOpen(true);
   }
 
+  // Orders currently visible that failed the last Steadfast dispatch.
+  // These are re-attempted by the "Retry Failed RTS" one-click action; realtime
+  // subscriptions on `orders` refresh the badge + exact reason live afterwards.
+  const failedRTSOrders = useMemo(
+    () =>
+      orders.filter(
+        (o: any) =>
+          o.has_physical &&
+          !o.steadfast_consignment_id &&
+          !!o.steadfast_last_error &&
+          o.status === "processing",
+      ),
+    [orders],
+  );
+
+  function retryAllFailedRTS() {
+    if (failedRTSOrders.length === 0) return;
+    setBulkOrders(
+      failedRTSOrders.map((o: any) => ({ id: o.id, order_no: o.order_no })),
+    );
+    setBulkOpen(true);
+  }
+
+
+
+
 
 
   return (
