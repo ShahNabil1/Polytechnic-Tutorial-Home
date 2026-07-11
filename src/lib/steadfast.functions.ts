@@ -47,9 +47,9 @@ async function callWorker(opts: {
   body?: unknown;
 }): Promise<{ status: number; data: JsonValue }> {
   const base = process.env.STEADFAST_WORKER_URL;
-  const secret = process.env.LOVABLE_HMAC_SECRET;
+  const secret = process.env.STEADFAST_WORKER_HMAC_SECRET;
   if (!base) throw new Error("STEADFAST_WORKER_URL is not configured");
-  if (!secret) throw new Error("LOVABLE_HMAC_SECRET is not configured");
+  if (!secret) throw new Error("STEADFAST_WORKER_HMAC_SECRET is not configured");
 
   const url = `${base.replace(/\/$/, "")}${opts.path}`;
   const rawBody = opts.body === undefined ? "" : JSON.stringify(opts.body);

@@ -12,6 +12,6 @@ ALLOWED_ORIGINS = "https://polytechnictutorial.com,https://www.polytechnictutori
 #   STEADFAST_API_KEY          — from Steadfast dashboard
 #   STEADFAST_SECRET_KEY       — from Steadfast dashboard
 #   STEADFAST_WEBHOOK_SECRET   — you invent, paste same value in Steadfast dashboard webhook config
-#   LOVABLE_HMAC_SECRET        — must match LOVABLE_HMAC_SECRET in Lovable project secrets
+#   STEADFAST_WORKER_HMAC_SECRET        — must match STEADFAST_WORKER_HMAC_SECRET in Lovable project secrets
 #   SUPABASE_URL               — same as Lovable
 #   SUPABASE_SERVICE_ROLE_KEY  — from Supabase dashboard (NEVER put in Lovable client code)

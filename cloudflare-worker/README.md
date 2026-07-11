@@ -22,8 +22,8 @@ npx wrangler login
 npx wrangler secret put STEADFAST_API_KEY
 npx wrangler secret put STEADFAST_SECRET_KEY
 
-# Lovable প্রজেক্টে যেই LOVABLE_HMAC_SECRET আছে ঠিক সেই একই value দিন
-npx wrangler secret put LOVABLE_HMAC_SECRET
+# Lovable প্রজেক্টে যেই STEADFAST_WORKER_HMAC_SECRET আছে ঠিক সেই একই value দিন
+npx wrangler secret put STEADFAST_WORKER_HMAC_SECRET
 
 # Supabase — Lovable এ যা আছে সেই একই
 npx wrangler secret put SUPABASE_URL
@@ -57,7 +57,7 @@ https://pth-steadfast.<your-subdomain>.workers.dev
 cat > .dev.vars <<EOF
 STEADFAST_API_KEY=...
 STEADFAST_SECRET_KEY=...
-LOVABLE_HMAC_SECRET=...
+STEADFAST_WORKER_HMAC_SECRET=...
 STEADFAST_WEBHOOK_SECRET=...
 SUPABASE_URL=https://qmqcfzgbkzdedfqrmoah.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=...

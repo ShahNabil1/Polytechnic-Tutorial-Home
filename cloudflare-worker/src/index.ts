@@ -4,7 +4,7 @@ import { verifyLovableHmac } from "./hmac";
 import { getBalance, type SteadfastEnv } from "./steadfast";
 
 type Bindings = SteadfastEnv & {
-  LOVABLE_HMAC_SECRET: string;
+  STEADFAST_WORKER_HMAC_SECRET: string;
   STEADFAST_WEBHOOK_SECRET: string;
   SUPABASE_URL: string;
   SUPABASE_SERVICE_ROLE_KEY: string;
@@ -40,7 +40,7 @@ app.use("/api/steadfast/*", async (c, next) => {
   }
   const url = new URL(c.req.url);
   const result = await verifyLovableHmac({
-    secret: c.env.LOVABLE_HMAC_SECRET,
+    secret: c.env.STEADFAST_WORKER_HMAC_SECRET,
     method: c.req.method,
     path: url.pathname,
     rawBody,
