@@ -62,6 +62,7 @@ import {
 } from "@/lib/orders";
 import { formatBDTEn, waLinkBD } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { receiptUrl } from "@/lib/site-url";
 import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
 import { ResendLogo, ResendEventChips } from "@/components/internal/ResendEventChips";
@@ -1690,12 +1691,11 @@ function CustomerSmsSection({ orderId, order }: { orderId: string; order: Order 
 
   const vars = useMemo<Record<string, string>>(() => {
     if (!order) return {} as Record<string, string>;
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
     return {
       name: order.customer_name ?? "",
       order_no: order.order_no ?? "",
       amount: String(order.total_bdt ?? ""),
-      receipt_url: origin ? `${origin}/checkout/success?order=${order.order_no}` : "",
+      receipt_url: order.order_no ? receiptUrl(order.order_no) : "",
       phone: order.customer_phone ?? "",
     };
   }, [order]);

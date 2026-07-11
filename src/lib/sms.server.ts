@@ -32,15 +32,22 @@ export async function sendBulksmsbd(opts: {
   if (!apiKey || !senderId) {
     throw new Error("Bulksmsbd credentials not configured");
   }
+  // Bulksmsbd requires type=unicode for non-ASCII (Bengali) messages.
+  // Sending Bengali as "text" is accepted (marked delivered on their dashboard)
+  // but carriers drop it — recipients never receive the SMS.
+  const isUnicode = /[^\x00-\x7F]/.test(opts.message);
   const url = new URL(BULKSMSBD_ENDPOINT);
   url.searchParams.set("api_key", apiKey);
-  url.searchParams.set("type", "text");
+  url.searchParams.set("type", isUnicode ? "unicode" : "text");
   url.searchParams.set("number", normalizeBdPhone(opts.to));
   url.searchParams.set("senderid", senderId);
   url.searchParams.set("message", opts.message);
 
   const res = await fetch(url.toString(), { method: "GET" });
   const text = await res.text();
+  console.log(
+    `[bulksmsbd] to=${normalizeBdPhone(opts.to)} type=${isUnicode ? "unicode" : "text"} status=${res.status} resp=${text.slice(0, 200)}`,
+  );
   let ok = res.ok;
   try {
     const parsed = JSON.parse(text);

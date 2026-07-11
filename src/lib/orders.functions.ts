@@ -257,6 +257,29 @@ export const createOrder = createServerFn({ method: "POST" })
       triggerEbookDelivery(order.id);
     }
 
+    // Fire-and-forget: order confirmation SMS + email (respects `enabled` toggle on templates)
+    (async () => {
+      try {
+        const { sendOrderConfirmationSms, sendOrderConfirmationEmail } = await import(
+          "@/lib/order-notifications.server"
+        );
+        const payload = {
+          orderId: order.id,
+          orderNo: order.order_no as string,
+          customerName: data.customer.name,
+          customerPhone: data.customer.phone,
+          customerEmail: data.customer.email || null,
+          totalBdt: finalTotal,
+        };
+        await Promise.all([
+          sendOrderConfirmationSms(sb, payload),
+          sendOrderConfirmationEmail(sb, payload),
+        ]);
+      } catch (err) {
+        console.error("order confirmation dispatch failed", err);
+      }
+    })();
+
     return { id: order.id, orderNo: order.order_no, status: order.status };
   });
 
