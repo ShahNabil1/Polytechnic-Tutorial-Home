@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type {
   AcademicCategory,
   AcademicKind,
+  LmsCourse,
   LmsLesson,
   LmsModule,
   LmsModuleWithLessons,
