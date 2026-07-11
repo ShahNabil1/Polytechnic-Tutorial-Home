@@ -325,7 +325,40 @@ export const listAdminOrders = createServerFn({ method: "GET" })
     for (const r of countsRaw ?? []) counts[r.status] = (counts[r.status] ?? 0) + 1;
     counts.incomplete = (counts.incomplete ?? 0) + (incompleteCheckouts ?? 0);
 
-    const orders = (rows ?? []).map((r: any) => ({ ...r, ip: r.ip == null ? null : String(r.ip) }));
+    // Attach latest Resend email delivery events per order for status chips.
+    const orderIds = (rows ?? []).map((r: any) => r.id);
+    const eventsByOrder: Record<string, any> = {};
+    if (orderIds.length > 0) {
+      const { data: deliveries } = await context.supabase
+        .from("order_email_deliveries")
+        .select("order_id, attempt_no, status, sent_at, delivered_at, opened_at, clicked_at, bounced_at, error_reason, updated_at, created_at")
+        .in("order_id", orderIds)
+        .order("attempt_no", { ascending: true });
+      for (const d of deliveries ?? []) {
+        // Merge across attempts so any positive event (opened/clicked/delivered) is preserved.
+        const cur = eventsByOrder[d.order_id] ?? {
+          status: d.status,
+          sent_at: null, delivered_at: null, opened_at: null,
+          clicked_at: null, bounced_at: null, error_reason: null,
+          updated_at: d.updated_at,
+        };
+        cur.status = d.status; // latest attempt status
+        cur.sent_at = cur.sent_at ?? d.sent_at;
+        cur.delivered_at = cur.delivered_at ?? d.delivered_at;
+        cur.opened_at = cur.opened_at ?? d.opened_at;
+        cur.clicked_at = cur.clicked_at ?? d.clicked_at;
+        cur.bounced_at = cur.bounced_at ?? d.bounced_at;
+        cur.error_reason = d.error_reason ?? cur.error_reason;
+        cur.updated_at = d.updated_at ?? cur.updated_at;
+        eventsByOrder[d.order_id] = cur;
+      }
+    }
+
+    const orders = (rows ?? []).map((r: any) => ({
+      ...r,
+      ip: r.ip == null ? null : String(r.ip),
+      email_events: eventsByOrder[r.id] ?? null,
+    }));
     return { orders, counts, total: total ?? orders.length };
   });
 
