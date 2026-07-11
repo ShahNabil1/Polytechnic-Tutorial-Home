@@ -77,6 +77,20 @@ export const deleteSmsTemplate = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const setSmsTemplateEnabled = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid(), enabled: z.boolean() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await ensureStaff(context);
+    const { error } = await context.supabase
+      .from("sms_templates")
+      .update({ enabled: data.enabled })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+
 /** Send a raw SMS to the customer of an order via Bulksmsbd. */
 export const sendOrderSms = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
