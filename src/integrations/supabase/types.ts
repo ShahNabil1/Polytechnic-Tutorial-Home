@@ -370,6 +370,36 @@ export type Database = {
         }
         Relationships: []
       }
+      lms_departments: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lms_lessons: {
         Row: {
           created_at: string
@@ -461,6 +491,36 @@ export type Database = {
           },
         ]
       }
+      lms_semesters: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lms_subject_departments: {
         Row: {
           category_id: string
@@ -479,7 +539,7 @@ export type Database = {
             foreignKeyName: "lms_subject_departments_category_id_fkey"
             columns: ["category_id"]
             isOneToOne: false
-            referencedRelation: "product_categories"
+            referencedRelation: "lms_departments"
             referencedColumns: ["id"]
           },
           {
@@ -538,7 +598,7 @@ export type Database = {
             foreignKeyName: "lms_subject_semesters_category_id_fkey"
             columns: ["category_id"]
             isOneToOne: false
-            referencedRelation: "product_categories"
+            referencedRelation: "lms_semesters"
             referencedColumns: ["id"]
           },
           {

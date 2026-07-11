@@ -96,7 +96,7 @@ export function AcademicStructureManager() {
       return;
     }
     try {
-      await deleteFn({ data: { id: row.id } } as never);
+      await deleteFn({ data: { id: row.id, kind: row.kind } } as never);
       setRows((prev) => prev.filter((r) => r.id !== row.id));
       toast.success("Deleted");
     } catch (e: any) {
