@@ -1711,7 +1711,16 @@ function renderTemplateBody(body: string, vars: Record<string, string>): string 
   return out;
 }
 
-function CustomerSmsSection({ orderId, order }: { orderId: string; order: Order | null }) {
+function CustomerSmsSection({
+  orderId,
+  order,
+  onSent,
+}: {
+  orderId: string;
+  order: Order | null;
+  onSent?: () => void;
+}) {
+  const [open, setOpen] = useState(false);
   const fetchTpls = useServerFn(listSmsTemplates);
   const send = useServerFn(sendOrderSms);
   const { data: tplData } = useQuery({
