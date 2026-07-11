@@ -120,7 +120,9 @@ const FAQS = [
 
 function HomePage() {
   const fetchFeatured = useServerFn(listFeaturedProducts);
+  const fetchCourses = useServerFn(listPublicCourses);
   const [featured, setFeatured] = useState<Product[]>([]);
+  const [courses, setCourses] = useState<PublicCourseCard[]>([]);
 
   useEffect(() => {
     fetchFeatured({ data: undefined as never })
@@ -128,11 +130,17 @@ function HomePage() {
       .catch(() => setFeatured([]));
   }, [fetchFeatured]);
 
+  useEffect(() => {
+    fetchCourses(undefined as never)
+      .then((rows) => setCourses((rows ?? []).slice(0, 3)))
+      .catch(() => setCourses([]));
+  }, [fetchCourses]);
+
   return (
     <div>
       <Hero />
       <Stats />
-      <Courses />
+      <Courses items={courses} />
       <ShopStrip products={featured} />
       <Pricing />
       <About />
