@@ -250,10 +250,10 @@ export const validateCoupon = createServerFn({ method: "POST" })
       _subtotal: data.subtotal,
       _product_ids: productIds,
       _category_ids: categoryIds,
-      _phone: (data.phone || "") as string,
-      _user_id: "00000000-0000-0000-0000-000000000000",
+      _phone: data.phone || null,
+      _user_id: null,
       _scope: data.scope,
-    });
+    } as any);
     if (error) {
       return { ok: false, discount: 0, couponId: null, code: null, name: null, discountType: null, reason: "error" };
     }
