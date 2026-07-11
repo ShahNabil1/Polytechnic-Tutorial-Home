@@ -16,6 +16,7 @@ type CurriculumSubject = {
   name: string;
   code: string | null;
   slug: string;
+  is_active: boolean;
   module_count: number;
   lesson_count: number;
   video_count: number;
