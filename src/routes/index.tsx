@@ -218,56 +218,75 @@ function Stats() {
   );
 }
 
-function Courses() {
+function Courses({ items }: { items: PublicCourseCard[] }) {
   return (
     <section id="courses" className="scroll-mt-20 px-4 py-20 md:px-6 md:py-24">
       <div className="mx-auto max-w-6xl">
-        <SectionHead
-          eyebrow="কোর্স"
-          title="বিভাগ অনুযায়ী কমপ্লিট কোর্স"
-          desc="প্রতিটি ডিপার্টমেন্টের ১ম থেকে ৮ম পর্ব পর্যন্ত সম্পূর্ণ সিলেবাস কভার করা।"
-        />
-        <div className="mt-10 grid gap-5 md:grid-cols-3">
-          {COURSES.map((c) => (
-            <article
-              key={c.title}
-              className="group flex flex-col rounded-xl border border-border bg-card p-6 transition-colors hover:border-foreground/30"
-            >
-              <div className="text-xs font-medium text-brand">{c.dept}</div>
-              <h3 className="mt-2 text-lg font-semibold leading-snug">
-                {c.title}
-              </h3>
-              <div className="mt-5 flex flex-wrap gap-4 text-xs text-muted-foreground">
-                <span className="inline-flex items-center gap-1.5">
-                  <PlayCircle className="size-3.5" />
-                  {toBanglaNumber(c.lessons)} লেসন
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <Clock className="size-3.5" />
-                  {toBanglaNumber(c.hours)} ঘন্টা
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <Users className="size-3.5" />
-                  {toBanglaNumber(c.students)} শিক্ষার্থী
-                </span>
-              </div>
-              <div className="mt-6 flex items-end justify-between border-t border-border pt-5">
-                <div>
-                  <div className="text-xs text-muted-foreground">শুরু থেকে</div>
-                  <div className="font-inter text-xl font-semibold tabular-nums">
-                    ৳{toBanglaNumber(c.price)}
-                  </div>
-                </div>
-                <a
-                  href="#pricing"
-                  className="text-sm font-medium text-foreground transition-colors group-hover:text-brand"
-                >
-                  বিস্তারিত →
-                </a>
-              </div>
-            </article>
-          ))}
+        <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
+          <div>
+            <p className="text-xs font-medium text-brand">কোর্স</p>
+            <h2 className="mt-1 text-3xl font-extrabold tracking-tight md:text-4xl">
+              বিভাগ অনুযায়ী কমপ্লিট কোর্স
+            </h2>
+            <p className="mt-2 max-w-xl text-sm font-semibold text-muted-foreground md:text-base">
+              প্রতিটি ডিপার্টমেন্টের ১ম থেকে ৮ম পর্ব পর্যন্ত সম্পূর্ণ সিলেবাস কভার করা।
+            </p>
+          </div>
+          <Link
+            to="/courses"
+            className="group inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-foreground px-6 py-3.5 text-sm font-extrabold text-background shadow-lg transition-all hover:-translate-y-0.5 hover:bg-brand hover:text-brand-foreground hover:shadow-xl hover:shadow-brand/30"
+          >
+            See All Courses
+            <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+          </Link>
         </div>
+
+        {items.length === 0 ? (
+          <div className="mt-10 rounded-xl border border-dashed border-border bg-surface p-10 text-center text-sm text-muted-foreground">
+            শীঘ্রই নতুন কোর্স যুক্ত হচ্ছে।
+          </div>
+        ) : (
+          <div className="mt-10 grid gap-5 md:grid-cols-3">
+            {items.map((c) => (
+              <Link
+                key={c.id}
+                to="/courses/$deptSlug/$semSlug"
+                params={{ deptSlug: c.department_slug, semSlug: c.semester_slug }}
+                className="group flex flex-col rounded-xl border border-border bg-card p-6 transition-colors hover:border-foreground/30"
+              >
+                <div className="text-xs font-medium text-brand">{c.department_name}</div>
+                <h3 className="mt-2 line-clamp-2 text-lg font-semibold leading-snug">
+                  {c.title}
+                </h3>
+                <div className="mt-5 flex flex-wrap gap-4 text-xs text-muted-foreground">
+                  <span className="inline-flex items-center gap-1.5">
+                    <PlayCircle className="size-3.5" />
+                    {toBanglaNumber(c.lesson_count)} লেসন
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Users className="size-3.5" />
+                    {toBanglaNumber(c.subject_count)} সাব্জেক্ট
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Clock className="size-3.5" />
+                    {c.semester_name}
+                  </span>
+                </div>
+                <div className="mt-6 flex items-end justify-between border-t border-border pt-5">
+                  <div>
+                    <div className="text-xs text-muted-foreground">শুরু থেকে</div>
+                    <div className="font-inter text-xl font-semibold tabular-nums">
+                      ৳{toBanglaNumber(c.price_bdt)}
+                    </div>
+                  </div>
+                  <span className="text-sm font-medium text-foreground transition-colors group-hover:text-brand">
+                    বিস্তারিত →
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
