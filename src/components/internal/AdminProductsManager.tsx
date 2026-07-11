@@ -375,7 +375,35 @@ function ProductEditor({
   const [saving, setSaving] = useState(false);
   const [cropFile, setCropFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [ebookUploading, setEbookUploading] = useState(false);
+  const [ebookProgress, setEbookProgress] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  async function onPickEbook(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    const maxBytes = 300 * 1024 * 1024;
+    if (f.size > maxBytes) {
+      toast.error("File exceeds 300 MB limit");
+      return;
+    }
+    setEbookUploading(true);
+    setEbookProgress(0);
+    try {
+      const { url } = await uploadFileToR2(f, {
+        folder: "ebooks",
+        compress: false,
+        onProgress: (p) => setEbookProgress(p),
+      });
+      setDraft({ ...draft, ebook_file_url: url });
+      toast.success("Ebook uploaded");
+    } catch (err) {
+      toast.error("Upload failed: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setEbookUploading(false);
+    }
+  }
 
   const productTypes = useMemo(
     () => categories.filter((c) => c.kind === "product_type" && c.is_active),
