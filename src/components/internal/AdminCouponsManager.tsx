@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Plus, Pencil, Trash2, RotateCcw, Ticket, Search, Check, X } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, RotateCcw, Ticket, Search, Check, X, Percent, BadgePercent, CalendarDays, Users, Package } from "lucide-react";
 import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 import {
   listCoupons,
@@ -9,15 +10,17 @@ import {
   toggleCoupon,
   softDeleteCoupon,
   reactivateCoupon,
-  listProductsForCoupon,
   listCategoriesForCoupon,
   type CouponRow,
   type CouponScope,
   type CouponAppliesTo,
   type CouponDiscountType,
 } from "@/lib/coupons.functions";
-import { formatBDT } from "@/lib/format";
+import { searchProductsForOrder } from "@/lib/orders.functions";
+import { supabase } from "@/integrations/supabase/client";
+import { formatBDT, formatBDTEn } from "@/lib/format";
 import { cn } from "@/lib/utils";
+
 
 const SCOPES: { key: CouponScope; label: string; hint: string; disabled?: boolean }[] = [
   { key: "shop", label: "Shop Coupons", hint: "For physical books, bundles & e-books." },
