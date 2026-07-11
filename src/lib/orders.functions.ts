@@ -994,3 +994,23 @@ export const checkBlocklistPublic = createServerFn({ method: "POST" })
     return { blocked: false as const };
   });
 
+
+// -------- ADMIN: retry ebook delivery for one order --------
+export const retryEbookDelivery = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await ensureStaff(context);
+    const { error } = await context.supabase
+      .from("orders")
+      .update({
+        digital_status: "pending",
+        digital_attempt_count: 0,
+        digital_next_retry_at: null,
+        digital_locked_until: null,
+        digital_last_error: null,
+      })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
