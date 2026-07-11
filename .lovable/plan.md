@@ -1,94 +1,85 @@
-# LMS & Courses — Phases 1-3
+# Department–Semester Bundles (Courses)
 
-Base route: `/workspace/lms-and-courses/`. Access gated by a new `manage_lms` permission (super_admin bypasses). Use existing "LMS & Courses" nav group added to `InternalShell` with three items: Academic Structure, Subjects, Curriculum.
+প্রতিটা (Department, Semester) pair কে একটা "কোর্স/বান্ডেল" হিসেবে treat করব। Admin ও student — দুই দিকেই এই pair-ই central unit।
 
-## Taxonomy decision (needs your call)
+---
 
-`product_categories` already contains `kind='department'` and `kind='semester'` rows (Computer, Civil, …, 1st–8th sem) used by the shop. Two options:
+## User flow
 
-- **A. Reuse `product_categories**` (my recommendation). One source of truth — a student's dept/semester filters both shop products and LMS subjects with the same IDs. Academic Structure becomes a focused editor over those rows.
-- **B. Separate `lms_departments` / `lms_semesters` tables**. Fully independent from shop taxonomy; more freedom, but you'll re-enter values and map them yourself for student enrollment later.
+**Admin side**
 
-Plan below assumes **A**. Say the word if you want **B** and I'll swap the schema.
+1. `/workspace/lms-and-courses/courses` — সব (dept × semester) pair grid হিসেবে দেখাবে (কম্পিউটার ১ম, কম্পিউটার ২য়, সিভিল ১ম … )। প্রতিটা কার্ডে: cover, price, active toggle, subject count, "Manage" বাটন।
+2. কার্ডে ঢুকলে (`/courses/$dept/$sem`) — ওই pair-এর সব সাব্জেক্টের লিস্ট (already-filtered subjects manager)। এখান থেকে সাব্জেক্ট এ্যাড করলে placement auto-filled থাকবে (এখন যেভাবে হচ্ছে)।
+3. সাব্জেক্টে ঢুকলে → বর্তমান `CurriculumBuilder` (modules + lessons) — কোনো পরিবর্তন লাগবে না।
+4. কার্ডেই price, cover images (max 5) + cover video (optional, max -1), description, active/inactive, compare price, meta title, meta description সেট করা যাবে (inline edit বা edit dialog)।
 
-## Phase 1 — Academic Structure
+**Student side**
 
-**Route:** `/workspace/lms-and-courses/structure`
+1. `/sdash/courses` — user দেখবে সব available (dept, sem) কোর্স কার্ড, প্রাইস সহ।
+2. "Enroll / Buy" ক্লিক করলে existing checkout flow দিয়ে যাবে (order + payment)।
+3. Payment confirm হলে user-কে ওই course access grant হবে automatically।
+4. Enrolled user "My Courses"-এ যাবে → subjects → modules → lessons (video player)। Access না থাকলে শুধু `is_free=true` lesson দেখতে পারবে।
 
-- Tabbed layout: `Departments | Semesters`.
-- Each tab: list rows with inline edit, sort-order number input, active toggle, delete (with confirm). "Add" row at top.
-- Backed by existing `product_categories` filtered by kind. New server fns in `src/lib/lms.functions.ts`: `listAcademicTaxonomy`, `upsertAcademicTaxonomy`, `deleteAcademicTaxonomy` — guarded by `manage_lms` (super_admin bypass).
+---
 
-## Phase 2 — Subjects Hub
+## Data model
 
-**Route:** `/workspace/lms-and-courses/subjects`
+নতুন টেবিল:
 
-New tables:
+- `**lms_courses**` — এক (department, semester) pair-এ এক row।
+fields: `department_id`, `semester_id`, `title`, `slug`, `description`, `cover_image_url`, `price_bdt`, `compare_at_price_bdt`, `is_active`, `sort_order`।
+unique(`department_id`, `semester_id`)।
+- `**lms_enrollments**` — কোন user কোন course-এ enrolled।
+fields: `user_id`, `course_id`, `order_id` (nullable — admin manual grant হলে null), `granted_at`, `expires_at` (nullable = lifetime)।
+unique(`user_id`, `course_id`)।
 
-- `lms_subjects` — `name`, `code` (nullable, unique when set), `slug` (unique), `description`, `cover_image_url`, `is_active`, `sort_order`, `created_by`, timestamps.
-- `lms_subject_departments` — (`subject_id`, `category_id`) → `product_categories` (kind=department).
-- `lms_subject_semesters` — (`subject_id`, `category_id`) → `product_categories` (kind=semester).
+Access rule (helper function `public.has_course_access(_user, _course)`):
+`is_super_admin OR (enrollment exists AND (expires_at IS NULL OR expires_at > now()))`।
 
-RLS + GRANTs:
+একটা lesson-এ access আছে কিনা check করার জন্য:
+lesson → module → subject → subject's placements → matching (dept, sem) pair → course → enrollment।
 
-- authenticated: SELECT active subjects and their joins.
-- `manage_lms` (or super_admin): full write.
-- anon: SELECT active subjects only (for a future public catalog).
-- service_role: ALL.
+**Order integration**
 
-UI:
+- Existing `order_items.item_type` এ নতুন value `'lms_course'` যোগ (বা new nullable `course_id` column)।
+- Order status = `delivered`/`paid` হলে trigger বা server-fn call করে `lms_enrollments` row insert করবে।
 
-- Toolbar: search, filter by department/semester, "Add Subject" button.
-- Grid of glassmorphic cards: cover image with gradient overlay, title, code chip, dept/sem chips, lesson count (once curriculum exists), active dot.
-- Card click → `/workspace/lms-and-courses/curriculum/$subjectSlug`.
-- Card menu: Edit, Toggle active, Delete.
-- "Add / Edit Subject" modal form: Name, Code, auto-generated editable Slug, Cover Image (R2 upload via existing `uploadFileToR2` with folder `uploads` and image compression), Description (multiline), multi-select Departments, multi-select Semesters, Active toggle.
+**Existing bundles**
+`product_bundles` shop-এর physical/ebook bundle-এর জন্য। LMS courses আলাদা টেবিলে রাখব — উদ্দেশ্য আলাদা (recurring pattern per dept×sem, curriculum-linked, digital access), mixing করলে schema টা ঘোলা হয়ে যাবে।
 
-## Phase 3 — Curriculum Builder
+---
 
-**Route:** `/workspace/lms-and-courses/curriculum/$subjectSlug`
+## Implementation phases
 
-New tables:
+**Phase 1 — Course entity + admin grid (এই ধাপে ship করব)**
 
-- `lms_modules` — `subject_id`, `title`, `description`, `sort_order`, timestamps.
-- `lms_lessons` — `module_id`, `title`, `description`, `video_url`, `video_provider` ('r2'|'youtube'|'vimeo'|'external'), `thumbnail_url`, `duration_seconds` (nullable), `is_free` (bool, default false), `sort_order`, timestamps.
+- Migration: `lms_courses` table + RLS + grants।
+- Server fns: `listCourses`, `getCourseByPair`, `upsertCourse`, `deleteCourse`, auto-generate rows for every (dept × sem) pair on demand (একটা "Generate missing" বাটন)।
+- Admin route `/workspace/lms-and-courses/courses` — grid of cards with price/cover/active।
+- Admin route `/workspace/lms-and-courses/courses/$dept/$sem` — filtered SubjectsManager (reuse) + course edit panel।
+- Sidebar-এ "Courses" link যোগ।
 
-Uploads via R2 — extend `UploadFolder` with `lms-videos` and `lms-thumbs` (uses existing presigned PUT). Video field also accepts pasted external URL (YouTube/Vimeo/direct mp4).
+**Phase 2 — Enrollments + access control**
 
-UI:
+- Migration: `lms_enrollments` + `has_course_access` RPC।
+- Server fns: `listMyCourses`, `enrollUserManual` (admin), lesson fetch হবে access-check করে।
+- Admin: enrollment manager page (grant/revoke)।
 
-- Header: subject cover, name, code, dept/sem chips, "Back to Subjects".
-- Modules list: each module is a collapsible card with title, description, drag handle for sort, edit/delete menu, and "Add Lesson" button.
-- Lessons inside module: row with thumbnail, title, "Free/Demo" badge if `is_free`, duration, edit/delete.
-- Lesson form (modal): Title, Description, Thumbnail (R2 upload), Video (R2 upload or URL), a prominent switch **"Set as Free/Demo — any student can watch this lesson without purchasing the course"**.
+**Phase 3 — Student LMS UI**
 
-## Future-proofing (built now, no UI exposed yet)
+- `/sdash/courses` — available courses browse + "My Courses" tab।
+- Course detail → subjects list → CurriculumViewer (lesson player, free-preview support)।
 
-- `lms_subject_instructors` — (`subject_id`, `instructor_user_id`, `role` default 'primary', `assigned_at`). RLS lets an instructor read their own assignments; admins manage. Phase 4 admin UI will slot in without schema change.
-- `is_free` on lessons + `is_active` on subjects → student dashboard becomes: subjects joined to dept/sem categories matching the student's `profiles.department` and `profiles.semester`, then lesson-view checks `is_free OR enrolled(user, subject)`. Enrollment table to be added when that phase lands.
+**Phase 4 — Purchase flow**
 
-## Files to add / modify
+- Cart/checkout support for `lms_course` item type।
+- Order-delivered trigger → auto-create enrollment row।
+- "Buy" button on student course card → add to cart → checkout → auto-access।
 
-New:
+---
 
-- `supabase/migrations/<ts>_lms_core.sql` — subjects/modules/lessons/joins/instructor-assignments + RLS + GRANTs + `updated_at` triggers + seed `manage_lms` permission.
-- `src/lib/lms.functions.ts` — server fns (taxonomy, subjects, modules, lessons).
-- `src/lib/lms.ts` — shared TS types.
-- `src/routes/_authenticated/_internal.workspace.lms-and-courses.tsx` — layout with `<Outlet/>`.
-- `src/routes/_authenticated/_internal.workspace.lms-and-courses.structure.tsx`
-- `src/routes/_authenticated/_internal.workspace.lms-and-courses.subjects.tsx`
-- `src/routes/_authenticated/_internal.workspace.lms-and-courses.curriculum.$subjectSlug.tsx`
-- `src/components/internal/lms/AcademicStructureManager.tsx`
-- `src/components/internal/lms/SubjectsManager.tsx` + `SubjectFormDialog.tsx`
-- `src/components/internal/lms/CurriculumBuilder.tsx` + `ModuleEditor.tsx` + `LessonFormDialog.tsx`
+## এই approval-এ শুধু Phase 1 ship করব
 
-Modified:
+Phase 2–4 আলাদা turn-এ। Phase 1 নিজেই admin-এর "কম্পিউটার ১ম সেমিস্টার" cards ও সেগুলোর curriculum management complete করে দেবে। Enrollment/purchase পরের phase-এ।
 
-- `src/components/internal/InternalShell.tsx` usage in `_internal.workspace.tsx` — replace empty `lms` group with the three items above (icons: `BookOpen`, `GraduationCap`, `Layers`, `PlayCircle`).
-- `src/lib/upload-client.ts` — add `lms-videos`, `lms-thumbs` folders.
-
-## Please confirm before I build
-
-1. **Reuse `product_categories` for dept/semester (option A)?** Or create separate LMS tables (option B)?
-2. **Videos:** R2 direct upload + external URL paste both supported — OK?
-3. **Access:** gate everything behind a new `manage_lms` permission (super_admin bypass), or reuse existing `manage_products`?
+Phase 1 approve করলে migration + code এক এক করে যাবে। এটাতে ঠিক আছে, নাকি অন্যরকম চান জানালে plan revise করে দেব।
