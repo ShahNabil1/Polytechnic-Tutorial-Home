@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { AdminOrderDrawer } from "@/components/internal/AdminOrderDrawer";
 import { AdminIncompleteCheckouts } from "@/components/internal/AdminIncompleteCheckouts";
 import { Pagination } from "@/components/internal/Pagination";
+import { ResendEventChips } from "@/components/internal/ResendEventChips";
 import { supabase } from "@/integrations/supabase/client";
 
 function FulfillmentChips({ o }: { o: any }) {
