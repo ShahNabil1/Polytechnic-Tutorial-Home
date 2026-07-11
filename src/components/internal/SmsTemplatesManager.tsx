@@ -11,6 +11,7 @@ import {
 } from "@/lib/sms.functions";
 import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 import { Switch } from "@/components/ui/switch";
+import { TEMPLATE_CATEGORIES, categoryMeta } from "@/lib/template-categories";
 import { cn } from "@/lib/utils";
 
 const SYSTEM_VARS: Record<string, string[]> = {
@@ -52,16 +53,24 @@ export function SmsTemplatesManager() {
 
   const [name, setName] = useState("");
   const [body, setBody] = useState("");
+  const [category, setCategory] = useState<string>("other");
   const [saving, setSaving] = useState(false);
+  const [filter, setFilter] = useState<string>("all");
 
   useEffect(() => {
     if (selected) {
       setName(selected.name);
       setBody(selected.body);
+      setCategory(selected.category ?? "other");
       setIsNew(false);
       setIsEditing(false);
     }
   }, [selected?.id]);
+
+  const filteredTemplates = useMemo(
+    () => (filter === "all" ? templates : templates.filter((t: any) => (t.category ?? "other") === filter)),
+    [templates, filter],
+  );
 
   const variables = useMemo<string[]>(() => {
     if (selected?.key && SYSTEM_VARS[selected.key]) return SYSTEM_VARS[selected.key];
@@ -83,6 +92,7 @@ export function SmsTemplatesManager() {
           name: name.trim(),
           body,
           variables: selected?.key && SYSTEM_VARS[selected.key] ? SYSTEM_VARS[selected.key] : variables,
+          category,
         },
       });
       toast.success("Template saved");
@@ -106,6 +116,7 @@ export function SmsTemplatesManager() {
     setIsEditing(true);
     setName("New template");
     setBody("");
+    setCategory("campaign");
     setTimeout(() => editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
   }
 
@@ -116,6 +127,7 @@ export function SmsTemplatesManager() {
     } else if (selected) {
       setName(selected.name);
       setBody(selected.body);
+      setCategory(selected.category ?? "other");
     }
     setIsEditing(false);
   }
@@ -181,13 +193,30 @@ export function SmsTemplatesManager() {
 
       <div className="grid gap-4 md:grid-cols-[300px_1fr]">
         <aside className="rounded-xl border border-slate-200 bg-white">
+          <div className="border-b border-slate-100 p-2">
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700"
+            >
+              <option value="all">All categories ({templates.length})</option>
+              {TEMPLATE_CATEGORIES.map((c) => {
+                const n = templates.filter((t: any) => (t.category ?? "other") === c.value).length;
+                return (
+                  <option key={c.value} value={c.value}>
+                    {c.label} ({n})
+                  </option>
+                );
+              })}
+            </select>
+          </div>
           {isLoading && (
             <div className="p-4 text-center text-sm text-slate-500">
               <Loader2 className="mx-auto size-4 animate-spin" />
             </div>
           )}
           <ul className="divide-y divide-slate-100">
-            {templates.map((t: any) => (
+            {filteredTemplates.map((t: any) => (
               <li key={t.id}>
                 <div
                   className={cn(
@@ -203,11 +232,21 @@ export function SmsTemplatesManager() {
                     className="min-w-0 flex-1 text-left hover:opacity-80"
                   >
                     <p className="truncate font-semibold text-slate-900">{t.name}</p>
-                    {t.key && (
-                      <p className="mt-0.5 font-mono text-[10px] uppercase tracking-wider text-slate-400">
-                        {t.key}
-                      </p>
-                    )}
+                    <div className="mt-0.5 flex items-center gap-1.5">
+                      <span
+                        className={cn(
+                          "rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide",
+                          categoryMeta(t.category).color,
+                        )}
+                      >
+                        {categoryMeta(t.category).label}
+                      </span>
+                      {t.key && (
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-slate-400">
+                          {t.key}
+                        </span>
+                      )}
+                    </div>
                   </button>
                   {t.key && AUTO_KEYS.has(t.key) && (
                     <Switch
@@ -262,6 +301,22 @@ export function SmsTemplatesManager() {
                 disabled={!isEditing || selected?.is_system}
                 className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2 text-sm disabled:bg-slate-50 disabled:text-slate-600"
               />
+
+              <label className="mt-3 block text-xs font-bold uppercase tracking-wider text-slate-500">
+                Category
+              </label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                disabled={!isEditing}
+                className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2 text-sm disabled:bg-slate-50"
+              >
+                {TEMPLATE_CATEGORIES.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
 
               <div className="mt-4">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
