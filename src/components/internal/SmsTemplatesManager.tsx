@@ -61,10 +61,16 @@ export function SmsTemplatesManager() {
     if (selected) {
       setName(selected.name);
       setBody(selected.body);
+      setCategory(selected.category ?? "other");
       setIsNew(false);
       setIsEditing(false);
     }
   }, [selected?.id]);
+
+  const filteredTemplates = useMemo(
+    () => (filter === "all" ? templates : templates.filter((t: any) => (t.category ?? "other") === filter)),
+    [templates, filter],
+  );
 
   const variables = useMemo<string[]>(() => {
     if (selected?.key && SYSTEM_VARS[selected.key]) return SYSTEM_VARS[selected.key];
