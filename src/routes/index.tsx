@@ -35,32 +35,8 @@ export const Route = createFileRoute("/")({
 
 /* ---------- Data ---------- */
 
-const COURSES = [
-  {
-    dept: "কম্পিউটার",
-    title: "কম্পিউটার টেকনোলজি — ১ম থেকে ৮ম পর্ব",
-    lessons: 240,
-    hours: 120,
-    students: 3200,
-    price: 2500,
-  },
-  {
-    dept: "সিভিল",
-    title: "সিভিল ইঞ্জিনিয়ারিং কমপ্লিট কোর্স",
-    lessons: 210,
-    hours: 105,
-    students: 2100,
-    price: 2500,
-  },
-  {
-    dept: "ইলেকট্রিক্যাল",
-    title: "ইলেকট্রিক্যাল টেকনোলজি ফুল কোর্স",
-    lessons: 195,
-    hours: 98,
-    students: 1850,
-    price: 2500,
-  },
-];
+// Course cards now come from Supabase via listPublicCourses.
+
 
 const PLANS = [
   {
