@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Copy, CheckCircle2, Truck } from "lucide-react";
 import { toast } from "sonner";
@@ -97,19 +97,6 @@ export function SteadfastEventChips({
     },
     staleTime: 10_000,
   });
-
-  useEffect(() => {
-    const ch = supabase.channel(`sf-events-${orderId}`);
-    ch.on(
-      "postgres_changes" as never,
-      { event: "*", schema: "public", table: "steadfast_status_events", filter: `order_id=eq.${orderId}` },
-      () => refetch(),
-    );
-    ch.subscribe();
-    return () => {
-      supabase.removeChannel(ch);
-    };
-  }, [orderId, refetch]);
 
   const events = data ?? [];
   // Deduplicate by status (keep first-seen time)
