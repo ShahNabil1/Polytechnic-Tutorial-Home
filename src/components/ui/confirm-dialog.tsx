@@ -135,12 +135,39 @@ export function ConfirmDialogHost() {
   const s = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
   const variant = s.variant ?? "default";
   const v = VARIANT_MAP[variant];
+  const isPrompt = s.mode === "prompt";
+  const minLength = s.minLength ?? 3;
+  const maxLength = s.maxLength ?? 500;
+
+  const [value, setValue] = useState("");
+  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+
+  // Reset input value whenever a new prompt opens.
+  useEffect(() => {
+    if (s.open && isPrompt) {
+      setValue(s.defaultValue ?? "");
+      // Autofocus after the dialog paints.
+      setTimeout(() => inputRef.current?.focus(), 30);
+    }
+  }, [s.open, isPrompt, s.defaultValue]);
+
+  const trimmed = value.trim();
+  const canConfirm = !isPrompt || trimmed.length >= minLength;
+
+  function handleConfirm() {
+    if (isPrompt) {
+      if (trimmed.length < minLength) return;
+      close(trimmed);
+    } else {
+      close(true);
+    }
+  }
 
   return (
     <AlertDialog
       open={s.open}
       onOpenChange={(open) => {
-        if (!open) close(false);
+        if (!open) close(isPrompt ? null : false);
       }}
     >
       <AlertDialogContent className="max-w-md rounded-2xl border-0 p-0 shadow-2xl">
@@ -166,18 +193,67 @@ export function ConfirmDialogHost() {
               </AlertDialogDescription>
             )}
           </AlertDialogHeader>
+
+          {isPrompt && (
+            <div className="mt-4">
+              {s.inputLabel && (
+                <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  {s.inputLabel}
+                </label>
+              )}
+              {s.multiline ? (
+                <textarea
+                  ref={(el) => {
+                    inputRef.current = el;
+                  }}
+                  value={value}
+                  onChange={(e) => setValue(e.target.value.slice(0, maxLength))}
+                  placeholder={s.placeholder}
+                  rows={4}
+                  className="min-h-[110px] w-full resize-y rounded-lg border border-slate-200 bg-white p-3 text-sm outline-none transition-colors focus:border-slate-400"
+                />
+              ) : (
+                <input
+                  ref={(el) => {
+                    inputRef.current = el;
+                  }}
+                  value={value}
+                  onChange={(e) => setValue(e.target.value.slice(0, maxLength))}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && canConfirm) {
+                      e.preventDefault();
+                      handleConfirm();
+                    }
+                  }}
+                  placeholder={s.placeholder}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-slate-400"
+                />
+              )}
+              <p className="mt-1 flex items-center justify-between text-[11px] font-semibold text-slate-400">
+                <span>
+                  Minimum {minLength} characters
+                </span>
+                <span>
+                  {value.length}/{maxLength}
+                </span>
+              </p>
+            </div>
+          )}
+
           <AlertDialogFooter className="mt-5 gap-2 sm:gap-2">
             <AlertDialogCancel
-              onClick={() => close(false)}
+              onClick={() => close(isPrompt ? null : false)}
               className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
             >
               {s.cancelLabel ?? "Cancel"}
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => close(true)}
+              onClick={handleConfirm}
+              disabled={!canConfirm}
               className={cn(
-                "rounded-lg px-4 py-2 text-sm font-bold shadow-sm",
+                "rounded-lg px-4 py-2 text-sm font-bold shadow-sm transition-opacity",
                 v.confirmBtn,
+                !canConfirm && "cursor-not-allowed opacity-50",
               )}
             >
               {s.confirmLabel ?? "Confirm"}
