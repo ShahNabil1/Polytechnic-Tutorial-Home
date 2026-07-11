@@ -19,14 +19,25 @@ const EBOOK_MIME = new Set([
   "application/octet-stream",
 ]);
 
+const VIDEO_MIME = new Set([
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+  "video/x-matroska",
+  "video/x-m4v",
+]);
+
 const MAX_DEFAULT_SIZE = 15 * 1024 * 1024; // 15 MB
 const MAX_EBOOK_SIZE = 300 * 1024 * 1024; // 300 MB
+const MAX_VIDEO_SIZE = 2 * 1024 * 1024 * 1024; // 2 GB
 
 const InputSchema = z.object({
-  folder: z.enum(["avatars", "profile", "uploads", "docs", "internal-docs", "ebooks"]).default("uploads"),
+  folder: z
+    .enum(["avatars", "profile", "uploads", "docs", "internal-docs", "ebooks", "lms-videos", "lms-thumbs"])
+    .default("uploads"),
   filename: z.string().min(1).max(200),
   contentType: z.string().min(1).max(150),
-  size: z.number().int().positive().max(MAX_EBOOK_SIZE),
+  size: z.number().int().positive().max(MAX_VIDEO_SIZE),
 });
 
 export const createUploadUrl = createServerFn({ method: "POST" })
@@ -47,6 +58,18 @@ export const createUploadUrl = createServerFn({ method: "POST" })
       if (roleErr || !isAdmin) {
         throw new Error("Forbidden: ebook uploads require super_admin");
       }
+    } else if (data.folder === "lms-videos") {
+      if (!VIDEO_MIME.has(data.contentType)) {
+        throw new Error("Unsupported video type (allowed: mp4, webm, mov, mkv)");
+      }
+      if (data.size > MAX_VIDEO_SIZE) {
+        throw new Error("Video exceeds 2 GB limit");
+      }
+      const { data: canManage } = await context.supabase.rpc("has_permission", {
+        _user_id: context.userId,
+        _permission: "manage_lms",
+      });
+      if (!canManage) throw new Error("Forbidden: manage_lms required");
     } else {
       if (!ALLOWED_MIME.has(data.contentType)) {
         throw new Error("Unsupported file type");
