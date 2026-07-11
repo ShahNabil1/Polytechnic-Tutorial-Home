@@ -126,9 +126,16 @@ export const Route = createFileRoute("/api/public/hooks/deliver-ebook-batch")({
             );
             const { data: tpl } = await supabaseAdmin
               .from("email_templates")
-              .select("subject, body_html")
+              .select("subject, body_html, enabled")
               .eq("key", "ebook_delivery")
               .maybeSingle();
+
+            // Skip if the template's auto-send toggle is off
+            if (tpl && (tpl as any).enabled === false) {
+              results.push({ order_id: order.id, ok: false, reason: "template_disabled" });
+              continue;
+            }
+
 
             let html: string;
             let subject: string;
