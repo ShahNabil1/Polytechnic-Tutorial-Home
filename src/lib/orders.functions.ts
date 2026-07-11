@@ -760,6 +760,128 @@ export const deleteIncompleteCheckout = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// -------- ADMIN: promote an incomplete checkout into a real order --------
+// The row moves from `incomplete_checkouts` into `orders` with status = "incomplete"
+// so staff can view / edit it in the same drawer as any other order.
+export const promoteIncompleteCheckoutToOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await ensureStaff(context);
+
+    const { data: row, error: readErr } = await context.supabase
+      .from("incomplete_checkouts")
+      .select("*")
+      .eq("id", data.id)
+      .single();
+    if (readErr || !row) throw new Error(readErr?.message || "Not found");
+
+    // If an incomplete order already exists for this phone, reuse it.
+    const { data: existing } = await context.supabase
+      .from("orders")
+      .select("id")
+      .eq("customer_phone", row.customer_phone)
+      .eq("status", "incomplete")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (existing?.id) {
+      await context.supabase.from("incomplete_checkouts").delete().eq("id", data.id);
+      return { id: existing.id as string };
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const sb = supabaseAdmin;
+
+    const { data: orderNoRow, error: seqErr } = await sb.rpc("next_order_no");
+    if (seqErr || !orderNoRow) throw new Error(seqErr?.message || "Failed to allocate order number");
+    const orderNo = orderNoRow as unknown as string;
+
+    const cart = Array.isArray(row.cart) ? (row.cart as any[]) : [];
+    const hasPhysical = cart.some((i) => !i.isOnlineBook && i.type !== "ebook");
+    const hasEbook = cart.some((i) => i.isOnlineBook || i.type === "ebook");
+    const orderType: "physical" | "ebook" | "mixed" = hasPhysical && hasEbook
+      ? "mixed"
+      : hasPhysical
+        ? "physical"
+        : hasEbook
+          ? "ebook"
+          : "physical";
+
+    const fullAddr = composeFullAddress({
+      address_line: row.address_line || null,
+      thana: row.thana || null,
+      district: row.district || null,
+      division: row.division || null,
+    });
+    const itemDesc = composeItemDescription(
+      cart.map((i: any) => ({ title: String(i.title ?? ""), quantity: Number(i.quantity ?? 1) })),
+    );
+
+    const { data: order, error: insErr } = await sb
+      .from("orders")
+      .insert({
+        order_no: orderNo,
+        user_id: row.user_id ?? null,
+        customer_name: row.customer_name || "(no name)",
+        customer_phone: row.customer_phone,
+        customer_email: row.customer_email || null,
+        division: row.division || null,
+        district: row.district || null,
+        thana: row.thana || null,
+        address_line: row.address_line || null,
+        full_address: fullAddr || null,
+        subtotal_bdt: Number(row.subtotal_bdt ?? 0),
+        shipping_bdt: Number(row.shipping_bdt ?? 0),
+        discount_bdt: 0,
+        total_bdt: Number(row.total_bdt ?? 0),
+        cod_amount: 0,
+        payment_status: "pending",
+        payment_method: null,
+        status: "incomplete",
+        order_type: orderType,
+        has_physical: hasPhysical,
+        delivery_type: 0,
+        note: null,
+        item_description: itemDesc,
+        ip: row.last_ip || null,
+        user_agent: row.last_user_agent || null,
+        device_fingerprint: row.last_fingerprint || null,
+        source: "website",
+      } as any)
+      .select("id")
+      .single();
+    if (insErr) throw new Error(insErr.message);
+
+    if (cart.length) {
+      const isUuidStr = (v: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+      const itemsRows = cart.map((i: any) => {
+        const pid: string = String(i.productId ?? "");
+        const isBundle = pid.startsWith("bundle:");
+        const rawId = isBundle ? pid.slice(7) : pid;
+        return {
+          order_id: order.id,
+          product_id: !isBundle && isUuidStr(rawId) ? rawId : null,
+          bundle_id: isBundle && isUuidStr(rawId) ? rawId : null,
+          is_bundle: isBundle,
+          title: String(i.title ?? ""),
+          unit_price: Number(i.unitPrice ?? 0),
+          quantity: Number(i.quantity ?? 1),
+          line_total: Number(i.unitPrice ?? 0) * Number(i.quantity ?? 1),
+          image_url: i.image || null,
+          item_type: i.isOnlineBook || i.type === "ebook" ? "ebook" : "physical",
+        };
+      });
+      const { error: itemErr } = await sb.from("order_items").insert(itemsRows as any);
+      if (itemErr) throw new Error(itemErr.message);
+    }
+
+    await context.supabase.from("incomplete_checkouts").delete().eq("id", data.id);
+
+    return { id: order.id as string };
+  });
+
+
 // -------- PUBLIC blocklist check (used by the app-wide gate) --------
 
 export const checkBlocklistPublic = createServerFn({ method: "POST" })
