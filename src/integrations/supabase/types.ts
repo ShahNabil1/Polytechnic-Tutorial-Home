@@ -325,6 +325,80 @@ export type Database = {
         }
         Relationships: []
       }
+      order_email_deliveries: {
+        Row: {
+          attempt_no: number
+          bounce_type: string | null
+          bounced_at: string | null
+          clicked_at: string | null
+          created_at: string
+          delivered_at: string | null
+          error_reason: string | null
+          from_email: string | null
+          id: string
+          next_retry_at: string | null
+          opened_at: string | null
+          order_id: string
+          provider_payload: Json | null
+          resend_email_id: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["email_delivery_status"]
+          subject: string | null
+          to_email: string
+          updated_at: string
+        }
+        Insert: {
+          attempt_no?: number
+          bounce_type?: string | null
+          bounced_at?: string | null
+          clicked_at?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          error_reason?: string | null
+          from_email?: string | null
+          id?: string
+          next_retry_at?: string | null
+          opened_at?: string | null
+          order_id: string
+          provider_payload?: Json | null
+          resend_email_id?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["email_delivery_status"]
+          subject?: string | null
+          to_email: string
+          updated_at?: string
+        }
+        Update: {
+          attempt_no?: number
+          bounce_type?: string | null
+          bounced_at?: string | null
+          clicked_at?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          error_reason?: string | null
+          from_email?: string | null
+          id?: string
+          next_retry_at?: string | null
+          opened_at?: string | null
+          order_id?: string
+          provider_payload?: Json | null
+          resend_email_id?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["email_delivery_status"]
+          subject?: string | null
+          to_email?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_email_deliveries_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_internal_notes: {
         Row: {
           author_user_id: string | null
@@ -463,6 +537,12 @@ export type Database = {
           customer_phone: string
           delivery_type: number
           device_fingerprint: string | null
+          digital_attempt_count: number
+          digital_delivered_at: string | null
+          digital_last_error: string | null
+          digital_locked_until: string | null
+          digital_next_retry_at: string | null
+          digital_status: Database["public"]["Enums"]["digital_fulfillment_status"]
           discount_bdt: number
           district: string | null
           division: string | null
@@ -477,6 +557,7 @@ export type Database = {
           order_type: string
           payment_method: string | null
           payment_status: string
+          physical_status: Database["public"]["Enums"]["physical_fulfillment_status"]
           shipping_bdt: number
           source: string
           source_detail: string | null
@@ -503,6 +584,12 @@ export type Database = {
           customer_phone: string
           delivery_type?: number
           device_fingerprint?: string | null
+          digital_attempt_count?: number
+          digital_delivered_at?: string | null
+          digital_last_error?: string | null
+          digital_locked_until?: string | null
+          digital_next_retry_at?: string | null
+          digital_status?: Database["public"]["Enums"]["digital_fulfillment_status"]
           discount_bdt?: number
           district?: string | null
           division?: string | null
@@ -517,6 +604,7 @@ export type Database = {
           order_type?: string
           payment_method?: string | null
           payment_status?: string
+          physical_status?: Database["public"]["Enums"]["physical_fulfillment_status"]
           shipping_bdt?: number
           source?: string
           source_detail?: string | null
@@ -543,6 +631,12 @@ export type Database = {
           customer_phone?: string
           delivery_type?: number
           device_fingerprint?: string | null
+          digital_attempt_count?: number
+          digital_delivered_at?: string | null
+          digital_last_error?: string | null
+          digital_locked_until?: string | null
+          digital_next_retry_at?: string | null
+          digital_status?: Database["public"]["Enums"]["digital_fulfillment_status"]
           discount_bdt?: number
           district?: string | null
           division?: string | null
@@ -557,6 +651,7 @@ export type Database = {
           order_type?: string
           payment_method?: string | null
           payment_status?: string
+          physical_status?: Database["public"]["Enums"]["physical_fulfillment_status"]
           shipping_bdt?: number
           source?: string
           source_detail?: string | null
@@ -739,6 +834,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string
+          ebook_file_url: string | null
           id: string
           images: Json
           is_active: boolean
@@ -761,6 +857,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string
+          ebook_file_url?: string | null
           id?: string
           images?: Json
           is_active?: boolean
@@ -783,6 +880,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string
+          ebook_file_url?: string | null
           id?: string
           images?: Json
           is_active?: boolean
@@ -1076,7 +1174,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      initialize_order_fulfillment: {
+        Args: { _order_id: string }
+        Returns: undefined
+      }
       next_order_no: { Args: never; Returns: string }
+      recompute_order_status: {
+        Args: { _order_id: string }
+        Returns: undefined
+      }
       record_incomplete_attempt: {
         Args: {
           _address_line: string
@@ -1124,6 +1230,35 @@ export type Database = {
       coupon_discount_type: "percent" | "flat"
       coupon_scope: "shop" | "course" | "special"
       coupon_target_type: "product" | "category" | "course" | "customer"
+      digital_fulfillment_status:
+        | "not_applicable"
+        | "pending"
+        | "queued"
+        | "sent"
+        | "delivered"
+        | "bounced"
+        | "failed"
+        | "delayed"
+        | "manual_review"
+      email_delivery_status:
+        | "queued"
+        | "sent"
+        | "delivered"
+        | "bounced"
+        | "delayed"
+        | "failed"
+        | "opened"
+        | "clicked"
+        | "scheduled"
+      physical_fulfillment_status:
+        | "not_applicable"
+        | "pending"
+        | "ready_to_ship"
+        | "shipped"
+        | "delivered"
+        | "returned"
+        | "hold"
+        | "cancelled"
       product_category_kind: "product_type" | "department" | "semester"
       semester_level:
         | "1st"
@@ -1274,6 +1409,38 @@ export const Constants = {
       coupon_discount_type: ["percent", "flat"],
       coupon_scope: ["shop", "course", "special"],
       coupon_target_type: ["product", "category", "course", "customer"],
+      digital_fulfillment_status: [
+        "not_applicable",
+        "pending",
+        "queued",
+        "sent",
+        "delivered",
+        "bounced",
+        "failed",
+        "delayed",
+        "manual_review",
+      ],
+      email_delivery_status: [
+        "queued",
+        "sent",
+        "delivered",
+        "bounced",
+        "delayed",
+        "failed",
+        "opened",
+        "clicked",
+        "scheduled",
+      ],
+      physical_fulfillment_status: [
+        "not_applicable",
+        "pending",
+        "ready_to_ship",
+        "shipped",
+        "delivered",
+        "returned",
+        "hold",
+        "cancelled",
+      ],
       product_category_kind: ["product_type", "department", "semester"],
       semester_level: [
         "1st",
