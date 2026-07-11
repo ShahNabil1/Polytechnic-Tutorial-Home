@@ -154,9 +154,79 @@ export function CourseDetail({ deptSlug, semSlug }: Props) {
 
       {course && <EnrollmentsPanel courseId={course.id} />}
 
+      {/* Curriculum snapshot — reuses live data from Subjects / Structure */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+          <h2 className="font-display text-xl font-bold tracking-tight text-slate-900">
+            Curriculum snapshot
+          </h2>
+          <div className="flex gap-2 text-xs">
+            <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 text-indigo-700 px-2.5 py-1 font-medium">
+              <BookOpen className="w-3 h-3" /> {totals.subjects} subjects
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 text-sky-700 px-2.5 py-1 font-medium">
+              <Layers className="w-3 h-3" /> {totals.modules} modules
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 px-2.5 py-1 font-medium">
+              <PlayCircle className="w-3 h-3" /> {totals.videos} videos
+            </span>
+          </div>
+        </div>
+        {curriculum.length === 0 ? (
+          <div className="text-sm text-slate-500 py-6 text-center border border-dashed border-slate-300 rounded-lg">
+            No subjects placed in this department + semester yet. Add subjects from the Subjects tab.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {curriculum.map((s) => {
+              const open = !!openSubjects[s.id];
+              return (
+                <div key={s.id} className="rounded-lg border border-slate-200 overflow-hidden">
+                  <button
+                    onClick={() => setOpenSubjects((p) => ({ ...p, [s.id]: !p[s.id] }))}
+                    className="w-full flex items-center justify-between gap-3 px-3 py-2.5 hover:bg-slate-50 text-left"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm font-semibold text-slate-900 truncate">{s.name}</div>
+                        {s.code && <Badge variant="secondary" className="text-[10px]">{s.code}</Badge>}
+                        {!s.is_active && <Badge variant="secondary" className="text-[10px]">Hidden</Badge>}
+                      </div>
+                      <div className="mt-0.5 text-xs text-slate-500">
+                        {s.module_count} modules · {s.lesson_count} lessons · {s.video_count} videos
+                      </div>
+                    </div>
+                    {open ? <ChevronDown className="w-4 h-4 text-slate-500" /> : <ChevronRight className="w-4 h-4 text-slate-500" />}
+                  </button>
+                  {open && (
+                    <div className="border-t border-slate-200 bg-slate-50/50 divide-y divide-slate-100">
+                      {s.modules.length === 0 ? (
+                        <div className="px-3 py-2 text-xs text-slate-500">No modules yet</div>
+                      ) : (
+                        s.modules.map((m) => (
+                          <div key={m.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                            <div className="truncate text-slate-800">{m.title}</div>
+                            <div className="shrink-0 text-xs text-slate-500 flex gap-3">
+                              <span>{m.lesson_count} lessons</span>
+                              <span className="inline-flex items-center gap-1 text-emerald-700">
+                                <PlayCircle className="w-3 h-3" /> {m.video_count}
+                              </span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       <div>
         <h2 className="font-display text-xl font-bold tracking-tight text-slate-900 mb-3">
-          Subjects in this course
+          Manage subjects in this course
         </h2>
         <SubjectsManager deptFilter={dept.id} semFilter={sem.id} />
       </div>
