@@ -1,0 +1,1 @@
+UPDATE public.orders SET digital_status='pending', digital_attempt_count=0, digital_next_retry_at=NULL, digital_locked_until=NULL, digital_last_error=NULL WHERE order_no IN ('PTH009') AND order_type='ebook';
