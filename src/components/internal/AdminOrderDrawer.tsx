@@ -595,27 +595,10 @@ export function AdminOrderDrawer({
               </div>
             </Section>
 
-            {/* Steadfast payload */}
-            <Section title="Steadfast Payload (Preview)" icon={Send} action={
-              <>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(JSON.stringify(steadfast, null, 2));
-                    toast.success("Copied");
-                  }}
-                  className="btn-sm"
-                >
-                  <Copy className="size-3.5" /> Copy JSON
-                </button>
-                <button className="btn-sm-primary opacity-60" disabled title="Steadfast integration coming soon">
-                  <Send className="size-3.5" /> Send to Steadfast
-                </button>
-              </>
-            }>
-              <pre className="max-h-64 overflow-auto rounded-lg bg-slate-900 p-3 font-mono text-[11px] leading-relaxed text-emerald-300">
-{JSON.stringify(steadfast, null, 2)}
-              </pre>
-            </Section>
+            {/* Source attribution */}
+            <SourceSection order={order} />
+
+
 
             {/* Device / Block */}
             <DeviceSecuritySection
