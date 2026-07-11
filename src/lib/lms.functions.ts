@@ -1149,6 +1149,7 @@ export type PublicCourseCard = {
   semester_slug: string;
   subject_count: number;
   lesson_count: number;
+  is_featured: boolean;
 };
 
 export const listPublicCourses = createServerFn({ method: "GET" }).handler(
