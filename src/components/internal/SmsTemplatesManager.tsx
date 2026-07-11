@@ -106,7 +106,7 @@ export function SmsTemplatesManager() {
       title: "Delete template?",
       description: `"${selected.name}" delete করা হবে`,
       confirmText: "Delete",
-      variant: "destructive",
+      variant: "danger",
     });
     if (!ok) return;
     try {
