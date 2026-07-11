@@ -117,6 +117,7 @@ export function AdminIncompleteCheckouts({ search }: { search: string }) {
   const rows = (data ?? []) as Row[];
 
   return (
+    <>
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">
         <span>{rows.length} incomplete checkout{rows.length === 1 ? "" : "s"}</span>
