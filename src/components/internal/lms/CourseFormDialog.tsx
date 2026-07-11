@@ -445,7 +445,7 @@ export function CourseFormDialog({
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+            <Button variant="outline" onClick={attemptClose} disabled={saving}>Cancel</Button>
             <Button onClick={handleSave} disabled={saving || uploading}>
               {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {course ? "Save Changes" : "Create Course"}
