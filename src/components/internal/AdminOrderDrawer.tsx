@@ -61,6 +61,7 @@ import { formatBDTEn, waLinkBD } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
+import { ResendLogo, ResendEventChips } from "@/components/internal/ResendEventChips";
 
 export function AdminOrderDrawer({
   orderId,
