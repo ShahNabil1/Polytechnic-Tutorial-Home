@@ -543,6 +543,7 @@ const CoursePatch = z.object({
   price_bdt: z.number().min(0).max(1_000_000).default(0),
   compare_at_price_bdt: z.number().min(0).max(1_000_000).optional().nullable(),
   is_active: z.boolean().default(true),
+  is_featured: z.boolean().default(false),
   sort_order: z.number().int().min(0).max(9999).default(0),
 });
 
