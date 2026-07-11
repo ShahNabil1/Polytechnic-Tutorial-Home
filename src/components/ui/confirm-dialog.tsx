@@ -68,13 +68,33 @@ function getSnapshot() {
  */
 export function confirm(options: ConfirmOptions = {}): Promise<boolean> {
   return new Promise<boolean>((resolve) => {
-    // If a previous dialog was open, resolve it as false first.
     if (state.resolver) state.resolver(false);
-    setState({ ...options, open: true, resolver: resolve });
+    setState({
+      ...options,
+      open: true,
+      mode: "confirm",
+      resolver: (v) => resolve(Boolean(v)),
+    });
   });
 }
 
-function close(result: boolean) {
+/**
+ * Global promise-based prompt. Resolves the trimmed input string on confirm,
+ * or `null` when the user cancels/closes the dialog.
+ */
+export function promptText(options: PromptOptions = {}): Promise<string | null> {
+  return new Promise<string | null>((resolve) => {
+    if (state.resolver) state.resolver(false);
+    setState({
+      ...options,
+      open: true,
+      mode: "prompt",
+      resolver: (v) => resolve(typeof v === "string" ? v : null),
+    });
+  });
+}
+
+function close(result: boolean | string | null) {
   const r = state.resolver;
   setState({ ...state, open: false, resolver: undefined });
   r?.(result);
