@@ -55,7 +55,10 @@ function WorkspaceLayout() {
       id: "lms",
       label: "LMS & Courses",
       icon: BookOpen,
-      items: [],
+      items: [
+        { to: "/workspace/lms-and-courses/structure", label: "Academic Structure", icon: GraduationCap },
+        { to: "/workspace/lms-and-courses/subjects", label: "Subjects", icon: BookOpen },
+      ],
     },
     {
       id: "crm",
