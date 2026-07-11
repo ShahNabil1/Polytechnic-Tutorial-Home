@@ -70,9 +70,9 @@ async function callWorker(opts: {
     body: opts.method === "GET" ? undefined : rawBody,
   });
   const text = await res.text();
-  let data: unknown = text;
+  let data: JsonValue = text;
   try {
-    data = text ? JSON.parse(text) : null;
+    data = text ? (JSON.parse(text) as JsonValue) : null;
   } catch {
     /* keep text */
   }
