@@ -17,7 +17,7 @@ type NavItem = { to: string; label: string; hash?: boolean };
 const NAV: NavItem[] = [
   { to: "/", label: "হোম" },
   { to: "/#courses", label: "কোর্স", hash: true },
-  { to: "/#pricing", label: "প্রাইসিং", hash: true },
+  
   { to: "/#testimonials", label: "রিভিউ", hash: true },
   { to: "/#faq", label: "FAQ", hash: true },
   { to: "/shop", label: "শপ" },

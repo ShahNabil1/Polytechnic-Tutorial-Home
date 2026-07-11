@@ -5,7 +5,6 @@ import {
   Users,
   Award,
   Clock,
-  CheckCircle2,
   Star,
   Plus,
   Minus,
@@ -17,7 +16,6 @@ import type { Product } from "@/lib/products";
 import { listFeaturedProducts } from "@/lib/products.functions";
 import { listPublicCourses, type PublicCourseCard as PublicCourseCardData } from "@/lib/lms.functions";
 import { PublicCourseCard } from "@/components/public-course-card";
-import { toBanglaNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
@@ -38,43 +36,6 @@ export const Route = createFileRoute("/")({
 
 // Course cards now come from Supabase via listPublicCourses.
 
-
-const PLANS = [
-  {
-    name: "ফ্রি",
-    price: 0,
-    tag: "শুরুর জন্য",
-    features: [
-      "৫টি ফ্রি লেসন",
-      "লিমিটেড নোটস অ্যাক্সেস",
-      "কমিউনিটি সাপোর্ট",
-    ],
-  },
-  {
-    name: "প্রিমিয়াম",
-    price: 1500,
-    tag: "সবচেয়ে জনপ্রিয়",
-    highlight: true,
-    features: [
-      "সব ভিডিও কোর্স আনলিমিটেড",
-      "লাইভ ক্লাস + রেকর্ডিং",
-      "সব নোটস ও পিডিএফ",
-      "মডেল টেস্ট ও সাজেশন",
-      "প্রায়োরিটি সাপোর্ট",
-    ],
-  },
-  {
-    name: "প্রো + প্রিন্ট",
-    price: 2800,
-    tag: "সেরা ভ্যালু",
-    features: [
-      "প্রিমিয়ামের সব ফিচার",
-      "প্রিন্টেড বই বাসায়",
-      "সুপার সাজেশন হার্ডকপি",
-      "১-অন-১ মেন্টর সেশন",
-    ],
-  },
-];
 
 const TESTIMONIALS = [
   {
@@ -147,7 +108,7 @@ function HomePage() {
       <Stats />
       <Courses items={courses} />
       <ShopStrip products={featured} />
-      <Pricing />
+      
       <About />
       <Testimonials />
       <FAQ />
@@ -177,13 +138,13 @@ function Hero() {
             মডেল টেস্ট এবং সুপার সাজেশন — সব এক জায়গায়।
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <a
-              href="#pricing"
+            <Link
+              to="/courses"
               className="inline-flex items-center gap-2 rounded-md bg-foreground px-5 py-3 text-sm font-medium text-background transition-opacity hover:opacity-90"
             >
               এনরোল করুন
               <ArrowRight className="size-4" />
-            </a>
+            </Link>
             <a
               href="#courses"
               className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-5 py-3 text-sm font-medium transition-colors hover:bg-secondary"
@@ -305,78 +266,6 @@ function ShopStrip({ products }: { products: Product[] }) {
   );
 }
 
-function Pricing() {
-  return (
-    <section id="pricing" className="scroll-mt-20 px-4 py-20 md:px-6 md:py-24">
-      <div className="mx-auto max-w-6xl">
-        <SectionHead
-          eyebrow="প্রাইসিং"
-          title="আপনার জন্য সঠিক প্ল্যান বেছে নিন"
-          desc="মাসিক বা সেমিস্টার ভিত্তিক — যেকোনো সময় আপগ্রেড করা যাবে।"
-        />
-        <div className="mt-10 grid gap-5 md:grid-cols-3">
-          {PLANS.map((p) => (
-            <div
-              key={p.name}
-              className={cn(
-                "flex flex-col rounded-xl border p-6",
-                p.highlight
-                  ? "border-foreground bg-foreground text-background"
-                  : "border-border bg-card",
-              )}
-            >
-              <div
-                className={cn(
-                  "text-xs font-medium",
-                  p.highlight ? "text-background/70" : "text-brand",
-                )}
-              >
-                {p.tag}
-              </div>
-              <div className="mt-1 text-lg font-semibold">{p.name}</div>
-              <div className="mt-5 flex items-baseline gap-1">
-                <span className="font-inter text-4xl font-bold tabular-nums">
-                  ৳{toBanglaNumber(p.price)}
-                </span>
-                <span
-                  className={cn(
-                    "text-sm",
-                    p.highlight ? "text-background/70" : "text-muted-foreground",
-                  )}
-                >
-                  / সেমিস্টার
-                </span>
-              </div>
-              <ul className="mt-6 flex-1 space-y-2.5 text-sm">
-                {p.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2">
-                    <CheckCircle2
-                      className={cn(
-                        "mt-0.5 size-4 shrink-0",
-                        p.highlight ? "text-background" : "text-brand",
-                      )}
-                    />
-                    <span>{f}</span>
-                  </li>
-                ))}
-              </ul>
-              <button
-                className={cn(
-                  "mt-8 rounded-md px-4 py-2.5 text-sm font-medium transition-opacity hover:opacity-90",
-                  p.highlight
-                    ? "bg-background text-foreground"
-                    : "bg-foreground text-background",
-                )}
-              >
-                {p.price === 0 ? "ফ্রি শুরু করুন" : "এনরোল করুন"}
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
 
 function About() {
   const points = [
@@ -523,13 +412,13 @@ function CTA() {
           প্রথম ৫টি লেসন সম্পূর্ণ ফ্রি — কোনো কার্ড লাগবে না।
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <a
-            href="#pricing"
+          <Link
+            to="/courses"
             className="inline-flex items-center gap-2 rounded-md bg-background px-5 py-3 text-sm font-medium text-foreground transition-opacity hover:opacity-90"
           >
             এনরোল করুন
             <ArrowRight className="size-4" />
-          </a>
+          </Link>
           <Link
             to="/shop"
             className="inline-flex items-center gap-2 rounded-md border border-background/30 px-5 py-3 text-sm font-medium text-background transition-colors hover:bg-background/10"
