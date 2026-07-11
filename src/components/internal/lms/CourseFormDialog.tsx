@@ -79,6 +79,8 @@ export function CourseFormDialog({
   const imageFileRef = useRef<HTMLInputElement>(null);
   const videoFileRef = useRef<HTMLInputElement>(null);
   const dragIndexRef = useRef<number | null>(null);
+  const dirtyRef = useRef(false);
+  const initRef = useRef(false);
 
   const departments = useMemo(
     () => taxonomy.filter((t) => t.kind === "department").sort((a, b) => a.sort_order - b.sort_order),
