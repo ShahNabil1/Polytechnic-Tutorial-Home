@@ -132,7 +132,11 @@ function HomePage() {
 
   useEffect(() => {
     fetchCourses(undefined as never)
-      .then((rows) => setCourses((rows ?? []).slice(0, 3)))
+      .then((rows) => {
+        const list = rows ?? [];
+        const featured = list.filter((c) => c.is_featured);
+        setCourses((featured.length > 0 ? featured : list).slice(0, 3));
+      })
       .catch(() => setCourses([]));
   }, [fetchCourses]);
 
