@@ -120,9 +120,17 @@ function StudentCourseView() {
                       ৳{course.compare_at_price_bdt.toLocaleString()}
                     </span>
                   )}
-                  <button className="rounded-lg bg-brand text-brand-foreground px-4 py-2 text-sm font-medium hover:bg-brand/90">
-                    এনরোল করুন
+                  <button
+                    onClick={handleEnroll}
+                    disabled={enrolling}
+                    className="inline-flex items-center gap-1 rounded-lg bg-brand text-brand-foreground px-4 py-2 text-sm font-medium hover:bg-brand/90 disabled:opacity-60"
+                  >
+                    {enrolling && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {enrolling ? "প্রসেসিং..." : "Buy Now — এনরোল করুন"}
                   </button>
+                  <span className="text-[11px] text-muted-foreground">
+                    (টেস্ট মোড: Paystation gateway এর জায়গায় ইনস্ট্যান্ট এনরোল)
+                  </span>
                 </div>
               )}
             </div>
