@@ -245,13 +245,30 @@ export function EmailTemplatesManager() {
 
       <div className="grid gap-4 md:grid-cols-[300px_1fr]">
         <aside className="rounded-xl border border-slate-200 bg-white">
+          <div className="border-b border-slate-100 p-2">
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-semibold text-slate-700"
+            >
+              <option value="all">All categories ({templates.length})</option>
+              {TEMPLATE_CATEGORIES.map((c) => {
+                const n = templates.filter((t: any) => (t.category ?? "other") === c.value).length;
+                return (
+                  <option key={c.value} value={c.value}>
+                    {c.label} ({n})
+                  </option>
+                );
+              })}
+            </select>
+          </div>
           {isLoading && (
             <div className="p-4 text-center text-sm text-slate-500">
               <Loader2 className="mx-auto size-4 animate-spin" />
             </div>
           )}
           <ul className="divide-y divide-slate-100">
-            {templates.map((t: any) => (
+            {filteredTemplates.map((t: any) => (
               <li key={t.id}>
                 <div
                   className={cn(
