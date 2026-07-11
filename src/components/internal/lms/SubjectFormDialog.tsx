@@ -346,7 +346,7 @@ export function SubjectFormDialog({ open, subject, taxonomy, initialPlacements, 
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={saving}>
+          <Button variant="outline" onClick={attemptClose} disabled={saving}>
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={saving || uploading}>
