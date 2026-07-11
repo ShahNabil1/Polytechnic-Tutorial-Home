@@ -317,7 +317,6 @@ export function AdminOrderDrawer({
     setItemDraft((draft) => (draft ?? items).filter((_, i) => i !== idx));
   }
 
-  const steadfast = order ? buildSteadfastPayload(order, itemDraft ?? items) : null;
   const isEbookOnly = order?.order_type === "ebook";
 
   return (
