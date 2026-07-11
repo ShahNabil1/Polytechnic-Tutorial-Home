@@ -250,8 +250,8 @@ export const validateCoupon = createServerFn({ method: "POST" })
       _subtotal: data.subtotal,
       _product_ids: productIds,
       _category_ids: categoryIds,
-      _phone: data.phone || null,
-      _user_id: null,
+      _phone: (data.phone || "") as string,
+      _user_id: "00000000-0000-0000-0000-000000000000",
       _scope: data.scope,
     });
     if (error) {
