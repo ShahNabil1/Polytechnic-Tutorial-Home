@@ -950,7 +950,12 @@ export function AdminOrderDrawer({
                 {(notes ?? []).map((n: any) => (
                   <div key={n.id} className="rounded-lg border border-slate-200 bg-amber-50/50 p-2 text-sm">
                     <p>{n.body}</p>
-                    <p className="mt-1 text-[10px] text-slate-500">{formatDhakaDateTime(n.created_at)}</p>
+                    <p className="mt-1 flex items-center gap-1.5 text-[10px] text-slate-500">
+                      <User className="size-3" />
+                      <span className="font-semibold text-slate-600">{n.author_name ?? "Staff"}</span>
+                      <span>·</span>
+                      <span>{formatDhakaDateTime(n.created_at)}</span>
+                    </p>
                   </div>
                 ))}
                 {(!notes || notes.length === 0) && (
@@ -958,6 +963,9 @@ export function AdminOrderDrawer({
                 )}
               </div>
             </Section>
+
+            {/* Send SMS to customer */}
+            <CustomerSmsSection orderId={orderId} order={order} />
           </div>
         )}
       </div>
