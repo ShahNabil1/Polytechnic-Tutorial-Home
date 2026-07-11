@@ -1,7 +1,15 @@
 import imageCompression from "browser-image-compression";
 import { createUploadUrl } from "@/lib/uploads.functions";
 
-export type UploadFolder = "avatars" | "profile" | "uploads" | "docs" | "internal-docs" | "ebooks";
+export type UploadFolder =
+  | "avatars"
+  | "profile"
+  | "uploads"
+  | "docs"
+  | "internal-docs"
+  | "ebooks"
+  | "lms-videos"
+  | "lms-thumbs";
 
 export type CompressOptions = {
   maxSizeMB?: number;
