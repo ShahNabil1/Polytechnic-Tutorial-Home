@@ -975,6 +975,42 @@ export type Database = {
         }
         Relationships: []
       }
+      sms_templates: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_system: boolean
+          key: string | null
+          name: string
+          updated_at: string
+          variables: Json
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_system?: boolean
+          key?: string | null
+          name: string
+          updated_at?: string
+          variables?: Json
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_system?: boolean
+          key?: string | null
+          name?: string
+          updated_at?: string
+          variables?: Json
+        }
+        Relationships: []
+      }
       steadfast_status_events: {
         Row: {
           consignment_id: string | null
