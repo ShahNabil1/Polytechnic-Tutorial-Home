@@ -99,14 +99,13 @@ export function SteadfastEventChips({
   });
 
   useEffect(() => {
-    const ch = supabase
-      .channel(`sf-events-${orderId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "steadfast_status_events", filter: `order_id=eq.${orderId}` },
-        () => refetch(),
-      )
-      .subscribe();
+    const ch = supabase.channel(`sf-events-${orderId}`);
+    ch.on(
+      "postgres_changes" as never,
+      { event: "*", schema: "public", table: "steadfast_status_events", filter: `order_id=eq.${orderId}` },
+      () => refetch(),
+    );
+    ch.subscribe();
     return () => {
       supabase.removeChannel(ch);
     };
