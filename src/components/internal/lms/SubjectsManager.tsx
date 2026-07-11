@@ -200,8 +200,9 @@ export function SubjectsManager({ deptFilter = "", semFilter = "" }: Props) {
           No subjects yet. Click "Add Subject" to create one.
         </div>
       ) : (
+        <>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((s) => {
+          {paged.map((s) => {
             const pairs = s.placements
               .map((p) => {
                 const d = taxonomyById.get(p.department_id);
@@ -293,6 +294,14 @@ export function SubjectsManager({ deptFilter = "", semFilter = "" }: Props) {
             );
           })}
         </div>
+        <Pagination
+          page={currentPage}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
+        </>
       )}
 
       <SubjectFormDialog
