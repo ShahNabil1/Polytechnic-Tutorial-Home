@@ -308,6 +308,7 @@ export type Database = {
           alternative_phone: string | null
           cod_amount: number
           created_at: string
+          created_by_user_id: string | null
           customer_email: string | null
           customer_name: string
           customer_phone: string
@@ -328,6 +329,8 @@ export type Database = {
           payment_method: string | null
           payment_status: string
           shipping_bdt: number
+          source: string
+          source_detail: string | null
           status: string
           steadfast_consignment_id: string | null
           steadfast_status: string | null
@@ -345,6 +348,7 @@ export type Database = {
           alternative_phone?: string | null
           cod_amount?: number
           created_at?: string
+          created_by_user_id?: string | null
           customer_email?: string | null
           customer_name: string
           customer_phone: string
@@ -365,6 +369,8 @@ export type Database = {
           payment_method?: string | null
           payment_status?: string
           shipping_bdt?: number
+          source?: string
+          source_detail?: string | null
           status?: string
           steadfast_consignment_id?: string | null
           steadfast_status?: string | null
@@ -382,6 +388,7 @@ export type Database = {
           alternative_phone?: string | null
           cod_amount?: number
           created_at?: string
+          created_by_user_id?: string | null
           customer_email?: string | null
           customer_name?: string
           customer_phone?: string
@@ -402,6 +409,8 @@ export type Database = {
           payment_method?: string | null
           payment_status?: string
           shipping_bdt?: number
+          source?: string
+          source_detail?: string | null
           status?: string
           steadfast_consignment_id?: string | null
           steadfast_status?: string | null

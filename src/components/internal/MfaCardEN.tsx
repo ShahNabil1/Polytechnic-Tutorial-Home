@@ -1,6 +1,7 @@
 /**
  * English fork of MfaCard for internal (/workspace, /instructor) routes.
  */
+import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, ShieldCheck, ShieldOff, KeyRound, X } from "lucide-react";
@@ -116,7 +117,7 @@ export function MfaCardEN() {
   }
 
   async function disableMfa(factorId: string) {
-    if (!confirm("Disable 2FA? Your account will be less secure.")) return;
+    if (!(await confirmDialog({ variant: "danger", description: "Disable 2FA? Your account will be less secure." }))) return;
     setBusy(true);
     try {
       const { error } = await supabase.auth.mfa.unenroll({ factorId });

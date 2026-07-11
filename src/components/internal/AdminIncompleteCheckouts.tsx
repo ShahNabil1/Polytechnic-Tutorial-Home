@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -83,7 +84,7 @@ export function AdminIncompleteCheckouts({ search }: { search: string }) {
   });
 
   async function remove(id: string) {
-    if (!confirm("Delete this incomplete checkout record?")) return;
+    if (!(await confirmDialog({ variant: "danger", description: "Delete this incomplete checkout record?" }))) return;
     try {
       await del({ data: { id } });
       toast.success("Deleted");

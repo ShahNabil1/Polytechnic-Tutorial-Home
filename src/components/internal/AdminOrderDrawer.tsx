@@ -14,8 +14,6 @@ import {
   Save,
   Plus,
   Trash2,
-  Copy,
-  Send,
   Ban,
   ShieldAlert,
   MessageSquarePlus,
@@ -31,6 +29,7 @@ import {
   ShieldCheck,
   CheckSquare,
   Square,
+  Tag,
 } from "lucide-react";
 import {
   getAdminOrder,
@@ -47,7 +46,6 @@ import {
   ORDER_STATUSES,
   STATUS_LABEL,
   STATUS_STYLE,
-  buildSteadfastPayload,
   formatDhakaDateTime,
   type Order,
   type OrderItem,
@@ -55,6 +53,7 @@ import {
 } from "@/lib/orders";
 import { formatBDT } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 
 export function AdminOrderDrawer({
   orderId,
@@ -318,7 +317,6 @@ export function AdminOrderDrawer({
     setItemDraft((draft) => (draft ?? items).filter((_, i) => i !== idx));
   }
 
-  const steadfast = order ? buildSteadfastPayload(order, itemDraft ?? items) : null;
   const isEbookOnly = order?.order_type === "ebook";
 
   return (
@@ -597,27 +595,10 @@ export function AdminOrderDrawer({
               </div>
             </Section>
 
-            {/* Steadfast payload */}
-            <Section title="Steadfast Payload (Preview)" icon={Send} action={
-              <>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(JSON.stringify(steadfast, null, 2));
-                    toast.success("Copied");
-                  }}
-                  className="btn-sm"
-                >
-                  <Copy className="size-3.5" /> Copy JSON
-                </button>
-                <button className="btn-sm-primary opacity-60" disabled title="Steadfast integration coming soon">
-                  <Send className="size-3.5" /> Send to Steadfast
-                </button>
-              </>
-            }>
-              <pre className="max-h-64 overflow-auto rounded-lg bg-slate-900 p-3 font-mono text-[11px] leading-relaxed text-emerald-300">
-{JSON.stringify(steadfast, null, 2)}
-              </pre>
-            </Section>
+            {/* Source attribution */}
+            <SourceSection order={order} />
+
+
 
             {/* Device / Block */}
             <DeviceSecuritySection
@@ -766,6 +747,45 @@ function TextField({
 }
 
 
+// ---------- Source attribution ----------
+const SOURCE_META: Record<string, { label: string; className: string }> = {
+  website: { label: "Website", className: "bg-sky-100 text-sky-700 ring-sky-200" },
+  direct: { label: "Direct", className: "bg-slate-100 text-slate-700 ring-slate-200" },
+  manual: { label: "Manual", className: "bg-violet-100 text-violet-700 ring-violet-200" },
+  fb_utm: { label: "Facebook / UTM", className: "bg-indigo-100 text-indigo-700 ring-indigo-200" },
+  google: { label: "Google", className: "bg-emerald-100 text-emerald-700 ring-emerald-200" },
+  other: { label: "Other", className: "bg-amber-100 text-amber-800 ring-amber-200" },
+};
+
+function SourceSection({ order }: { order: Order & { created_by_name?: string | null } }) {
+  const src = (order as any).source || "website";
+  const meta = SOURCE_META[src] ?? SOURCE_META.other;
+  const detail = (order as any).source_detail as string | null | undefined;
+  const empName = (order as any).created_by_name as string | null | undefined;
+  return (
+    <Section title="Order Source" icon={Tag}>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-extrabold ring-1", meta.className)}>
+          <Tag className="size-3" /> {meta.label}
+        </span>
+        {detail && (
+          <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
+            {detail}
+          </span>
+        )}
+        {src === "manual" && empName && (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-fuchsia-100 px-2.5 py-1 text-xs font-bold text-fuchsia-700 ring-1 ring-fuchsia-200">
+            <User className="size-3" /> {empName}
+          </span>
+        )}
+        {!detail && src === "website" && (
+          <span className="text-[11px] text-slate-500">Placed via the storefront checkout.</span>
+        )}
+      </div>
+    </Section>
+  );
+}
+
 type BlockKind = "ip" | "fingerprint" | "phone";
 
 function DeviceSecuritySection({
@@ -825,10 +845,16 @@ function DeviceSecuritySection({
 
   async function doBlock() {
     if (!selectedToBlock.length) return;
-    const reason = prompt(`Reason for blocking ${selectedToBlock.length} identifier(s):`) || undefined;
+    const ok = await confirmDialog({
+      variant: "danger",
+      title: `Block ${selectedToBlock.length} identifier(s)?`,
+      description: "Once blocked, this device, IP or phone cannot place new orders. You can unblock any time.",
+      confirmLabel: "Block",
+    });
+    if (!ok) return;
     setBusy(true);
     try {
-      await bulkBlock({ data: { items: selectedToBlock.map((i) => ({ kind: i.kind, value: i.value })), reason } });
+      await bulkBlock({ data: { items: selectedToBlock.map((i) => ({ kind: i.kind, value: i.value })) } });
       toast.success(`Blocked ${selectedToBlock.length} identifier(s)`);
       clearSel();
       statusQuery.refetch();
@@ -841,7 +867,13 @@ function DeviceSecuritySection({
 
   async function doUnblock() {
     if (!selectedToUnblock.length) return;
-    if (!confirm(`Unblock ${selectedToUnblock.length} identifier(s)?`)) return;
+    const ok = await confirmDialog({
+      variant: "warning",
+      title: `Unblock ${selectedToUnblock.length} identifier(s)?`,
+      description: "These identifiers will be allowed to place orders again.",
+      confirmLabel: "Unblock",
+    });
+    if (!ok) return;
     setBusy(true);
     try {
       await bulkUnblock({ data: { items: selectedToUnblock.map((i) => ({ kind: i.kind, value: i.value })) } });

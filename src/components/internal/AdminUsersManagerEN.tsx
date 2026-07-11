@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
@@ -96,7 +97,7 @@ export function AdminUsersManagerEN({ role }: { role: "employee" | "instructor" 
   }
 
   async function revokeUser(userId: string) {
-    if (!confirm("Revoke this role?")) return;
+    if (!(await confirmDialog({ variant: "danger", description: "Revoke this role?" }))) return;
     setBusyId(userId);
     try {
       await revoke({ data: { user_id: userId, role } });

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Loader2, Plus, Trash2, Pencil, Check, X, Tags } from "lucide-react";
@@ -110,7 +111,7 @@ export function AdminCategoriesManager() {
   }
 
   async function removeRow(row: CategoryRow) {
-    if (!confirm(`Delete "${row.name}"? Products using it will need to be re-tagged.`)) return;
+    if (!(await confirmDialog({ variant: "danger", description: `Delete "${row.name}"? Products using it will need to be re-tagged.` }))) return;
     setBusy(true);
     try {
       await remove({ data: { id: row.id } });

@@ -92,6 +92,9 @@ export type Order = {
   steadfast_status: string | null;
   steadfast_synced_at: string | null;
   idempotency_key: string | null;
+  source: string;
+  source_detail: string | null;
+  created_by_user_id: string | null;
   created_at: string;
   updated_at: string;
 };

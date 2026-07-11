@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
@@ -188,7 +189,7 @@ export function AdminProductsManager() {
   }
 
   async function removeProduct(p: Product) {
-    if (!confirm(`Delete "${p.title}"?`)) return;
+    if (!(await confirmDialog({ variant: "danger", description: `Delete "${p.title}"?` }))) return;
     try {
       await remove({ data: { id: p.id } });
       toast.success("Deleted");

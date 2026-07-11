@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Loader2, Plus, Trash2, Pencil, X, Upload, ImageIcon, Package } from "lucide-react";
@@ -155,7 +156,7 @@ export function AdminBundlesManager({ products }: { products: Product[] }) {
   }
 
   async function removeBundle(b: Bundle) {
-    if (!confirm(`Delete bundle "${b.title}"?`)) return;
+    if (!(await confirmDialog({ variant: "danger", description: `Delete bundle "${b.title}"?` }))) return;
     try {
       await remove({ data: { id: b.id } });
       toast.success("Deleted");

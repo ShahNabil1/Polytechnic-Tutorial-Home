@@ -3,6 +3,7 @@
  * Uses Supabase Auth MFA API (aal2). On successful verify, updates
  * internal_profiles.mfa_enrolled via server fn.
  */
+import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, ShieldCheck, ShieldOff, KeyRound, X } from "lucide-react";
@@ -127,7 +128,7 @@ export function MfaCard() {
   }
 
   async function disableMfa(factorId: string) {
-    if (!confirm("2FA বন্ধ করতে চান? এতে অ্যাকাউন্ট কম সুরক্ষিত হয়ে যাবে।")) return;
+    if (!(await confirmDialog({ variant: "danger", description: "2FA বন্ধ করতে চান? এতে অ্যাকাউন্ট কম সুরক্ষিত হয়ে যাবে।" }))) return;
     setBusy(true);
     try {
       const { error } = await supabase.auth.mfa.unenroll({ factorId });

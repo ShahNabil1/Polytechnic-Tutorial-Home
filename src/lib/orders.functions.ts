@@ -60,6 +60,8 @@ const CreateOrderInput = z.object({
   }),
   fingerprint: z.string().max(80).optional().or(z.literal("")),
   userId: z.string().uuid().optional().nullable(),
+  source: z.enum(["website", "direct", "manual", "fb_utm", "google", "other"]).optional(),
+  sourceDetail: z.string().max(200).optional().or(z.literal("")),
 });
 
 export const createOrder = createServerFn({ method: "POST" })
@@ -160,6 +162,8 @@ export const createOrder = createServerFn({ method: "POST" })
         user_agent: ua || null,
         device_fingerprint: data.fingerprint || null,
         idempotency_key: data.idempotencyKey,
+        source: data.source || "website",
+        source_detail: data.sourceDetail || null,
       } as any)
       .select("id, order_no, status")
       .single();
