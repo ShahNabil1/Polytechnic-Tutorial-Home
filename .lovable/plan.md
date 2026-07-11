@@ -1,93 +1,94 @@
-# Steadfast Courier — Full Integration Plan
+# LMS & Courses — Phases 1-3
 
-## 1. Credentials & Webhook
+Base route: `/workspace/lms-and-courses/`. Access gated by a new `manage_lms` permission (super_admin bypasses). Use existing "LMS & Courses" nav group added to `InternalShell` with three items: Academic Structure, Subjects, Curriculum.
 
-You'll provide via secure form:
-- `STEADFAST_API_KEY`
-- `STEADFAST_SECRET_KEY`
-- `STEADFAST_BASE_URL` → default `https://portal.packzy.com/api/v1`
+## Taxonomy decision (needs your call)
 
-I'll auto-generate:
-- `STEADFAST_WEBHOOK_SECRET` (64-char random, shared secret you paste into Steadfast dashboard)
+`product_categories` already contains `kind='department'` and `kind='semester'` rows (Computer, Civil, …, 1st–8th sem) used by the shop. Two options:
 
-**Webhook URL (give this to Steadfast):**
-```
-https://polyverse-learn-shop.lovable.app/api/public/webhooks/steadfast?secret=<STEADFAST_WEBHOOK_SECRET>
-```
-(Steadfast webhook has no signature header — auth via query-string secret + timing-safe compare.)
+- **A. Reuse `product_categories**` (my recommendation). One source of truth — a student's dept/semester filters both shop products and LMS subjects with the same IDs. Academic Structure becomes a focused editor over those rows.
+- **B. Separate `lms_departments` / `lms_semesters` tables**. Fully independent from shop taxonomy; more freedom, but you'll re-enter values and map them yourself for student enrollment later.
 
-## 2. Database migration
+Plan below assumes **A**. Say the word if you want **B** and I'll swap the schema.
 
-New columns on `orders`:
-- `steadfast_last_error text` — exact failure reason from Steadfast
-- `steadfast_retry_count int default 0`
-- `steadfast_delivery_status text` — raw courier status: `in_review / pending / hold / in_transit / delivered / partial_delivered / cancelled / unknown / delivery_failed / return_requested / return_in_transit / returned` etc.
-- `steadfast_status_updated_at timestamptz`
+## Phase 1 — Academic Structure
 
-New table `steadfast_status_events` (webhook log, like `order_email_deliveries`):
-- `order_id`, `consignment_id`, `tracking_code`, `status`, `raw jsonb`, `received_at`
-- RLS: internal staff read; service_role write.
+**Route:** `/workspace/lms-and-courses/structure`
 
-Recompute rule: webhook status `delivered` → `physical_status='delivered'`; `returned`/`partial_delivered` → order `status='returned'`; `cancelled` → `status='cancelled'`; `in_transit` → `physical_status='shipped'` + order `status='shipped'`.
+- Tabbed layout: `Departments | Semesters`.
+- Each tab: list rows with inline edit, sort-order number input, active toggle, delete (with confirm). "Add" row at top.
+- Backed by existing `product_categories` filtered by kind. New server fns in `src/lib/lms.functions.ts`: `listAcademicTaxonomy`, `upsertAcademicTaxonomy`, `deleteAcademicTaxonomy` — guarded by `manage_lms` (super_admin bypass).
 
-## 3. Server functions & routes
+## Phase 2 — Subjects Hub
 
-- `src/lib/steadfast.server.ts` — HTTP client (create_order, create_order/bulk-order, status_by_invoice), timeouts, error normalization.
-- `src/lib/steadfast.functions.ts`:
-  - `dispatchOrderToSteadfast({ orderId })` — internal; used by single RTS.
-  - `bulkDispatchToSteadfast({ orderIds })` — chunks 10, calls bulk API, per-order result, marks `steadfast_last_error` on failure but keeps status = `processing`.
-  - `retryFailedSteadfast({ orderIds })` — used by 2–3 retry passes.
-- `src/routes/api/public/webhooks/steadfast.ts` — verify `secret`, upsert `steadfast_status_events`, update order courier fields + recompute status.
+**Route:** `/workspace/lms-and-courses/subjects`
 
-## 4. Order status update rules
+New tables:
 
-- Setting `status='ready_to_ship'` on a **single** order with `has_physical=true` and no `steadfast_consignment_id`:
-  - Server fn auto-calls Steadfast single create-order **inside the same transaction/handler**, then persists consignment_id + tracking_code.
-  - On failure: keep status as `processing`, store `steadfast_last_error`, surface toast with reason.
-- item_description + total_lot are computed from **physical items only** (ebook lines excluded).
-- Ebook / digital-only orders: `AdminOrderDrawer` status dropdown hides `ready_to_ship`, `shipped`, `returned` (kept: processing, hold, delivered, cancelled, incomplete).
+- `lms_subjects` — `name`, `code` (nullable, unique when set), `slug` (unique), `description`, `cover_image_url`, `is_active`, `sort_order`, `created_by`, timestamps.
+- `lms_subject_departments` — (`subject_id`, `category_id`) → `product_categories` (kind=department).
+- `lms_subject_semesters` — (`subject_id`, `category_id`) → `product_categories` (kind=semester).
 
-## 5. Processing tab — Bulk RTS UI
+RLS + GRANTs:
 
-`AdminOrdersManager` Processing tab gets:
-- Checkbox column + "Select all physical" header checkbox.
-- Sticky action bar: "Send N to Steadfast (RTS)" button.
-  - Disabled when selection contains any non-physical order (tooltip: "Selection contains digital-only orders").
-- On click → modal with live progress bar:
-  - Chunks of 10 via bulk API, shows `x / total` + per-order row (✓ consignment ID or ✗ reason).
-  - After first pass, auto-retries failures up to 3 times with backoff.
-  - Final failures remain in Processing with red "Failed RTS" badge on the card.
+- authenticated: SELECT active subjects and their joins.
+- `manage_lms` (or super_admin): full write.
+- anon: SELECT active subjects only (for a future public catalog).
+- service_role: ALL.
 
-## 6. RTS tab card enhancements
+UI:
 
-Each RTS card shows a compact Steadfast block:
-- Steadfast logo + "Consignment: 123456789" (click to copy, toast "Copied")
-- "Tracking: ABCD-1234" (click to copy)
-- Live courier status chip (from webhook) styled like Resend chips, with Steadfast logo.
+- Toolbar: search, filter by department/semester, "Add Subject" button.
+- Grid of glassmorphic cards: cover image with gradient overlay, title, code chip, dept/sem chips, lesson count (once curriculum exists), active dot.
+- Card click → `/workspace/lms-and-courses/curriculum/$subjectSlug`.
+- Card menu: Edit, Toggle active, Delete.
+- "Add / Edit Subject" modal form: Name, Code, auto-generated editable Slug, Cover Image (R2 upload via existing `uploadFileToR2` with folder `uploads` and image compression), Description (multiline), multi-select Departments, multi-select Semesters, Active toggle.
 
-## 7. Status chips (all cards + drawer)
+## Phase 3 — Curriculum Builder
 
-New `SteadfastEventChips` component mirroring `ResendEventChips`:
-- Reads `steadfast_status_events` for the order.
-- Renders chronological chips with Steadfast logo + status label + timestamp tooltip.
-- Shown on order card and inside `AdminOrderDrawer`.
+**Route:** `/workspace/lms-and-courses/curriculum/$subjectSlug`
 
-## 8. Returned tab
+New tables:
 
-Webhook status `returned` / `partial_delivered` / `return_in_transit` moves order to `status='returned'` — surfaces automatically in existing Returned tab.
+- `lms_modules` — `subject_id`, `title`, `description`, `sort_order`, timestamps.
+- `lms_lessons` — `module_id`, `title`, `description`, `video_url`, `video_provider` ('r2'|'youtube'|'vimeo'|'external'), `thumbnail_url`, `duration_seconds` (nullable), `is_free` (bool, default false), `sort_order`, timestamps.
 
-## 9. Failed RTS surfacing
+Uploads via R2 — extend `UploadFolder` with `lms-videos` and `lms-thumbs` (uses existing presigned PUT). Video field also accepts pasted external URL (YouTube/Vimeo/direct mp4).
 
-- Card badge: red "Failed RTS" pill (when `has_physical` + `steadfast_last_error` + no consignment).
-- Drawer: red alert block with exact `steadfast_last_error` + "Retry" button (calls single dispatch).
+UI:
 
-## 10. Excluded (per your list)
+- Header: subject cover, name, code, dept/sem chips, "Back to Subjects".
+- Modules list: each module is a collapsible card with title, description, drag handle for sort, edit/delete menu, and "Add Lesson" button.
+- Lessons inside module: row with thumbnail, title, "Free/Demo" badge if `is_free`, duration, edit/delete.
+- Lesson form (modal): Title, Description, Thumbnail (R2 upload), Video (R2 upload or URL), a prominent switch **"Set as Free/Demo — any student can watch this lesson without purchasing the course"**.
 
-Not implementing: balance check, payments listing, single payment lookup, police-station lookup.
+## Future-proofing (built now, no UI exposed yet)
 
----
+- `lms_subject_instructors` — (`subject_id`, `instructor_user_id`, `role` default 'primary', `assigned_at`). RLS lets an instructor read their own assignments; admins manage. Phase 4 admin UI will slot in without schema change.
+- `is_free` on lessons + `is_active` on subjects → student dashboard becomes: subjects joined to dept/sem categories matching the student's `profiles.department` and `profiles.semester`, then lesson-view checks `is_free OR enrolled(user, subject)`. Enrollment table to be added when that phase lands.
 
-### What I need from you now
+## Files to add / modify
 
-1. Approve this plan.
-2. After approval, I'll open the secure form for `STEADFAST_API_KEY` + `STEADFAST_SECRET_KEY` (+ optional `STEADFAST_BASE_URL` if non-default), auto-generate `STEADFAST_WEBHOOK_SECRET`, then run the migration and ship the code.
+New:
+
+- `supabase/migrations/<ts>_lms_core.sql` — subjects/modules/lessons/joins/instructor-assignments + RLS + GRANTs + `updated_at` triggers + seed `manage_lms` permission.
+- `src/lib/lms.functions.ts` — server fns (taxonomy, subjects, modules, lessons).
+- `src/lib/lms.ts` — shared TS types.
+- `src/routes/_authenticated/_internal.workspace.lms-and-courses.tsx` — layout with `<Outlet/>`.
+- `src/routes/_authenticated/_internal.workspace.lms-and-courses.structure.tsx`
+- `src/routes/_authenticated/_internal.workspace.lms-and-courses.subjects.tsx`
+- `src/routes/_authenticated/_internal.workspace.lms-and-courses.curriculum.$subjectSlug.tsx`
+- `src/components/internal/lms/AcademicStructureManager.tsx`
+- `src/components/internal/lms/SubjectsManager.tsx` + `SubjectFormDialog.tsx`
+- `src/components/internal/lms/CurriculumBuilder.tsx` + `ModuleEditor.tsx` + `LessonFormDialog.tsx`
+
+Modified:
+
+- `src/components/internal/InternalShell.tsx` usage in `_internal.workspace.tsx` — replace empty `lms` group with the three items above (icons: `BookOpen`, `GraduationCap`, `Layers`, `PlayCircle`).
+- `src/lib/upload-client.ts` — add `lms-videos`, `lms-thumbs` folders.
+
+## Please confirm before I build
+
+1. **Reuse `product_categories` for dept/semester (option A)?** Or create separate LMS tables (option B)?
+2. **Videos:** R2 direct upload + external URL paste both supported — OK?
+3. **Access:** gate everything behind a new `manage_lms` permission (super_admin bypass), or reuse existing `manage_products`?
