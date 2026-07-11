@@ -281,6 +281,7 @@ export function AdminOrdersManager() {
                       <td className="px-4 py-3.5 align-top">
                         <p className="font-mono text-sm font-extrabold text-slate-900">{o.order_no}</p>
                         <FulfillmentChips o={o} />
+                        <ResendEventChips events={o.email_events ?? null} />
 
                       </td>
                       <td className="px-4 py-3.5 align-top text-xs font-semibold text-slate-700">
