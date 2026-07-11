@@ -119,12 +119,39 @@ export const Route = createFileRoute("/api/public/hooks/deliver-ebook-batch")({
             }
 
             const attemptNo = (order.digital_attempt_count ?? 0) + 1;
-            const html = renderEbookEmailHtml({
-              orderNo: order.order_no,
-              customerName: order.customer_name,
-              ebooks,
-            });
-            const subject = `আপনার ই-বুক প্রস্তুত — Order ${order.order_no}`;
+
+            // Try DB-editable template first; fall back to hardcoded renderer.
+            const { renderEmailTemplate, renderEbookListHtml } = await import(
+              "@/lib/email-templates.server"
+            );
+            const { data: tpl } = await supabaseAdmin
+              .from("email_templates")
+              .select("subject, body_html")
+              .eq("key", "ebook_delivery")
+              .maybeSingle();
+
+            let html: string;
+            let subject: string;
+            if (tpl?.body_html && tpl?.subject) {
+              const vars = {
+                order_no: order.order_no,
+                customer_name: order.customer_name || "কাস্টমার",
+                ebook_list: renderEbookListHtml(ebooks),
+              };
+              html = `<!doctype html><html><body style="margin:0;padding:32px 12px;background:#f6f8fa;">${renderEmailTemplate(
+                tpl.body_html as string,
+                vars,
+              )}</body></html>`;
+              subject = renderEmailTemplate(tpl.subject as string, vars);
+            } else {
+              html = renderEbookEmailHtml({
+                orderNo: order.order_no,
+                customerName: order.customer_name,
+                ebooks,
+              });
+              subject = `আপনার ই-বুক প্রস্তুত — Order ${order.order_no}`;
+            }
+
 
             const send = await sendEbookEmail({ to: order.customer_email, subject, html });
 
