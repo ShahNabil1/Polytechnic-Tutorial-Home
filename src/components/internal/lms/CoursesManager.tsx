@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { confirm } from "@/components/ui/confirm-dialog";
 import { CourseFormDialog } from "@/components/internal/lms/CourseFormDialog";
+import { Pagination } from "@/components/internal/Pagination";
 
 export function CoursesManager() {
   const listFn = useServerFn(listCourses);
@@ -39,6 +40,8 @@ export function CoursesManager() {
   const [editing, setEditing] = useState<LmsCourse | null>(null);
   const [creating, setCreating] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   async function refetch() {
     setLoading(true);
@@ -80,6 +83,16 @@ export function CoursesManager() {
       (c.description ?? "").toLowerCase().includes(query)
     );
   });
+
+  useEffect(() => {
+    setPage(1);
+  }, [q, deptFilter, semFilter, pageSize]);
+
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const paged = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
 
   async function handleGenerate() {
     setGenerating(true);
@@ -168,8 +181,9 @@ export function CoursesManager() {
           No courses yet. Click "Generate missing" to create one for every department–semester pair.
         </div>
       ) : (
+        <>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((c) => {
+          {paged.map((c) => {
             const dept = byId.get(c.department_id);
             const sem = byId.get(c.semester_id);
             return (
@@ -250,6 +264,14 @@ export function CoursesManager() {
             );
           })}
         </div>
+        <Pagination
+          page={currentPage}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
+        </>
       )}
 
       <CourseFormDialog

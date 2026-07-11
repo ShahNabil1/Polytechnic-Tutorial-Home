@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Upload, X, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -59,6 +59,8 @@ export function SubjectFormDialog({ open, subject, taxonomy, initialPlacements, 
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
+  const dirtyRef = useRef(false);
+  const initRef = useRef(false);
 
   useEffect(() => {
     if (open) {
@@ -72,8 +74,28 @@ export function SubjectFormDialog({ open, subject, taxonomy, initialPlacements, 
       setNewDept("");
       setNewSem("");
       setSlugManuallyEdited(!!subject);
+      initRef.current = false;
+      dirtyRef.current = false;
     }
   }, [open, subject, initialPlacements]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (!initRef.current) {
+      initRef.current = true;
+      return;
+    }
+    dirtyRef.current = true;
+  }, [open, name, code, slug, description, coverUrl, isActive, placements]);
+
+  function attemptClose() {
+    if (saving || uploading) return;
+    if (dirtyRef.current) {
+      const ok = window.confirm("You have unsaved changes. Discard them?");
+      if (!ok) return;
+    }
+    onClose();
+  }
 
   useEffect(() => {
     if (!slugManuallyEdited) setSlug(slugify(name));
@@ -158,8 +180,13 @@ export function SubjectFormDialog({ open, subject, taxonomy, initialPlacements, 
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={(o) => { if (!o) attemptClose(); }}>
+      <DialogContent
+        className="max-w-2xl max-h-[90vh] overflow-y-auto"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>{subject ? "Edit Subject" : "Add Subject"}</DialogTitle>
         </DialogHeader>
@@ -319,7 +346,7 @@ export function SubjectFormDialog({ open, subject, taxonomy, initialPlacements, 
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={saving}>
+          <Button variant="outline" onClick={attemptClose} disabled={saving}>
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={saving || uploading}>

@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { confirm } from "@/components/ui/confirm-dialog";
 import { SubjectFormDialog } from "@/components/internal/lms/SubjectFormDialog";
+import { Pagination } from "@/components/internal/Pagination";
 
 type Props = {
   deptFilter?: string;
@@ -39,6 +40,8 @@ export function SubjectsManager({ deptFilter = "", semFilter = "" }: Props) {
   const [q, setQ] = useState("");
   const [editSubject, setEditSubject] = useState<LmsSubject | null>(null);
   const [creating, setCreating] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   async function refetch() {
     setLoading(true);
@@ -97,8 +100,18 @@ export function SubjectsManager({ deptFilter = "", semFilter = "" }: Props) {
     );
   });
 
+  useEffect(() => {
+    setPage(1);
+  }, [q, deptFilter, semFilter, pageSize]);
+
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const paged = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
   const initialPlacementsForCreate: SubjectPlacement[] =
     deptFilter && semFilter ? [{ department_id: deptFilter, semester_id: semFilter }] : [];
+
 
 
   async function handleDelete(subject: LmsSubject) {
@@ -187,8 +200,9 @@ export function SubjectsManager({ deptFilter = "", semFilter = "" }: Props) {
           No subjects yet. Click "Add Subject" to create one.
         </div>
       ) : (
+        <>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((s) => {
+          {paged.map((s) => {
             const pairs = s.placements
               .map((p) => {
                 const d = taxonomyById.get(p.department_id);
@@ -280,6 +294,14 @@ export function SubjectsManager({ deptFilter = "", semFilter = "" }: Props) {
             );
           })}
         </div>
+        <Pagination
+          page={currentPage}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
+        </>
       )}
 
       <SubjectFormDialog
