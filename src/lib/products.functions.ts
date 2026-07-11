@@ -255,11 +255,12 @@ export const upsertProduct = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => ProductUpsertInput.parse(i))
   .handler(async ({ data, context }) => {
     await ensureCanManage(context);
-    const { subcategory_ids, id, sku, ...rest } = data;
+    const { subcategory_ids, id, sku, ebook_file_url, ...rest } = data;
     const finalSku = (sku ?? "").trim() || randomSku();
     const payload = {
       ...rest,
       sku: finalSku,
+      ebook_file_url: ebook_file_url ? ebook_file_url : null,
       images: rest.images as never,
       created_by: id ? undefined : context.userId,
     };
