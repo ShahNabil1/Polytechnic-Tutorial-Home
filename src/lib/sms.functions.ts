@@ -35,6 +35,7 @@ export const upsertSmsTemplate = createServerFn({ method: "POST" })
         name: z.string().min(1).max(120),
         body: z.string().min(1).max(1000),
         variables: z.array(z.string().max(40)).max(30).optional(),
+        category: z.string().min(1).max(40).optional(),
       })
       .parse(d),
   )
@@ -47,6 +48,7 @@ export const upsertSmsTemplate = createServerFn({ method: "POST" })
           name: data.name,
           body: data.body,
           variables: data.variables ?? [],
+          ...(data.category ? { category: data.category } : {}),
         })
         .eq("id", data.id);
       if (error) throw new Error(error.message);
@@ -58,6 +60,7 @@ export const upsertSmsTemplate = createServerFn({ method: "POST" })
         name: data.name,
         body: data.body,
         variables: data.variables ?? [],
+        category: data.category ?? "other",
         is_system: false,
         created_by: context.userId,
       })
