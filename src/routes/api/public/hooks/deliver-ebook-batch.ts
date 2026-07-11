@@ -22,7 +22,11 @@ type EbookItemRow = {
   order_id: string;
   title: string;
   product_id: string | null;
-  products: { ebook_file_url: string | null } | null;
+};
+
+type EbookProductRow = {
+  id: string;
+  ebook_file_url: string | null;
 };
 
 export const Route = createFileRoute("/api/public/hooks/deliver-ebook-batch")({
@@ -76,17 +80,31 @@ export const Route = createFileRoute("/api/public/hooks/deliver-ebook-batch")({
               continue;
             }
 
-            const { data: itemsData } = await supabaseAdmin
+            const { data: itemsData, error: itemsError } = await supabaseAdmin
               .from("order_items")
-              .select("order_id, title, product_id, products(ebook_file_url)")
+              .select("order_id, title, product_id")
               .eq("order_id", order.id)
               .eq("item_type", "ebook");
+            if (itemsError) throw new Error(itemsError.message);
             const items = (itemsData as unknown as EbookItemRow[]) ?? [];
+
+            const productIds = [...new Set(items.map((i) => i.product_id).filter(Boolean))] as string[];
+            const fileUrlByProductId = new Map<string, string>();
+            if (productIds.length > 0) {
+              const { data: productsData, error: productsError } = await supabaseAdmin
+                .from("products")
+                .select("id, ebook_file_url")
+                .in("id", productIds);
+              if (productsError) throw new Error(productsError.message);
+              for (const product of ((productsData as EbookProductRow[]) ?? [])) {
+                if (product.ebook_file_url) fileUrlByProductId.set(product.id, product.ebook_file_url);
+              }
+            }
 
             const ebooks = items
               .map((i) => ({
                 title: i.title,
-                downloadUrl: i.products?.ebook_file_url ?? "",
+                downloadUrl: i.product_id ? (fileUrlByProductId.get(i.product_id) ?? "") : "",
               }))
               .filter((b) => !!b.downloadUrl);
 
