@@ -718,8 +718,12 @@ export function AdminOrderDrawer({
               </div>
             </Section>
 
+            {/* Fulfillment */}
+            <FulfillmentSection order={order} deliveries={data?.deliveries ?? []} orderId={orderId} onChanged={() => { refetch(); onChanged?.(); }} />
+
             {/* Source attribution */}
             <SourceSection order={order} />
+
 
 
 
