@@ -236,15 +236,32 @@ export const listAdminOrders = createServerFn({ method: "GET" })
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
 
-    // counts per status
-    const { data: countsRaw } = await context.supabase
-      .from("orders")
-      .select("status");
+    // counts per status (merge incomplete_checkouts into the "incomplete" bucket)
+    const [{ data: countsRaw }, { count: incompleteCheckouts }] = await Promise.all([
+      context.supabase.from("orders").select("status"),
+      context.supabase.from("incomplete_checkouts").select("id", { count: "exact", head: true }),
+    ]);
     const counts: Record<string, number> = {};
     for (const r of countsRaw ?? []) counts[r.status] = (counts[r.status] ?? 0) + 1;
+    counts.incomplete = (counts.incomplete ?? 0) + (incompleteCheckouts ?? 0);
 
     const orders = (rows ?? []).map((r: any) => ({ ...r, ip: r.ip == null ? null : String(r.ip) }));
     return { orders, counts };
+  });
+
+// -------- ADMIN: counts only (used to keep tab badges live) --------
+export const getAdminOrderCounts = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await ensureStaff(context);
+    const [{ data: countsRaw }, { count: incompleteCheckouts }] = await Promise.all([
+      context.supabase.from("orders").select("status"),
+      context.supabase.from("incomplete_checkouts").select("id", { count: "exact", head: true }),
+    ]);
+    const counts: Record<string, number> = {};
+    for (const r of countsRaw ?? []) counts[r.status] = (counts[r.status] ?? 0) + 1;
+    counts.incomplete = (counts.incomplete ?? 0) + (incompleteCheckouts ?? 0);
+    return { counts };
   });
 
 // -------- ADMIN: get one order --------
