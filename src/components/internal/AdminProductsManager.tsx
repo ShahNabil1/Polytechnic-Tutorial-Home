@@ -181,6 +181,7 @@ export function AdminProductsManager() {
           is_active: draft.is_active,
           is_featured: draft.is_featured,
           is_online_book: draft.is_online_book,
+          ebook_file_url: draft.is_online_book ? (draft.ebook_file_url.trim() || null) : null,
         },
       });
       toast.success(draft.id ? "Product updated" : "Product created");
