@@ -60,6 +60,8 @@ const CreateOrderInput = z.object({
   }),
   fingerprint: z.string().max(80).optional().or(z.literal("")),
   userId: z.string().uuid().optional().nullable(),
+  source: z.enum(["website", "direct", "manual", "fb_utm", "google", "other"]).optional(),
+  sourceDetail: z.string().max(200).optional().or(z.literal("")),
 });
 
 export const createOrder = createServerFn({ method: "POST" })
