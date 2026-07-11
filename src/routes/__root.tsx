@@ -17,6 +17,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Toaster } from "@/components/ui/sonner";
 import { BlocklistGate } from "@/components/BlocklistGate";
+import { ConfirmDialogHost } from "@/components/ui/confirm-dialog";
 
 function NotFoundComponent() {
   return (
@@ -177,6 +178,7 @@ function RootComponent() {
           <Outlet />
         </BlocklistGate>
         <Toaster richColors position="top-center" />
+        <ConfirmDialogHost />
       </QueryClientProvider>
     );
   }
@@ -193,6 +195,7 @@ function RootComponent() {
         </div>
       </BlocklistGate>
       <Toaster richColors position="top-center" />
+      <ConfirmDialogHost />
     </QueryClientProvider>
   );
 }
