@@ -55,6 +55,11 @@ export type SteadfastSinglePayload = {
   delivery_type: 0 | 1;
 };
 
+type SteadfastBulkPayload = Pick<
+  SteadfastSinglePayload,
+  "invoice" | "recipient_name" | "recipient_phone" | "recipient_address" | "cod_amount" | "note"
+>;
+
 export type SteadfastConsignment = {
   consignment_id: string | number;
   invoice: string;
@@ -166,6 +171,28 @@ function normalizeDeliveryStatus(status: string | undefined): string {
   return !status || status === "success" ? "in_review" : status;
 }
 
+function toBulkPayload(payload: SteadfastSinglePayload): SteadfastBulkPayload {
+  const bulkPayload: SteadfastBulkPayload = {
+    invoice: payload.invoice,
+    recipient_name: payload.recipient_name,
+    recipient_phone: payload.recipient_phone,
+    recipient_address: payload.recipient_address,
+    cod_amount: payload.cod_amount,
+  };
+  const note = payload.note?.trim().slice(0, 480);
+  if (note) bulkPayload.note = note;
+  return bulkPayload;
+}
+
+function successRowFromConsignment(c: SteadfastConsignment): SteadfastBulkResultRow {
+  return {
+    invoice: c.invoice,
+    status: "success",
+    consignment_id: c.consignment_id,
+    tracking_code: c.tracking_code,
+  };
+}
+
 /**
  * Create a single consignment. Returns the consignment on success,
  * throws Error with the exact Steadfast error message on failure.
@@ -203,13 +230,29 @@ export async function createBulkOrders(
   payloads: SteadfastSinglePayload[],
 ): Promise<SteadfastBulkResultRow[]> {
   if (!payloads.length) return [];
+  if (payloads.length === 1) {
+    try {
+      return [successRowFromConsignment(await createSingleOrder(payloads[0]))];
+    } catch (err: any) {
+      return [
+        {
+          invoice: payloads[0].invoice,
+          status: "error",
+          message: String(err?.message ?? err ?? "Unknown Steadfast error").slice(0, 500),
+        },
+      ];
+    }
+  }
+  const bulkPayloads = payloads.map(toBulkPayload);
   const res = await withTimeout(
     fetch(`${baseUrl()}/create_order/bulk-order`, {
       method: "POST",
       headers: headers(),
       // Steadfast's bulk docs specify `data` as a JSON-encoded array string
       // (max 500 items). Single item is allowed, there is no documented minimum.
-      body: JSON.stringify({ data: JSON.stringify(payloads) }),
+      // Their bulk endpoint is stricter than `/create_order`, so send only the
+      // documented bulk keys; extra single-order fields can trigger HTTP 500.
+      body: JSON.stringify({ data: JSON.stringify(bulkPayloads) }),
     }),
   );
   const body = await readBody(res);
@@ -264,9 +307,8 @@ export async function getStatusByInvoice(invoice: string): Promise<string | null
 export function buildPayloadFromOrder(order: any, items: any[]): SteadfastSinglePayload {
   const physical = items.filter((i) => i.item_type !== "ebook");
   const totalLot = physical.reduce((s, i) => s + Number(i.quantity || 0), 0) || 1;
-  const desc =
-    (order.item_description as string | null) ||
-    physical.map((i) => `${i.title} x${i.quantity}`).join(", ").slice(0, 500);
+  const physicalDesc = physical.map((i) => `${i.title} x${i.quantity}`).join(", ").slice(0, 500);
+  const desc = physicalDesc || (order.item_description as string | null) || undefined;
   const address =
     order.full_address ||
     [order.address_line, order.thana, order.district, order.division].filter(Boolean).join(", ") ||
@@ -280,11 +322,12 @@ export function buildPayloadFromOrder(order: any, items: any[]): SteadfastSingle
     cod_amount: Number(order.cod_amount ?? order.total_bdt ?? 0),
     total_lot: totalLot,
     delivery_type: 0,
-    item_description: desc,
+    ...(desc ? { item_description: desc } : {}),
   };
   if (order.alternative_phone) payload.alternative_phone = order.alternative_phone;
   if (order.customer_email) payload.recipient_email = order.customer_email;
-  if (order.note) payload.note = order.note;
+  const note = String(order.note ?? "").trim().slice(0, 480);
+  if (note) payload.note = note;
   return payload;
 }
 
