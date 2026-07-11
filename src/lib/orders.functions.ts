@@ -561,7 +561,7 @@ export const updateOrderStatus = createServerFn({ method: "POST" })
       !curr?.steadfast_consignment_id
     ) {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { dispatchOrderById } = await import("@/lib/steadfast.functions");
+      const { dispatchOrderById } = await import("@/lib/steadfast.server");
       const res = await dispatchOrderById(supabaseAdmin, data.id);
       if (!res.ok) {
         // dispatchOrderById already persisted the error onto the order.
