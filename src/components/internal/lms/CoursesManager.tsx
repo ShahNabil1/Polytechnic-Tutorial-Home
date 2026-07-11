@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useNavigate } from "@tanstack/react-router";
-import { Loader2, Plus, Search, Pencil, Trash2, GraduationCap, Sparkles, BookOpen } from "lucide-react";
+import { Loader2, Plus, Search, Pencil, Trash2, GraduationCap, Sparkles, BookOpen, Star } from "lucide-react";
 import { toast } from "sonner";
 import {
   listCourses,
   listAcademicTaxonomy,
   deleteCourse,
   generateMissingCourses,
+  setCourseFeatured,
 } from "@/lib/lms.functions";
 import type { AcademicCategory, LmsCourse } from "@/lib/lms";
 import { Button } from "@/components/ui/button";
