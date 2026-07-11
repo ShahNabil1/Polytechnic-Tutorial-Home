@@ -745,28 +745,38 @@ export const captureIncompleteCheckout = createServerFn({ method: "POST" })
 export const listAdminIncompleteCheckouts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
-    z.object({ search: z.string().max(120).optional(), limit: z.number().int().min(1).max(500).optional() }).parse(d),
+    z
+      .object({
+        search: z.string().max(120).optional(),
+        limit: z.number().int().min(1).max(500).optional(),
+        offset: z.number().int().min(0).max(100000).optional(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     await ensureStaff(context);
+    const limit = data.limit ?? 20;
+    const offset = data.offset ?? 0;
     let q = context.supabase
       .from("incomplete_checkouts")
-      .select("*")
+      .select("*", { count: "exact" })
       .order("last_attempt_at", { ascending: false })
-      .limit(data.limit ?? 200);
+      .range(offset, offset + limit - 1);
     if (data.search) {
       const s = data.search.trim();
       q = q.or(
         `customer_phone.ilike.%${s}%,customer_name.ilike.%${s}%,customer_email.ilike.%${s}%`,
       );
     }
-    const { data: rows, error } = await q;
+    const { data: rows, error, count: total } = await q;
     if (error) throw new Error(error.message);
-    return (rows ?? []).map((r: any) => ({
+    const items = (rows ?? []).map((r: any) => ({
       ...r,
       last_ip: r.last_ip == null ? null : String(r.last_ip),
     }));
+    return { items, total: total ?? items.length };
   });
+
 
 export const deleteIncompleteCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
