@@ -361,37 +361,105 @@ export function AdminOrderDrawer({
               {order && formatDhakaDateTime(order.created_at)}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            {order && (
-              <>
-                <span
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex items-center gap-2">
+              {order && (
+                <>
+                  <span
+                    className={cn(
+                      "rounded-full px-2.5 py-1 text-[11px] font-extrabold ring-1",
+                      STATUS_STYLE[order.status],
+                    )}
+                  >
+                    {STATUS_LABEL[order.status]}
+                  </span>
+                  <select
+                    value={pendingStatus ?? order.status}
+                    onChange={(e) => changeStatus(e.target.value as OrderStatus)}
+                    className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold"
+                  >
+                    {ORDER_STATUSES.map((s) => (
+                      <option key={s} value={s}>
+                        {STATUS_LABEL[s]}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              )}
+              <button
+                onClick={onClose}
+                className="grid size-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            {pendingStatus && (
+              <div
+                className={cn(
+                  "w-full max-w-sm rounded-xl border p-2.5 shadow-sm animate-in fade-in slide-in-from-top-1",
+                  pendingStatus === "hold"
+                    ? "border-amber-300 bg-gradient-to-br from-amber-50 to-yellow-50"
+                    : "border-rose-300 bg-gradient-to-br from-rose-50 to-red-50",
+                )}
+              >
+                <label
                   className={cn(
-                    "rounded-full px-2.5 py-1 text-[11px] font-extrabold ring-1",
-                    STATUS_STYLE[order.status],
+                    "mb-1 block text-[11px] font-extrabold uppercase tracking-wide",
+                    pendingStatus === "hold" ? "text-amber-700" : "text-rose-700",
                   )}
                 >
-                  {STATUS_LABEL[order.status]}
-                </span>
-                <select
-                  value={order.status}
-                  onChange={(e) => changeStatus(e.target.value as OrderStatus)}
-                  className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold"
-                >
-                  {ORDER_STATUSES.map((s) => (
-                    <option key={s} value={s}>
-                      {STATUS_LABEL[s]}
-                    </option>
-                  ))}
-                </select>
-              </>
+                  {pendingStatus === "hold" ? "Reason for Hold" : "Reason for Cancel"}
+                </label>
+                <textarea
+                  autoFocus
+                  value={reasonDraft}
+                  onChange={(e) => setReasonDraft(e.target.value)}
+                  rows={2}
+                  maxLength={500}
+                  placeholder={
+                    pendingStatus === "hold"
+                      ? "e.g. Customer asked to pause, awaiting stock…"
+                      : "e.g. Customer requested cancellation, duplicate…"
+                  }
+                  className={cn(
+                    "w-full resize-none rounded-lg border bg-white px-2.5 py-1.5 text-xs font-medium text-slate-800 outline-none focus:ring-2",
+                    pendingStatus === "hold"
+                      ? "border-amber-200 focus:ring-amber-400"
+                      : "border-rose-200 focus:ring-rose-400",
+                  )}
+                />
+                <div className="mt-1.5 flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-semibold text-slate-500">
+                    {reasonDraft.trim().length}/500
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => {
+                        setPendingStatus(null);
+                        setReasonDraft("");
+                      }}
+                      className="rounded-lg px-2.5 py-1 text-[11px] font-bold text-slate-600 hover:bg-white/60"
+                    >
+                      Back
+                    </button>
+                    <button
+                      onClick={confirmPendingStatus}
+                      disabled={reasonDraft.trim().length < 3}
+                      className={cn(
+                        "rounded-lg px-3 py-1 text-[11px] font-extrabold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-50",
+                        pendingStatus === "hold"
+                          ? "bg-amber-600 hover:bg-amber-700"
+                          : "bg-rose-600 hover:bg-rose-700",
+                      )}
+                    >
+                      {pendingStatus === "hold" ? "Confirm Hold" : "Confirm Cancel"}
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
-            <button
-              onClick={onClose}
-              className="grid size-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100"
-            >
-              <X className="size-4" />
-            </button>
           </div>
+
         </div>
 
         {isLoading || !order || !customer ? (
