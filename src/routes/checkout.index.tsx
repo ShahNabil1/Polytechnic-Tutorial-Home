@@ -147,6 +147,41 @@ function CheckoutPage() {
 
   const createOrderFn = useServerFn(createOrder);
 
+  // ---- Source attribution (utm / referrer) ----
+  // Detect once on mount; sessionStorage persists it across the checkout flow.
+  const sourceRef = useRef<{ source: "website" | "direct" | "manual" | "fb_utm" | "google" | "other"; detail: string }>({ source: "website", detail: "" });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const cached = sessionStorage.getItem("pt_order_source");
+      if (cached) { sourceRef.current = JSON.parse(cached); return; }
+      const params = new URLSearchParams(window.location.search);
+      const utmSource = (params.get("utm_source") || "").toLowerCase();
+      const utmMedium = params.get("utm_medium") || "";
+      const utmCampaign = params.get("utm_campaign") || "";
+      const ref = document.referrer || "";
+      let source: typeof sourceRef.current.source = "website";
+      let detail = "";
+      if (utmSource) {
+        if (/facebook|fb|meta|instagram|ig/.test(utmSource)) source = "fb_utm";
+        else if (/google|adwords|gads|youtube/.test(utmSource)) source = "google";
+        else source = "other";
+        detail = [utmSource, utmMedium, utmCampaign].filter(Boolean).join(" · ");
+      } else if (ref) {
+        try {
+          const host = new URL(ref).hostname.replace(/^www\./, "");
+          if (/facebook|instagram|fb\.com|meta\./.test(host)) { source = "fb_utm"; detail = host; }
+          else if (/google\./.test(host)) { source = "google"; detail = host; }
+          else if (!host.includes(window.location.hostname)) { source = "other"; detail = host; }
+        } catch {}
+      } else {
+        source = "direct";
+      }
+      sourceRef.current = { source, detail };
+      sessionStorage.setItem("pt_order_source", JSON.stringify(sourceRef.current));
+    } catch {}
+  }, []);
+
   // ---- Incomplete checkout capture ----
   // Fire once the phone becomes a valid 11-digit BD number, and on subsequent form changes.
   const phoneValid = /^01[3-9]\d{8}$/.test(form.phone);
