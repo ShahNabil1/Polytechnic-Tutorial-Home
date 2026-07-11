@@ -105,7 +105,91 @@ export function AdminOrdersManager() {
       </div>
 
       {isIncomplete ? (
-        <AdminIncompleteCheckouts search={search} />
+        <div className="space-y-4">
+          <div className="overflow-hidden rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/60 via-white to-sky-50/60 shadow-sm">
+            <div className="border-b border-indigo-100/70 bg-indigo-50/60 px-4 py-2 text-[11px] font-extrabold uppercase tracking-wider text-indigo-700">
+              {orders.length} promoted incomplete order{orders.length === 1 ? "" : "s"}
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gradient-to-r from-indigo-100/70 to-sky-100/70 text-left text-[11px] font-bold uppercase tracking-wider text-indigo-900/70">
+                  <tr>
+                    <th className="px-4 py-3">Order</th>
+                    <th className="px-4 py-3">Created (Asia/Dhaka)</th>
+                    <th className="px-4 py-3">Customer</th>
+                    <th className="px-4 py-3 text-right">Total</th>
+                    <th className="px-4 py-3"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-indigo-100/70">
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-6 text-center">
+                        <Loader2 className="mx-auto size-5 animate-spin text-indigo-400" />
+                      </td>
+                    </tr>
+                  ) : orders.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-6 text-center text-sm font-semibold text-slate-500">
+                        No promoted incomplete orders yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    orders.map((o: any) => (
+                      <tr key={o.id} className="transition-colors hover:bg-indigo-50/60">
+                        <td className="px-4 py-3.5 align-top">
+                          <p className="font-mono text-sm font-extrabold text-slate-900">{o.order_no}</p>
+                          <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-indigo-500">
+                            {o.order_type} · {o.payment_status}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3.5 align-top text-xs font-semibold text-slate-700">
+                          {formatDhakaDateTime(o.created_at)}
+                        </td>
+                        <td className="px-4 py-3.5 align-top">
+                          <p className="font-semibold text-slate-900">{o.customer_name}</p>
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                            {waLinkBD(o.customer_phone) && (
+                              <a
+                                href={waLinkBD(o.customer_phone)!}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Open WhatsApp chat"
+                                className="inline-flex items-center justify-center rounded-md bg-emerald-50 p-1 ring-1 ring-emerald-200 hover:bg-emerald-100"
+                              >
+                                <WhatsAppIcon className="size-3.5" />
+                              </a>
+                            )}
+                            <a
+                              href={`tel:${o.customer_phone}`}
+                              className="inline-flex items-center gap-1 rounded-md bg-brand/10 px-1.5 py-0.5 font-mono text-xs font-bold text-brand hover:bg-brand/15"
+                            >
+                              <Phone className="size-3" />
+                              {o.customer_phone}
+                            </a>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5 align-top text-right font-mono text-sm font-extrabold text-slate-900">
+                          {formatBDTEn(Number(o.total_bdt))}
+                        </td>
+                        <td className="px-4 py-3.5 align-top text-right">
+                          <button
+                            onClick={() => setOpenId(o.id)}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-sky-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:from-indigo-700 hover:to-sky-700"
+                          >
+                            <Eye className="size-3.5" /> View
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <AdminIncompleteCheckouts search={search} />
+        </div>
+      ) : (
       ) : (
         <div className="overflow-hidden rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/60 via-white to-sky-50/60 shadow-sm">
           <div className="overflow-x-auto">
