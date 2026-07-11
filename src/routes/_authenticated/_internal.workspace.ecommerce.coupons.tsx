@@ -1,15 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PlaceholderPage } from "@/components/internal/PlaceholderPage";
-import { Ticket } from "lucide-react";
+import { AdminCouponsManager } from "@/components/internal/AdminCouponsManager";
 
 export const Route = createFileRoute("/_authenticated/_internal/workspace/ecommerce/coupons")({
-  head: () => ({ meta: [{ title: "Coupons — Workspace" }, { name: "robots", content: "noindex" }] }),
-  component: () => (
-    <PlaceholderPage
-      section="E-Commerce"
-      title="Coupons"
-      description="Create promotional codes and discounts to drive sales."
-      icon={Ticket}
-    />
-  ),
+  head: () => ({
+    meta: [{ title: "Coupons — Workspace" }, { name: "robots", content: "noindex" }],
+  }),
+  component: AdminCouponsManager,
 });
