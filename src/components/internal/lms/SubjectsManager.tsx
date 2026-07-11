@@ -1,21 +1,33 @@
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useNavigate } from "@tanstack/react-router";
-import { Loader2, Plus, Search, Pencil, Trash2, BookOpen, PlayCircle } from "lucide-react";
+import { Loader2, Plus, Search, Pencil, Trash2, BookOpen, PlayCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   listSubjects,
   deleteSubject,
   listAcademicTaxonomy,
 } from "@/lib/lms.functions";
-import type { AcademicCategory, LmsSubject } from "@/lib/lms";
+import type { AcademicCategory, LmsSubject, SubjectPlacement } from "@/lib/lms";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { confirm } from "@/components/ui/confirm-dialog";
 import { SubjectFormDialog } from "@/components/internal/lms/SubjectFormDialog";
 
-export function SubjectsManager() {
+type Props = {
+  deptFilter?: string;
+  semFilter?: string;
+};
+
+export function SubjectsManager({ deptFilter = "", semFilter = "" }: Props) {
   const listFn = useServerFn(listSubjects);
   const listTax = useServerFn(listAcademicTaxonomy);
   const deleteFn = useServerFn(deleteSubject);
@@ -49,8 +61,33 @@ export function SubjectsManager() {
   }, []);
 
   const taxonomyById = useMemo(() => new Map(taxonomy.map((t) => [t.id, t])), [taxonomy]);
+  const departments = useMemo(
+    () => taxonomy.filter((t) => t.kind === "department").sort((a, b) => a.sort_order - b.sort_order),
+    [taxonomy],
+  );
+  const semesters = useMemo(
+    () => taxonomy.filter((t) => t.kind === "semester").sort((a, b) => a.sort_order - b.sort_order),
+    [taxonomy],
+  );
+
+  function setFilter(next: { dept?: string; sem?: string }) {
+    navigate({
+      to: "/workspace/lms-and-courses/subjects",
+      search: (prev: any) => ({
+        dept: next.dept !== undefined ? next.dept : prev?.dept ?? "",
+        sem: next.sem !== undefined ? next.sem : prev?.sem ?? "",
+      }),
+    });
+  }
 
   const filtered = subjects.filter((s) => {
+    if (deptFilter && !s.placements.some((p) => p.department_id === deptFilter)) return false;
+    if (semFilter && !s.placements.some((p) => p.semester_id === semFilter)) return false;
+    if (deptFilter && semFilter) {
+      if (!s.placements.some((p) => p.department_id === deptFilter && p.semester_id === semFilter)) {
+        return false;
+      }
+    }
     if (!q.trim()) return true;
     const query = q.toLowerCase();
     return (
@@ -59,6 +96,10 @@ export function SubjectsManager() {
       (s.description ?? "").toLowerCase().includes(query)
     );
   });
+
+  const initialPlacementsForCreate: SubjectPlacement[] =
+    deptFilter && semFilter ? [{ department_id: deptFilter, semester_id: semFilter }] : [];
+
 
   async function handleDelete(subject: LmsSubject) {
     if (
