@@ -81,7 +81,11 @@ function CheckoutPage() {
     () => calcShipping(items, form.district),
     [items, form.district],
   );
-  const total = subtotal + shipping;
+  const discount = useMemo(() => {
+    if (!appliedCoupon) return 0;
+    return Math.min(appliedCoupon.discount, subtotal);
+  }, [appliedCoupon, subtotal]);
+  const total = Math.max(0, subtotal + shipping - discount);
 
   if (items.length === 0) {
     return (
