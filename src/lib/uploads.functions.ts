@@ -33,8 +33,27 @@ export const createUploadUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: unknown) => InputSchema.parse(input))
   .handler(async ({ data, context }) => {
-    if (!ALLOWED_MIME.has(data.contentType)) {
-      throw new Error("Unsupported file type");
+    if (data.folder === "ebooks") {
+      if (!EBOOK_MIME.has(data.contentType)) {
+        throw new Error("Unsupported ebook file type (allowed: PDF, EPUB, ZIP)");
+      }
+      if (data.size > MAX_EBOOK_SIZE) {
+        throw new Error("Ebook file exceeds 300 MB limit");
+      }
+      const { data: isAdmin, error: roleErr } = await context.supabase.rpc("has_role", {
+        _user_id: context.userId,
+        _role: "super_admin",
+      });
+      if (roleErr || !isAdmin) {
+        throw new Error("Forbidden: ebook uploads require super_admin");
+      }
+    } else {
+      if (!ALLOWED_MIME.has(data.contentType)) {
+        throw new Error("Unsupported file type");
+      }
+      if (data.size > MAX_DEFAULT_SIZE) {
+        throw new Error("File exceeds 15 MB limit");
+      }
     }
     const { createPresignedPutUrl } = await import("@/lib/r2.server");
 
