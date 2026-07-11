@@ -375,7 +375,35 @@ function ProductEditor({
   const [saving, setSaving] = useState(false);
   const [cropFile, setCropFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [ebookUploading, setEbookUploading] = useState(false);
+  const [ebookProgress, setEbookProgress] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  async function onPickEbook(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    const maxBytes = 300 * 1024 * 1024;
+    if (f.size > maxBytes) {
+      toast.error("File exceeds 300 MB limit");
+      return;
+    }
+    setEbookUploading(true);
+    setEbookProgress(0);
+    try {
+      const { url } = await uploadFileToR2(f, {
+        folder: "ebooks",
+        compress: false,
+        onProgress: (p) => setEbookProgress(p),
+      });
+      setDraft({ ...draft, ebook_file_url: url });
+      toast.success("Ebook uploaded");
+    } catch (err) {
+      toast.error("Upload failed: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setEbookUploading(false);
+    }
+  }
 
   const productTypes = useMemo(
     () => categories.filter((c) => c.kind === "product_type" && c.is_active),
@@ -700,17 +728,42 @@ function ProductEditor({
               </label>
             </div>
             {draft.is_online_book && (
-              <Field label="Ebook Download URL" full>
-                <input
-                  type="url"
-                  value={draft.ebook_file_url}
-                  onChange={(e) => setDraft({ ...draft, ebook_file_url: e.target.value })}
-                  placeholder="https://cdn.example.com/books/xxxx.pdf"
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
-                />
-                <p className="mt-1 text-[11px] font-medium text-slate-500">
-                  This URL is emailed to the customer after checkout. Leave empty to hold delivery for manual review.
-                </p>
+              <Field label="Ebook File" full>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+                      <Upload className="size-4" />
+                      {ebookUploading ? `Uploading… ${ebookProgress}%` : "Upload PDF / EPUB / ZIP"}
+                      <input
+                        type="file"
+                        accept="application/pdf,application/epub+zip,application/zip,.pdf,.epub,.zip"
+                        className="hidden"
+                        disabled={ebookUploading}
+                        onChange={onPickEbook}
+                      />
+                    </label>
+                    {draft.ebook_file_url && !ebookUploading && (
+                      <a
+                        href={draft.ebook_file_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs font-semibold text-blue-600 hover:underline"
+                      >
+                        Open current file
+                      </a>
+                    )}
+                  </div>
+                  <input
+                    type="url"
+                    value={draft.ebook_file_url}
+                    onChange={(e) => setDraft({ ...draft, ebook_file_url: e.target.value })}
+                    placeholder="https://cdn.example.com/books/xxxx.pdf"
+                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-xs text-slate-700"
+                  />
+                  <p className="text-[11px] font-medium text-slate-500">
+                    Upload the file to R2 (max 300 MB) or paste an existing URL. This link is emailed to the customer after checkout. Leave empty to hold delivery for manual review.
+                  </p>
+                </div>
               </Field>
             )}
           </div>
