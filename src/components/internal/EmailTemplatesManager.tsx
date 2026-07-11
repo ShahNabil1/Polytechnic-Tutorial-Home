@@ -23,6 +23,7 @@ import {
 } from "@/lib/email-templates.functions";
 import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 import { Switch } from "@/components/ui/switch";
+import { TEMPLATE_CATEGORIES, categoryMeta } from "@/lib/template-categories";
 import { cn } from "@/lib/utils";
 
 const SAMPLE_VARS: Record<string, string> = {
