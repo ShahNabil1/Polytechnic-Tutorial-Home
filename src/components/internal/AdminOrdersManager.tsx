@@ -24,7 +24,6 @@ export function AdminOrdersManager() {
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["admin-orders", tab, search],
     queryFn: () => fetchOrders({ data: { status: tab, search: search || undefined, limit: 200 } }),
-    enabled: !isIncomplete,
   });
 
   // Counts fetched independently so badges stay accurate on every tab, including Incomplete.
