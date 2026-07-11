@@ -56,9 +56,9 @@ function WorkspaceLayout() {
       label: "LMS & Courses",
       icon: BookOpen,
       items: [
-        { to: "/workspace/lms-and-courses/courses", label: "Courses", icon: GraduationCap },
         { to: "/workspace/lms-and-courses/structure", label: "Academic Structure", icon: GraduationCap },
         { to: "/workspace/lms-and-courses/subjects", label: "Subjects", icon: BookOpen },
+        { to: "/workspace/lms-and-courses/courses", label: "Courses", icon: GraduationCap },
       ],
     },
     {
