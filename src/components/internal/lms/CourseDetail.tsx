@@ -1,15 +1,26 @@
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
-import { Loader2, ArrowLeft, Pencil, GraduationCap } from "lucide-react";
+import { Loader2, ArrowLeft, Pencil, GraduationCap, BookOpen, PlayCircle, ChevronDown, ChevronRight, Layers } from "lucide-react";
 import { toast } from "sonner";
-import { getCourseByPair, listAcademicTaxonomy } from "@/lib/lms.functions";
+import { getCourseByPair, listAcademicTaxonomy, listCourseCurriculum } from "@/lib/lms.functions";
 import type { AcademicCategory, LmsCourse } from "@/lib/lms";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SubjectsManager } from "@/components/internal/lms/SubjectsManager";
 import { CourseFormDialog } from "@/components/internal/lms/CourseFormDialog";
 import { EnrollmentsPanel } from "@/components/internal/lms/EnrollmentsPanel";
+
+type CurriculumSubject = {
+  id: string;
+  name: string;
+  code: string | null;
+  slug: string;
+  module_count: number;
+  lesson_count: number;
+  video_count: number;
+  modules: Array<{ id: string; title: string; lesson_count: number; video_count: number }>;
+};
 
 type Props = { deptSlug: string; semSlug: string };
 
