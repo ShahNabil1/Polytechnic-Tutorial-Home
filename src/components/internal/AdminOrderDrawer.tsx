@@ -705,6 +705,49 @@ function ReadField({
   );
 }
 
+function PhoneField({ label, phone }: { label: string; phone?: string | null }) {
+  const value = (phone ?? "").trim();
+  const wa = waLinkBD(value);
+  if (!value) {
+    return (
+      <div className="block">
+        <p className="mb-0.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+          {label}
+        </p>
+        <span className="text-sm font-semibold text-slate-400">—</span>
+      </div>
+    );
+  }
+  return (
+    <div className="block">
+      <p className="mb-0.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+        {label}
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <a
+          href={`tel:${value}`}
+          className="inline-flex items-center gap-1.5 rounded-md bg-brand/10 px-2 py-1 text-sm font-semibold text-brand hover:bg-brand/15"
+        >
+          <Phone className="size-3.5" />
+          <span className="font-mono">{value}</span>
+        </a>
+        {wa && (
+          <a
+            href={wa}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Open WhatsApp chat"
+            className="inline-flex items-center justify-center rounded-md bg-emerald-50 p-1.5 ring-1 ring-emerald-200 transition-colors hover:bg-emerald-100"
+          >
+            <WhatsAppIcon className="size-4" />
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
 
 
 function Section({
