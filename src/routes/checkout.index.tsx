@@ -527,6 +527,20 @@ function CheckoutPage() {
                     </span>
                   </div>
                 )}
+                {discount > 0 && (
+                  <div className="flex justify-between text-emerald-700">
+                    <span className="font-semibold">কুপন ছাড় {appliedCoupon?.code ? `(${appliedCoupon.code})` : ""}</span>
+                    <span className="font-bold tabular-nums">−{formatBDT(discount)}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-3">
+                <CouponBlock
+                  subtotal={subtotal}
+                  productIds={items.map((i) => i.productId)}
+                  phone={form.phone}
+                />
               </div>
 
               <div className="mt-3 flex justify-between border-t border-dashed border-border pt-3">
