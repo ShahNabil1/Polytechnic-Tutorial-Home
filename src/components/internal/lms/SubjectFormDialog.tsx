@@ -30,6 +30,7 @@ type Props = {
   open: boolean;
   subject: LmsSubject | null;
   taxonomy: AcademicCategory[];
+  initialPlacements?: SubjectPlacement[];
   onClose: () => void;
   onSaved: () => void;
 };
@@ -44,7 +45,7 @@ function slugify(input: string) {
     .slice(0, 80);
 }
 
-export function SubjectFormDialog({ open, subject, taxonomy, onClose, onSaved }: Props) {
+export function SubjectFormDialog({ open, subject, taxonomy, initialPlacements, onClose, onSaved }: Props) {
   const upsertFn = useServerFn(upsertSubject);
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
@@ -67,12 +68,12 @@ export function SubjectFormDialog({ open, subject, taxonomy, onClose, onSaved }:
       setDescription(subject?.description ?? "");
       setCoverUrl(subject?.cover_image_url ?? "");
       setIsActive(subject?.is_active ?? true);
-      setPlacements(subject?.placements ?? []);
+      setPlacements(subject?.placements ?? initialPlacements ?? []);
       setNewDept("");
       setNewSem("");
       setSlugManuallyEdited(!!subject);
     }
-  }, [open, subject]);
+  }, [open, subject, initialPlacements]);
 
   useEffect(() => {
     if (!slugManuallyEdited) setSlug(slugify(name));
