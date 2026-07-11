@@ -180,10 +180,10 @@ function CoursesPage() {
                 pageSize={currentSize}
                 total={total}
                 onPageChange={(p) =>
-                  navigate({ search: (prev) => ({ ...prev, page: p }) })
+                  navigate({ search: (prev: Record<string, unknown>) => ({ ...prev, page: p }) })
                 }
                 onPageSizeChange={(n) =>
-                  navigate({ search: (prev) => ({ ...prev, pageSize: n, page: 1 }) })
+                  navigate({ search: (prev: Record<string, unknown>) => ({ ...prev, pageSize: n, page: 1 }) })
                 }
               />
             </div>
