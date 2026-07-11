@@ -815,6 +815,9 @@ export const getCourseContentForUser = createServerFn({ method: "GET" })
       }
     }
 
+    const courseMedia = Array.isArray((courseRow as any).media_items)
+      ? ((courseRow as any).media_items as any[])
+      : [];
     return {
       course: {
         id: (courseRow as any).id,
@@ -824,6 +827,9 @@ export const getCourseContentForUser = createServerFn({ method: "GET" })
         slug: (courseRow as any).slug,
         description: (courseRow as any).description,
         cover_image_url: (courseRow as any).cover_image_url,
+        meta_title: (courseRow as any).meta_title ?? null,
+        meta_description: (courseRow as any).meta_description ?? null,
+        media_items: courseMedia,
         price_bdt: Number((courseRow as any).price_bdt ?? 0),
         compare_at_price_bdt:
           (courseRow as any).compare_at_price_bdt == null
