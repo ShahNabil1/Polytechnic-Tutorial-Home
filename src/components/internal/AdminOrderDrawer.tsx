@@ -455,7 +455,13 @@ export function AdminOrderDrawer({
                     onChange={(e) => changeStatus(e.target.value as OrderStatus)}
                     className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold"
                   >
-                    {ORDER_STATUSES.map((s) => (
+                    {ORDER_STATUSES.filter((s) => {
+                      // Ebook / online-book only orders never need courier states.
+                      if (isEbookOnly && (s === "ready_to_ship" || s === "shipped" || s === "returned")) {
+                        return false;
+                      }
+                      return true;
+                    }).map((s) => (
                       <option key={s} value={s}>
                         {STATUS_LABEL[s]}
                       </option>
