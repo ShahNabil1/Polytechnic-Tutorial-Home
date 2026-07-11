@@ -1383,6 +1383,7 @@ export const getPublicCourseByPair = createServerFn({ method: "GET" })
         semester_slug: sem.slug,
         subject_count: subjects.length,
         lesson_count: lessonCount,
+        is_featured: !!c.is_featured,
         meta_title: c.meta_title ?? null,
         meta_description: c.meta_description ?? null,
       },
