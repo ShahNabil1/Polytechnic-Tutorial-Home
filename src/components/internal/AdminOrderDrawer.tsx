@@ -452,7 +452,7 @@ export function AdminOrderDrawer({
                 </>
               )}
               <button
-                onClick={onClose}
+                onClick={requestClose}
                 className="grid size-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100"
               >
                 <X className="size-4" />
