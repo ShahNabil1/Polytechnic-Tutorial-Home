@@ -23,6 +23,8 @@ import {
   stashSnapshotForReturn,
   clearStashedSnapshot,
 } from "@/lib/incomplete-checkout-client";
+import { useCoupon } from "@/lib/coupon-store";
+import { CouponBlock } from "@/components/checkout/CouponBlock";
 
 
 export const Route = createFileRoute("/checkout/")({
