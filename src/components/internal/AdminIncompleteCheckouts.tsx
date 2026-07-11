@@ -269,5 +269,13 @@ export function AdminIncompleteCheckouts({ search }: { search: string }) {
         </ul>
       )}
     </div>
+      {openOrderId && (
+        <AdminOrderDrawer
+          orderId={openOrderId}
+          onClose={() => setOpenOrderId(null)}
+          onChanged={() => refetch()}
+        />
+      )}
+    </>
   );
 }
