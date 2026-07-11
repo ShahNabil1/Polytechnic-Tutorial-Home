@@ -317,7 +317,9 @@ export function AdminOrderDrawer({
     setItemDraft((draft) => (draft ?? items).filter((_, i) => i !== idx));
   }
 
-  const isEbookOnly = order?.order_type === "ebook";
+  const activeItems = itemDraft ?? items;
+  const hasPhysical = activeItems.some((i: any) => (i.item_type ?? i.type) !== "ebook");
+  const isEbookOnly = !hasPhysical && order?.order_type === "ebook";
 
   return (
     <div className="fixed inset-0 z-[60] flex justify-end bg-black/40" onClick={onClose}>
@@ -476,36 +478,40 @@ export function AdminOrderDrawer({
               )}
             </Section>
 
-            {/* Delivery Note (separate save) */}
-            <Section
-              title="Delivery Note (for Steadfast)"
-              icon={Truck}
-              action={
-                <button
-                  onClick={saveDeliveryNote}
-                  className="btn-sm-primary disabled:opacity-60"
-                  disabled={savingNote || deliveryNote === (customer.note ?? "")}
-                >
-                  {savingNote ? (
-                    <Loader2 className="size-3.5 animate-spin" />
-                  ) : (
-                    <Save className="size-3.5" />
-                  )}
-                  {savingNote ? "Saving…" : "Save Note"}
-                </button>
-              }
-            >
-              <textarea
-                value={deliveryNote}
-                onChange={(e) => setDeliveryNote(e.target.value.slice(0, 500))}
-                placeholder="Optional — e.g. Deliver by 3 PM, call before arrival, leave with security… (sent to Steadfast when provided)"
-                rows={6}
-                className="min-h-[180px] w-full resize-y rounded-lg border border-slate-200 bg-white p-3 text-sm outline-none focus:border-slate-400"
-              />
-              <p className="mt-1 text-[11px] text-slate-500">
-                {deliveryNote.length}/500 characters · optional, forwarded to Steadfast when set
-              </p>
-            </Section>
+            {/* Delivery Note — only shown when the order has a physical item */}
+            {!isEbookOnly && (
+              <Section
+                title="Delivery Note (for Steadfast)"
+                icon={Truck}
+                action={
+                  <button
+                    onClick={saveDeliveryNote}
+                    className="btn-sm-primary disabled:opacity-60"
+                    disabled={savingNote || deliveryNote === (customer.note ?? "")}
+                  >
+                    {savingNote ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Save className="size-3.5" />
+                    )}
+                    {savingNote ? "Saving…" : "Save Note"}
+                  </button>
+                }
+              >
+                <textarea
+                  value={deliveryNote}
+                  onChange={(e) => setDeliveryNote(e.target.value.slice(0, 500))}
+                  placeholder="Optional — e.g. Deliver by 3 PM, call before arrival, leave with security… (sent to Steadfast when provided)"
+                  rows={6}
+                  className="min-h-[180px] w-full resize-y rounded-lg border border-slate-200 bg-white p-3 text-sm outline-none focus:border-slate-400"
+                />
+                <p className="mt-1 text-[11px] text-slate-500">
+                  {deliveryNote.length}/500 characters · optional, forwarded to Steadfast when set
+                </p>
+              </Section>
+            )}
+
+
 
             {/* Items */}
             <Section title="Items" icon={PackageIcon} action={
