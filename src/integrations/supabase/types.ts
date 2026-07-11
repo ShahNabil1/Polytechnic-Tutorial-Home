@@ -380,6 +380,7 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean
+          is_featured: boolean
           media_items: Json
           meta_description: string | null
           meta_title: string | null
@@ -399,6 +400,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          is_featured?: boolean
           media_items?: Json
           meta_description?: string | null
           meta_title?: string | null
@@ -418,6 +420,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          is_featured?: boolean
           media_items?: Json
           meta_description?: string | null
           meta_title?: string | null
