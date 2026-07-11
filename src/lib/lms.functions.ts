@@ -424,6 +424,7 @@ export const deleteLesson = createServerFn({ method: "POST" })
 // ==================== Courses (Department × Semester) ====================
 
 function toCourseRow(row: any, subjectCount = 0): LmsCourse {
+  const media = Array.isArray(row.media_items) ? (row.media_items as any[]) : [];
   return {
     id: row.id,
     department_id: row.department_id,
@@ -432,6 +433,14 @@ function toCourseRow(row: any, subjectCount = 0): LmsCourse {
     slug: row.slug,
     description: row.description ?? null,
     cover_image_url: row.cover_image_url ?? null,
+    meta_title: row.meta_title ?? null,
+    meta_description: row.meta_description ?? null,
+    media_items: media.map((m: any) => ({
+      id: String(m.id ?? crypto.randomUUID?.() ?? Math.random().toString(36).slice(2)),
+      type: m.type === "video" ? "video" : "image",
+      url: String(m.url ?? ""),
+      alt: m.alt ?? null,
+    })),
     price_bdt: Number(row.price_bdt ?? 0),
     compare_at_price_bdt: row.compare_at_price_bdt != null ? Number(row.compare_at_price_bdt) : null,
     is_active: row.is_active,
