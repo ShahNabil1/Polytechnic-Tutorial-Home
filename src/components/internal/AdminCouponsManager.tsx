@@ -127,7 +127,7 @@ export function AdminCouponsManager() {
     const ok = await confirmDialog({
       title: `Delete coupon ${row.code}?`,
       description: "Coupon will be hidden but can be restored later.",
-      confirmText: "Delete",
+      confirmLabel: "Delete",
       variant: "danger",
     });
     if (!ok) return;
