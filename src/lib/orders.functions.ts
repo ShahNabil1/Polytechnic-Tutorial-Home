@@ -216,16 +216,19 @@ export const listAdminOrders = createServerFn({ method: "GET" })
         status: z.enum(ORDER_STATUSES as [string, ...string[]]).optional(),
         search: z.string().max(120).optional(),
         limit: z.number().int().min(1).max(200).optional(),
+        offset: z.number().int().min(0).max(100000).optional(),
       })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
     await ensureStaff(context);
+    const limit = data.limit ?? 20;
+    const offset = data.offset ?? 0;
     let q = context.supabase
       .from("orders")
-      .select("*")
+      .select("*", { count: "exact" })
       .order("created_at", { ascending: false })
-      .limit(data.limit ?? 100);
+      .range(offset, offset + limit - 1);
     if (data.status) q = q.eq("status", data.status);
     if (data.search) {
       const s = data.search.trim();
@@ -233,7 +236,7 @@ export const listAdminOrders = createServerFn({ method: "GET" })
         `order_no.ilike.%${s}%,customer_name.ilike.%${s}%,customer_phone.ilike.%${s}%`,
       );
     }
-    const { data: rows, error } = await q;
+    const { data: rows, error, count: total } = await q;
     if (error) throw new Error(error.message);
 
     // counts per status (merge incomplete_checkouts into the "incomplete" bucket)
@@ -246,8 +249,9 @@ export const listAdminOrders = createServerFn({ method: "GET" })
     counts.incomplete = (counts.incomplete ?? 0) + (incompleteCheckouts ?? 0);
 
     const orders = (rows ?? []).map((r: any) => ({ ...r, ip: r.ip == null ? null : String(r.ip) }));
-    return { orders, counts };
+    return { orders, counts, total: total ?? orders.length };
   });
+
 
 // -------- ADMIN: counts only (used to keep tab badges live) --------
 export const getAdminOrderCounts = createServerFn({ method: "GET" })
