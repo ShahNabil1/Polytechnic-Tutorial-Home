@@ -98,11 +98,17 @@ export function EmailTemplatesManager() {
       setName(selected.name);
       setSubject(selected.subject);
       setBodyHtml(selected.body_html);
+      setCategory(selected.category ?? "other");
       setIsNew(false);
       setIsEditing(false);
       setTab("preview");
     }
   }, [selected?.id]);
+
+  const filteredTemplates = useMemo(
+    () => (filter === "all" ? templates : templates.filter((t: any) => (t.category ?? "other") === filter)),
+    [templates, filter],
+  );
 
   const variables = useMemo<string[]>(() => {
     if (selected?.key && SYSTEM_VARS[selected.key]) return SYSTEM_VARS[selected.key];
