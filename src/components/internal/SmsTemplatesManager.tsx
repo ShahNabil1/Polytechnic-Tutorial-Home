@@ -11,6 +11,7 @@ import {
 } from "@/lib/sms.functions";
 import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 import { Switch } from "@/components/ui/switch";
+import { TEMPLATE_CATEGORIES, categoryMeta } from "@/lib/template-categories";
 import { cn } from "@/lib/utils";
 
 const SYSTEM_VARS: Record<string, string[]> = {
