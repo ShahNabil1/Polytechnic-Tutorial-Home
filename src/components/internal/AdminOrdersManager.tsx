@@ -12,6 +12,37 @@ import { AdminIncompleteCheckouts } from "@/components/internal/AdminIncompleteC
 import { Pagination } from "@/components/internal/Pagination";
 import { supabase } from "@/integrations/supabase/client";
 
+function FulfillmentChips({ o }: { o: any }) {
+  const digital = (o.digital_status ?? "not_applicable") as DigitalStatus;
+  const physical = (o.physical_status ?? "not_applicable") as PhysicalStatus;
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-1">
+      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-600">
+        {o.order_type}
+      </span>
+      {digital !== "not_applicable" && (
+        <span
+          className={cn(
+            "rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ring-1",
+            DIGITAL_STATUS_STYLE[digital],
+          )}
+          title="Digital delivery"
+        >
+          📩 {DIGITAL_STATUS_LABEL[digital]}
+        </span>
+      )}
+      {physical !== "not_applicable" && (
+        <span
+          className="rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-700 ring-1 ring-indigo-200"
+          title="Physical shipment"
+        >
+          📦 {PHYSICAL_STATUS_LABEL[physical]}
+        </span>
+      )}
+    </div>
+  );
+}
+
 export function AdminOrdersManager() {
   const [tab, setTab] = useState<OrderStatus>("processing");
   const [search, setSearch] = useState("");
