@@ -129,6 +129,18 @@ export function CoursesManager() {
     }
   }
 
+  async function handleToggleFeatured(c: LmsCourse, next: boolean) {
+    // optimistic
+    setCourses((prev) => prev.map((x) => (x.id === c.id ? { ...x, is_featured: next } : x)));
+    try {
+      await featuredFn({ data: { id: c.id, is_featured: next } } as never);
+      toast.success(next ? "Marked as featured" : "Removed from featured");
+    } catch (e: any) {
+      setCourses((prev) => prev.map((x) => (x.id === c.id ? { ...x, is_featured: !next } : x)));
+      toast.error(e?.message ?? "Failed to update");
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
