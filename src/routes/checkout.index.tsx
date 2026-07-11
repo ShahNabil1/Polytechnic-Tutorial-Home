@@ -330,6 +330,7 @@ function CheckoutPage() {
       resetIncompleteCapture();
       clearStashedSnapshot();
       clear();
+      clearCoupon();
 
       navigate({
         to: "/checkout/success",
