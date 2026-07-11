@@ -134,14 +134,47 @@ export function SubjectsManager({ deptFilter = "", semFilter = "" }: Props) {
         </Button>
       </div>
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-        <Input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search subjects..."
-          className="pl-9"
-        />
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="relative flex-1 min-w-[220px] max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search subjects..."
+            className="pl-9"
+          />
+        </div>
+        <div className="w-full sm:w-48">
+          <Select value={deptFilter || "__all"} onValueChange={(v) => setFilter({ dept: v === "__all" ? "" : v })}>
+            <SelectTrigger>
+              <SelectValue placeholder="All departments" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all">All departments</SelectItem>
+              {departments.map((d) => (
+                <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="w-full sm:w-48">
+          <Select value={semFilter || "__all"} onValueChange={(v) => setFilter({ sem: v === "__all" ? "" : v })}>
+            <SelectTrigger>
+              <SelectValue placeholder="All semesters" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all">All semesters</SelectItem>
+              {semesters.map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {(deptFilter || semFilter) && (
+          <Button variant="ghost" size="sm" onClick={() => setFilter({ dept: "", sem: "" })}>
+            <X className="w-4 h-4 mr-1" /> Clear
+          </Button>
+        )}
       </div>
 
       {loading ? (
