@@ -293,6 +293,17 @@ export function AdminOrdersManager() {
         </div>
       )}
 
+      {!isIncomplete && (
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
+      )}
+
+
       {openId && (
         <AdminOrderDrawer
           orderId={openId}
