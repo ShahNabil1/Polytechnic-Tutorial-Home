@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Phone, Eye, Search } from "lucide-react";
 import { listAdminOrders, getAdminOrderCounts } from "@/lib/orders.functions";
-import { ORDER_STATUSES, STATUS_LABEL, formatDhakaDateTime, type OrderStatus } from "@/lib/orders";
+import { ORDER_STATUSES, STATUS_LABEL, DIGITAL_STATUS_LABEL, DIGITAL_STATUS_STYLE, PHYSICAL_STATUS_LABEL, formatDhakaDateTime, type OrderStatus, type DigitalStatus, type PhysicalStatus } from "@/lib/orders";
 import { formatBDTEn, waLinkBD } from "@/lib/format";
 import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
 import { cn } from "@/lib/utils";
