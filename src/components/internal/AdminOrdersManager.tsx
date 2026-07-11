@@ -106,6 +106,12 @@ export function AdminOrdersManager() {
         queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
         queryClient.invalidateQueries({ queryKey: ["admin-order"] });
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "steadfast_status_events" }, () => {
+        // Steadfast webhook → refresh order list + drawer + all per-order chip queries.
+        queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+        queryClient.invalidateQueries({ queryKey: ["admin-order"] });
+        queryClient.invalidateQueries({ queryKey: ["steadfast-events"] });
+      })
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
