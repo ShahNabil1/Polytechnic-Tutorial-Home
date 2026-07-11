@@ -24,6 +24,7 @@ import {
 import { confirm } from "@/components/ui/confirm-dialog";
 import { CourseFormDialog } from "@/components/internal/lms/CourseFormDialog";
 import { Pagination } from "@/components/internal/Pagination";
+import { Switch } from "@/components/ui/switch";
 
 export function CoursesManager() {
   const listFn = useServerFn(listCourses);
