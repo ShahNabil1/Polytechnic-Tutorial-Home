@@ -41,6 +41,7 @@ import { Route as AuthenticatedInternalWorkspaceEmployeesRouteImport } from './r
 import { Route as AuthenticatedInternalInstructorProfileRouteImport } from './routes/_authenticated/_internal.instructor.profile'
 import { Route as AuthenticatedInternalWorkspaceEcommerceIndexRouteImport } from './routes/_authenticated/_internal.workspace.ecommerce.index'
 import { Route as ApiPublicWebhooksSteadfastSecretRouteImport } from './routes/api/public/webhooks/steadfast.$secret'
+import { Route as AuthenticatedSdashCoursesDeptSlugSemSlugRouteImport } from './routes/_authenticated/sdash.courses.$deptSlug.$semSlug'
 import { Route as AuthenticatedInternalWorkspaceSettingsSmsTemplatesRouteImport } from './routes/_authenticated/_internal.workspace.settings.sms-templates'
 import { Route as AuthenticatedInternalWorkspaceSettingsEmailTemplatesRouteImport } from './routes/_authenticated/_internal.workspace.settings.email-templates'
 import { Route as AuthenticatedInternalWorkspaceLmsAndCoursesSubjectsRouteImport } from './routes/_authenticated/_internal.workspace.lms-and-courses.subjects'
@@ -225,6 +226,12 @@ const ApiPublicWebhooksSteadfastSecretRoute =
     path: '/api/public/webhooks/steadfast/$secret',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthenticatedSdashCoursesDeptSlugSemSlugRoute =
+  AuthenticatedSdashCoursesDeptSlugSemSlugRouteImport.update({
+    id: '/$deptSlug/$semSlug',
+    path: '/$deptSlug/$semSlug',
+    getParentRoute: () => AuthenticatedSdashCoursesRoute,
+  } as any)
 const AuthenticatedInternalWorkspaceSettingsSmsTemplatesRoute =
   AuthenticatedInternalWorkspaceSettingsSmsTemplatesRouteImport.update({
     id: '/settings/sms-templates',
@@ -312,7 +319,7 @@ export interface FileRoutesByFullPath {
   '/checkout/': typeof CheckoutIndexRoute
   '/instructor': typeof AuthenticatedInternalInstructorRouteWithChildren
   '/workspace': typeof AuthenticatedInternalWorkspaceRouteWithChildren
-  '/sdash/courses': typeof AuthenticatedSdashCoursesRoute
+  '/sdash/courses': typeof AuthenticatedSdashCoursesRouteWithChildren
   '/sdash/profile': typeof AuthenticatedSdashProfileRoute
   '/sdash/shop': typeof AuthenticatedSdashShopRoute
   '/sdash/': typeof AuthenticatedSdashIndexRoute
@@ -335,6 +342,7 @@ export interface FileRoutesByFullPath {
   '/workspace/lms-and-courses/subjects': typeof AuthenticatedInternalWorkspaceLmsAndCoursesSubjectsRoute
   '/workspace/settings/email-templates': typeof AuthenticatedInternalWorkspaceSettingsEmailTemplatesRoute
   '/workspace/settings/sms-templates': typeof AuthenticatedInternalWorkspaceSettingsSmsTemplatesRoute
+  '/sdash/courses/$deptSlug/$semSlug': typeof AuthenticatedSdashCoursesDeptSlugSemSlugRoute
   '/api/public/webhooks/steadfast/$secret': typeof ApiPublicWebhooksSteadfastSecretRoute
   '/workspace/ecommerce/': typeof AuthenticatedInternalWorkspaceEcommerceIndexRoute
   '/workspace/lms-and-courses/curriculum/$subjectSlug': typeof AuthenticatedInternalWorkspaceLmsAndCoursesCurriculumSubjectSlugRoute
@@ -352,7 +360,7 @@ export interface FileRoutesByTo {
   '/checkout/success': typeof CheckoutSuccessRoute
   '/product/$slug': typeof ProductSlugRoute
   '/checkout': typeof CheckoutIndexRoute
-  '/sdash/courses': typeof AuthenticatedSdashCoursesRoute
+  '/sdash/courses': typeof AuthenticatedSdashCoursesRouteWithChildren
   '/sdash/profile': typeof AuthenticatedSdashProfileRoute
   '/sdash/shop': typeof AuthenticatedSdashShopRoute
   '/sdash': typeof AuthenticatedSdashIndexRoute
@@ -375,6 +383,7 @@ export interface FileRoutesByTo {
   '/workspace/lms-and-courses/subjects': typeof AuthenticatedInternalWorkspaceLmsAndCoursesSubjectsRoute
   '/workspace/settings/email-templates': typeof AuthenticatedInternalWorkspaceSettingsEmailTemplatesRoute
   '/workspace/settings/sms-templates': typeof AuthenticatedInternalWorkspaceSettingsSmsTemplatesRoute
+  '/sdash/courses/$deptSlug/$semSlug': typeof AuthenticatedSdashCoursesDeptSlugSemSlugRoute
   '/api/public/webhooks/steadfast/$secret': typeof ApiPublicWebhooksSteadfastSecretRoute
   '/workspace/ecommerce': typeof AuthenticatedInternalWorkspaceEcommerceIndexRoute
   '/workspace/lms-and-courses/curriculum/$subjectSlug': typeof AuthenticatedInternalWorkspaceLmsAndCoursesCurriculumSubjectSlugRoute
@@ -398,7 +407,7 @@ export interface FileRoutesById {
   '/checkout/': typeof CheckoutIndexRoute
   '/_authenticated/_internal/instructor': typeof AuthenticatedInternalInstructorRouteWithChildren
   '/_authenticated/_internal/workspace': typeof AuthenticatedInternalWorkspaceRouteWithChildren
-  '/_authenticated/sdash/courses': typeof AuthenticatedSdashCoursesRoute
+  '/_authenticated/sdash/courses': typeof AuthenticatedSdashCoursesRouteWithChildren
   '/_authenticated/sdash/profile': typeof AuthenticatedSdashProfileRoute
   '/_authenticated/sdash/shop': typeof AuthenticatedSdashShopRoute
   '/_authenticated/sdash/': typeof AuthenticatedSdashIndexRoute
@@ -421,6 +430,7 @@ export interface FileRoutesById {
   '/_authenticated/_internal/workspace/lms-and-courses/subjects': typeof AuthenticatedInternalWorkspaceLmsAndCoursesSubjectsRoute
   '/_authenticated/_internal/workspace/settings/email-templates': typeof AuthenticatedInternalWorkspaceSettingsEmailTemplatesRoute
   '/_authenticated/_internal/workspace/settings/sms-templates': typeof AuthenticatedInternalWorkspaceSettingsSmsTemplatesRoute
+  '/_authenticated/sdash/courses/$deptSlug/$semSlug': typeof AuthenticatedSdashCoursesDeptSlugSemSlugRoute
   '/api/public/webhooks/steadfast/$secret': typeof ApiPublicWebhooksSteadfastSecretRoute
   '/_authenticated/_internal/workspace/ecommerce/': typeof AuthenticatedInternalWorkspaceEcommerceIndexRoute
   '/_authenticated/_internal/workspace/lms-and-courses/curriculum/$subjectSlug': typeof AuthenticatedInternalWorkspaceLmsAndCoursesCurriculumSubjectSlugRoute
@@ -466,6 +476,7 @@ export interface FileRouteTypes {
     | '/workspace/lms-and-courses/subjects'
     | '/workspace/settings/email-templates'
     | '/workspace/settings/sms-templates'
+    | '/sdash/courses/$deptSlug/$semSlug'
     | '/api/public/webhooks/steadfast/$secret'
     | '/workspace/ecommerce/'
     | '/workspace/lms-and-courses/curriculum/$subjectSlug'
@@ -506,6 +517,7 @@ export interface FileRouteTypes {
     | '/workspace/lms-and-courses/subjects'
     | '/workspace/settings/email-templates'
     | '/workspace/settings/sms-templates'
+    | '/sdash/courses/$deptSlug/$semSlug'
     | '/api/public/webhooks/steadfast/$secret'
     | '/workspace/ecommerce'
     | '/workspace/lms-and-courses/curriculum/$subjectSlug'
@@ -551,6 +563,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_internal/workspace/lms-and-courses/subjects'
     | '/_authenticated/_internal/workspace/settings/email-templates'
     | '/_authenticated/_internal/workspace/settings/sms-templates'
+    | '/_authenticated/sdash/courses/$deptSlug/$semSlug'
     | '/api/public/webhooks/steadfast/$secret'
     | '/_authenticated/_internal/workspace/ecommerce/'
     | '/_authenticated/_internal/workspace/lms-and-courses/curriculum/$subjectSlug'
@@ -802,6 +815,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWebhooksSteadfastSecretRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/sdash/courses/$deptSlug/$semSlug': {
+      id: '/_authenticated/sdash/courses/$deptSlug/$semSlug'
+      path: '/$deptSlug/$semSlug'
+      fullPath: '/sdash/courses/$deptSlug/$semSlug'
+      preLoaderRoute: typeof AuthenticatedSdashCoursesDeptSlugSemSlugRouteImport
+      parentRoute: typeof AuthenticatedSdashCoursesRoute
+    }
     '/_authenticated/_internal/workspace/settings/sms-templates': {
       id: '/_authenticated/_internal/workspace/settings/sms-templates'
       path: '/settings/sms-templates'
@@ -1004,15 +1024,30 @@ const AuthenticatedInternalRouteWithChildren =
     AuthenticatedInternalRouteChildren,
   )
 
+interface AuthenticatedSdashCoursesRouteChildren {
+  AuthenticatedSdashCoursesDeptSlugSemSlugRoute: typeof AuthenticatedSdashCoursesDeptSlugSemSlugRoute
+}
+
+const AuthenticatedSdashCoursesRouteChildren: AuthenticatedSdashCoursesRouteChildren =
+  {
+    AuthenticatedSdashCoursesDeptSlugSemSlugRoute:
+      AuthenticatedSdashCoursesDeptSlugSemSlugRoute,
+  }
+
+const AuthenticatedSdashCoursesRouteWithChildren =
+  AuthenticatedSdashCoursesRoute._addFileChildren(
+    AuthenticatedSdashCoursesRouteChildren,
+  )
+
 interface AuthenticatedSdashRouteChildren {
-  AuthenticatedSdashCoursesRoute: typeof AuthenticatedSdashCoursesRoute
+  AuthenticatedSdashCoursesRoute: typeof AuthenticatedSdashCoursesRouteWithChildren
   AuthenticatedSdashProfileRoute: typeof AuthenticatedSdashProfileRoute
   AuthenticatedSdashShopRoute: typeof AuthenticatedSdashShopRoute
   AuthenticatedSdashIndexRoute: typeof AuthenticatedSdashIndexRoute
 }
 
 const AuthenticatedSdashRouteChildren: AuthenticatedSdashRouteChildren = {
-  AuthenticatedSdashCoursesRoute: AuthenticatedSdashCoursesRoute,
+  AuthenticatedSdashCoursesRoute: AuthenticatedSdashCoursesRouteWithChildren,
   AuthenticatedSdashProfileRoute: AuthenticatedSdashProfileRoute,
   AuthenticatedSdashShopRoute: AuthenticatedSdashShopRoute,
   AuthenticatedSdashIndexRoute: AuthenticatedSdashIndexRoute,
