@@ -190,7 +190,6 @@ export function AdminOrdersManager() {
           <AdminIncompleteCheckouts search={search} />
         </div>
       ) : (
-      ) : (
         <div className="overflow-hidden rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/60 via-white to-sky-50/60 shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
