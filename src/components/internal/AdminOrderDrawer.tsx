@@ -129,6 +129,7 @@ export function AdminOrderDrawer({
         note: order.note ?? "",
       });
       setDeliveryNote(order.note ?? "");
+      setShowDeliveryNote(Boolean((order.note ?? "").trim()));
       setItemDraft(items);
     }
   }, [order?.id]);
