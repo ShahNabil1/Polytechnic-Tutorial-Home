@@ -2,10 +2,8 @@
  * Steadfast dispatch server functions.
  *
  * Contract:
- * - `dispatchOrderToSteadfast` — single order, called automatically when an
- *   order transitions to `ready_to_ship` (see updateOrderStatus). Also usable
- *   directly for retry buttons.
- * - `bulkDispatchToSteadfast` — chunks the input into <=10-order calls to the
+ * - `retrySteadfastDispatch` — single order retry (from "Failed RTS" alert).
+ * - `bulkDispatchToSteadfast` — chunks the input into 10-order calls to the
  *   Steadfast bulk API, retries failed ones up to 3 times, and reports
  *   per-order results back to the caller (which drives the progress UI).
  *
@@ -17,12 +15,15 @@
  *   to `ready_to_ship` + `physical_status='ready_to_ship'`.
  * - Failures leave the order in `processing`, store the exact courier error
  *   in `steadfast_last_error`, and increment `steadfast_retry_count`.
+ *
+ * Helpers (`buildPayloadFromOrder`, `dispatchOrderById`) live in
+ * `steadfast.server.ts` because TSS server-fn splitting strips module-scope
+ * helpers that live next to the handler declaration.
  */
 
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { SteadfastSinglePayload } from "@/lib/steadfast.server";
 
 async function ensureStaff(context: { supabase: any; userId: string }) {
   const [{ data: isEmp }, { data: isAdm }] = await Promise.all([
@@ -32,99 +33,6 @@ async function ensureStaff(context: { supabase: any; userId: string }) {
   if (!isEmp && !isAdm) throw new Error("Forbidden");
 }
 
-/**
- * Build a Steadfast payload from an order + items row.
- * item_description / total_lot are calculated from PHYSICAL items only.
- * Exported so the auto-dispatch hook (inside updateOrderStatus) can share
- * exactly the same shape.
- */
-export function buildPayloadFromOrder(order: any, items: any[]): SteadfastSinglePayload {
-  const physical = items.filter((i) => i.item_type !== "ebook");
-  const totalLot = physical.reduce((s, i) => s + Number(i.quantity || 0), 0) || 1;
-  const desc =
-    (order.item_description as string | null) ||
-    physical.map((i) => `${i.title} x${i.quantity}`).join(", ").slice(0, 500);
-  const address =
-    order.full_address ||
-    [order.address_line, order.thana, order.district, order.division].filter(Boolean).join(", ") ||
-    "N/A";
-
-  const payload: SteadfastSinglePayload = {
-    invoice: order.order_no,
-    recipient_name: order.customer_name,
-    recipient_phone: order.customer_phone,
-    recipient_address: String(address).slice(0, 250),
-    cod_amount: Number(order.cod_amount ?? order.total_bdt ?? 0),
-    total_lot: totalLot,
-    delivery_type: 0,
-    item_description: desc,
-  };
-  if (order.alternative_phone) payload.alternative_phone = order.alternative_phone;
-  if (order.customer_email) payload.recipient_email = order.customer_email;
-  if (order.note) payload.note = order.note;
-  return payload;
-}
-
-/**
- * Server-side helper — used both by the RTS auto-dispatch (from
- * updateOrderStatus) and by the explicit retry server fn.
- * Returns { ok, error, consignment_id?, tracking_code? }.
- */
-export async function dispatchOrderById(
-  sbAdmin: any,
-  orderId: string,
-): Promise<{ ok: boolean; error?: string; consignmentId?: string; trackingCode?: string }> {
-  const { createSingleOrder } = await import("@/lib/steadfast.server");
-
-  const [{ data: order }, { data: items }] = await Promise.all([
-    sbAdmin.from("orders").select("*").eq("id", orderId).single(),
-    sbAdmin.from("order_items").select("*").eq("order_id", orderId),
-  ]);
-  if (!order) return { ok: false, error: "Order not found" };
-  if (!order.has_physical) return { ok: false, error: "Order has no physical items to ship" };
-  if (order.steadfast_consignment_id) {
-    // Already dispatched — treat as success.
-    return {
-      ok: true,
-      consignmentId: String(order.steadfast_consignment_id),
-      trackingCode: order.steadfast_tracking_code ?? undefined,
-    };
-  }
-
-  try {
-    const payload = buildPayloadFromOrder(order, items ?? []);
-    const c = await createSingleOrder(payload);
-    await sbAdmin
-      .from("orders")
-      .update({
-        steadfast_consignment_id: String(c.consignment_id),
-        steadfast_tracking_code: c.tracking_code,
-        steadfast_status: c.status ?? "in_review",
-        steadfast_delivery_status: c.status ?? "in_review",
-        steadfast_synced_at: new Date().toISOString(),
-        steadfast_last_error: null,
-        status: "ready_to_ship",
-        physical_status: "ready_to_ship",
-      })
-      .eq("id", orderId);
-    return {
-      ok: true,
-      consignmentId: String(c.consignment_id),
-      trackingCode: c.tracking_code,
-    };
-  } catch (err: any) {
-    const msg = String(err?.message ?? err ?? "Unknown Steadfast error").slice(0, 500);
-    await sbAdmin
-      .from("orders")
-      .update({
-        steadfast_last_error: msg,
-        steadfast_retry_count: (order.steadfast_retry_count ?? 0) + 1,
-      })
-      .eq("id", orderId);
-    return { ok: false, error: msg };
-  }
-}
-
 /** Manually retry a single failed dispatch (Failed RTS badge → Retry button). */
 export const retrySteadfastDispatch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -132,6 +40,7 @@ export const retrySteadfastDispatch = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await ensureStaff(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { dispatchOrderById } = await import("@/lib/steadfast.server");
     const res = await dispatchOrderById(supabaseAdmin, data.id);
     if (!res.ok) throw new Error(res.error || "Dispatch failed");
     return res;
@@ -156,8 +65,7 @@ export const bulkDispatchToSteadfast = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await ensureStaff(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { createBulkOrders } = await import("@/lib/steadfast.server");
-    const { buildPayloadFromOrder } = await import("@/lib/steadfast.functions");
+    const { createBulkOrders, buildPayloadFromOrder } = await import("@/lib/steadfast.server");
     const chunkSize = data.chunkSize ?? 10;
 
     // 1. Load all target orders + items in one round-trip each.
@@ -179,7 +87,7 @@ export const bulkDispatchToSteadfast = createServerFn({ method: "POST" })
     type Row = {
       orderId: string;
       orderNo: string;
-      payload: SteadfastSinglePayload;
+      payload: any;
       ok: boolean;
       error?: string;
       consignmentId?: string;
@@ -192,7 +100,7 @@ export const bulkDispatchToSteadfast = createServerFn({ method: "POST" })
         rows.push({
           orderId: o.id,
           orderNo: o.order_no,
-          payload: {} as SteadfastSinglePayload,
+          payload: {},
           ok: false,
           error: "Order has no physical items",
         });
@@ -202,7 +110,7 @@ export const bulkDispatchToSteadfast = createServerFn({ method: "POST" })
         rows.push({
           orderId: o.id,
           orderNo: o.order_no,
-          payload: {} as SteadfastSinglePayload,
+          payload: {},
           ok: true,
           consignmentId: String(o.steadfast_consignment_id),
           trackingCode: o.steadfast_tracking_code ?? undefined,
@@ -271,7 +179,6 @@ export const bulkDispatchToSteadfast = createServerFn({ method: "POST" })
           })
           .eq("id", r.orderId);
       } else if (r.payload.invoice) {
-        // Real dispatch failure — leave in processing, tag the error.
         await supabaseAdmin
           .from("orders")
           .update({
