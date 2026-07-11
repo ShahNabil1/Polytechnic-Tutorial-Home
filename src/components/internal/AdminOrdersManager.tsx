@@ -87,7 +87,6 @@ export function AdminOrdersManager() {
                   <th className="px-4 py-3">Order</th>
                   <th className="px-4 py-3">Created (Asia/Dhaka)</th>
                   <th className="px-4 py-3">Customer</th>
-                  <th className="px-4 py-3">Device / IP</th>
                   <th className="px-4 py-3 text-right">Total</th>
                   <th className="px-4 py-3"></th>
                 </tr>
@@ -95,13 +94,13 @@ export function AdminOrdersManager() {
               <tbody className="divide-y divide-indigo-100/70">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-10 text-center">
+                    <td colSpan={5} className="px-4 py-10 text-center">
                       <Loader2 className="mx-auto size-5 animate-spin text-indigo-400" />
                     </td>
                   </tr>
                 ) : orders.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-10 text-center text-sm font-semibold text-slate-500">
+                    <td colSpan={5} className="px-4 py-10 text-center text-sm font-semibold text-slate-500">
                       No orders in <span className="font-extrabold">{STATUS_LABEL[tab]}</span>.
                     </td>
                   </tr>
@@ -126,18 +125,6 @@ export function AdminOrdersManager() {
                           <Phone className="size-3" />
                           {o.customer_phone}
                         </a>
-                      </td>
-                      <td className="px-4 py-3.5 align-top">
-                        <div className="flex flex-col gap-1">
-                          <span className="inline-flex w-fit items-center gap-1.5 rounded-md bg-sky-100/70 px-2 py-0.5 font-mono text-[11px] font-semibold text-sky-800">
-                            <Globe className="size-3" />
-                            {o.ip || "—"}
-                          </span>
-                          <span className="inline-flex w-fit max-w-[220px] items-center gap-1.5 truncate rounded-md bg-violet-100/60 px-2 py-0.5 font-mono text-[11px] font-semibold text-violet-800">
-                            <Fingerprint className="size-3 shrink-0" />
-                            <span className="truncate">{o.device_fingerprint || "—"}</span>
-                          </span>
-                        </div>
                       </td>
                       <td className="px-4 py-3.5 align-top text-right font-mono text-sm font-extrabold text-slate-900">
                         {formatBDT(Number(o.total_bdt))}
