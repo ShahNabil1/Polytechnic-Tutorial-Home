@@ -58,6 +58,18 @@ export const createUploadUrl = createServerFn({ method: "POST" })
       if (roleErr || !isAdmin) {
         throw new Error("Forbidden: ebook uploads require super_admin");
       }
+    } else if (data.folder === "lms-videos") {
+      if (!VIDEO_MIME.has(data.contentType)) {
+        throw new Error("Unsupported video type (allowed: mp4, webm, mov, mkv)");
+      }
+      if (data.size > MAX_VIDEO_SIZE) {
+        throw new Error("Video exceeds 2 GB limit");
+      }
+      const { data: canManage } = await context.supabase.rpc("has_permission", {
+        _user_id: context.userId,
+        _permission: "manage_lms",
+      });
+      if (!canManage) throw new Error("Forbidden: manage_lms required");
     } else {
       if (!ALLOWED_MIME.has(data.contentType)) {
         throw new Error("Unsupported file type");
