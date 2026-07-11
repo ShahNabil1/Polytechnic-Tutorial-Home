@@ -181,8 +181,9 @@ export function CoursesManager() {
           No courses yet. Click "Generate missing" to create one for every department–semester pair.
         </div>
       ) : (
+        <>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((c) => {
+          {paged.map((c) => {
             const dept = byId.get(c.department_id);
             const sem = byId.get(c.semester_id);
             return (
@@ -263,6 +264,14 @@ export function CoursesManager() {
             );
           })}
         </div>
+        <Pagination
+          page={currentPage}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
+        </>
       )}
 
       <CourseFormDialog
