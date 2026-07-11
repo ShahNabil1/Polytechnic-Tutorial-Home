@@ -12,7 +12,7 @@ import {
   GraduationCap,
 } from "lucide-react";
 import { toast } from "sonner";
-import { getCourseContentForUser } from "@/lib/lms.functions";
+import { getCourseContentForUser, enrollInCourseTest } from "@/lib/lms.functions";
 import type { LmsCourseContent } from "@/lib/lms";
 
 export const Route = createFileRoute("/_authenticated/sdash/courses/$deptSlug/$semSlug")({
