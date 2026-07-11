@@ -23,6 +23,8 @@ import {
   stashSnapshotForReturn,
   clearStashedSnapshot,
 } from "@/lib/incomplete-checkout-client";
+import { useCoupon } from "@/lib/coupon-store";
+import { CouponBlock } from "@/components/checkout/CouponBlock";
 
 
 export const Route = createFileRoute("/checkout/")({
@@ -44,6 +46,8 @@ function CheckoutPage() {
   const navigate = useNavigate();
   const items = useCart((s) => s.items);
   const clear = useCart((s) => s.clear);
+  const appliedCoupon = useCoupon((s) => s.applied);
+  const clearCoupon = useCoupon((s) => s.clear);
 
   const [form, setForm] = useState({
     name: "",
@@ -77,7 +81,11 @@ function CheckoutPage() {
     () => calcShipping(items, form.district),
     [items, form.district],
   );
-  const total = subtotal + shipping;
+  const discount = useMemo(() => {
+    if (!appliedCoupon) return 0;
+    return Math.min(appliedCoupon.discount, subtotal);
+  }, [appliedCoupon, subtotal]);
+  const total = Math.max(0, subtotal + shipping - discount);
 
   if (items.length === 0) {
     return (
@@ -285,7 +293,8 @@ function CheckoutPage() {
             isOnlineBook: !!i.isOnlineBook,
             type: i.type,
           })),
-          totals: { subtotal, shipping, total },
+          totals: { subtotal, shipping, discount, total },
+          couponCode: appliedCoupon?.code || "",
           source: sourceRef.current.source,
           sourceDetail: sourceRef.current.detail || "",
         },
@@ -321,6 +330,7 @@ function CheckoutPage() {
       resetIncompleteCapture();
       clearStashedSnapshot();
       clear();
+      clearCoupon();
 
       navigate({
         to: "/checkout/success",
@@ -517,6 +527,20 @@ function CheckoutPage() {
                     </span>
                   </div>
                 )}
+                {discount > 0 && (
+                  <div className="flex justify-between text-emerald-700">
+                    <span className="font-semibold">কুপন ছাড় {appliedCoupon?.code ? `(${appliedCoupon.code})` : ""}</span>
+                    <span className="font-bold tabular-nums">−{formatBDT(discount)}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-3">
+                <CouponBlock
+                  subtotal={subtotal}
+                  productIds={items.map((i) => i.productId)}
+                  phone={form.phone}
+                />
               </div>
 
               <div className="mt-3 flex justify-between border-t border-dashed border-border pt-3">

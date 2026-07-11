@@ -41,6 +41,155 @@ export type Database = {
         }
         Relationships: []
       }
+      coupon_redemptions: {
+        Row: {
+          coupon_id: string
+          discount_amount: number
+          id: string
+          order_id: string | null
+          phone: string | null
+          redeemed_at: string
+          user_id: string | null
+        }
+        Insert: {
+          coupon_id: string
+          discount_amount: number
+          id?: string
+          order_id?: string | null
+          phone?: string | null
+          redeemed_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          coupon_id?: string
+          discount_amount?: number
+          id?: string
+          order_id?: string | null
+          phone?: string | null
+          redeemed_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_redemptions_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_redemptions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupon_targets: {
+        Row: {
+          coupon_id: string
+          created_at: string
+          target_id: string
+          target_type: Database["public"]["Enums"]["coupon_target_type"]
+        }
+        Insert: {
+          coupon_id: string
+          created_at?: string
+          target_id: string
+          target_type: Database["public"]["Enums"]["coupon_target_type"]
+        }
+        Update: {
+          coupon_id?: string
+          created_at?: string
+          target_id?: string
+          target_type?: Database["public"]["Enums"]["coupon_target_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_targets_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupons: {
+        Row: {
+          applies_to: Database["public"]["Enums"]["coupon_applies_to"]
+          cap_amount: number | null
+          code: string
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          description: string | null
+          discount_type: Database["public"]["Enums"]["coupon_discount_type"]
+          discount_value: number
+          ends_at: string | null
+          exclude_shipping: boolean
+          id: string
+          is_active: boolean
+          max_uses_per_customer: number | null
+          max_uses_total: number | null
+          min_spend: number
+          name: string
+          scope: Database["public"]["Enums"]["coupon_scope"]
+          stackable: boolean
+          starts_at: string | null
+          updated_at: string
+          uses_count: number
+        }
+        Insert: {
+          applies_to?: Database["public"]["Enums"]["coupon_applies_to"]
+          cap_amount?: number | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          discount_type: Database["public"]["Enums"]["coupon_discount_type"]
+          discount_value: number
+          ends_at?: string | null
+          exclude_shipping?: boolean
+          id?: string
+          is_active?: boolean
+          max_uses_per_customer?: number | null
+          max_uses_total?: number | null
+          min_spend?: number
+          name: string
+          scope?: Database["public"]["Enums"]["coupon_scope"]
+          stackable?: boolean
+          starts_at?: string | null
+          updated_at?: string
+          uses_count?: number
+        }
+        Update: {
+          applies_to?: Database["public"]["Enums"]["coupon_applies_to"]
+          cap_amount?: number | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          description?: string | null
+          discount_type?: Database["public"]["Enums"]["coupon_discount_type"]
+          discount_value?: number
+          ends_at?: string | null
+          exclude_shipping?: boolean
+          id?: string
+          is_active?: boolean
+          max_uses_per_customer?: number | null
+          max_uses_total?: number | null
+          min_spend?: number
+          name?: string
+          scope?: Database["public"]["Enums"]["coupon_scope"]
+          stackable?: boolean
+          starts_at?: string | null
+          updated_at?: string
+          uses_count?: number
+        }
+        Relationships: []
+      }
       incomplete_checkouts: {
         Row: {
           address_line: string | null
@@ -951,9 +1100,30 @@ export type Database = {
         }
         Returns: string
       }
+      validate_coupon: {
+        Args: {
+          _category_ids: string[]
+          _code: string
+          _phone: string
+          _product_ids: string[]
+          _scope?: Database["public"]["Enums"]["coupon_scope"]
+          _subtotal: number
+          _user_id: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "student" | "employee" | "instructor" | "super_admin"
+      coupon_applies_to:
+        | "all"
+        | "products"
+        | "categories"
+        | "courses"
+        | "customers"
+      coupon_discount_type: "percent" | "flat"
+      coupon_scope: "shop" | "course" | "special"
+      coupon_target_type: "product" | "category" | "course" | "customer"
       product_category_kind: "product_type" | "department" | "semester"
       semester_level:
         | "1st"
@@ -1094,6 +1264,16 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["student", "employee", "instructor", "super_admin"],
+      coupon_applies_to: [
+        "all",
+        "products",
+        "categories",
+        "courses",
+        "customers",
+      ],
+      coupon_discount_type: ["percent", "flat"],
+      coupon_scope: ["shop", "course", "special"],
+      coupon_target_type: ["product", "category", "course", "customer"],
       product_category_kind: ["product_type", "department", "semester"],
       semester_level: [
         "1st",
