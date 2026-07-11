@@ -60,3 +60,21 @@ export type LmsLesson = {
 };
 
 export type LmsModuleWithLessons = LmsModule & { lessons: LmsLesson[] };
+
+export type LmsCourse = {
+  id: string;
+  department_id: string;
+  semester_id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  cover_image_url: string | null;
+  price_bdt: number;
+  compare_at_price_bdt: number | null;
+  is_active: boolean;
+  sort_order: number;
+  subject_count?: number;
+  created_at: string;
+  updated_at: string;
+};
+
