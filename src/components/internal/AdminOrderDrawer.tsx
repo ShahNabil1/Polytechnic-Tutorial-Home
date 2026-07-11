@@ -254,41 +254,36 @@ export function AdminOrderDrawer({
     }
   }
 
-  async function changeStatus(s: OrderStatus) {
+  async function changeStatus(s: OrderStatus, note?: string) {
     if (!order || s === order.status) return;
 
-    // Hold / Cancel require a written reason before we commit the status change.
-    let reasonNote: string | undefined;
-    if (s === "hold" || s === "cancelled") {
-      const isHold = s === "hold";
-      const reason = await promptText({
-        title: isHold ? "Put order on hold?" : "Cancel this order?",
-        description: isHold
-          ? "Please write a short reason for putting this order on hold. It will be saved to the order's status history."
-          : "Please write a short reason for cancelling this order. It will be saved to the order's status history.",
-        inputLabel: "Reason",
-        placeholder: isHold
-          ? "e.g. Customer asked to pause, awaiting stock, address unclear…"
-          : "e.g. Customer requested cancellation, duplicate order, out of stock…",
-        multiline: true,
-        minLength: 3,
-        maxLength: 500,
-        variant: isHold ? "warning" : "danger",
-        confirmLabel: isHold ? "Confirm Hold" : "Confirm Cancel",
-        cancelLabel: "Back",
-      });
-      if (!reason) return; // user cancelled or dismissed
-      reasonNote = reason;
+    // Hold / Cancel show an inline reason input instead of committing immediately.
+    if ((s === "hold" || s === "cancelled") && !note) {
+      setPendingStatus(s);
+      setReasonDraft("");
+      return;
     }
 
     try {
-      await upStatus({ data: { id: orderId, status: s, note: reasonNote } });
+      await upStatus({ data: { id: orderId, status: s, note } });
       toast.success(`Marked ${STATUS_LABEL[s]}`);
+      setPendingStatus(null);
+      setReasonDraft("");
       refetch();
       onChanged?.();
     } catch (e: any) {
       toast.error(e.message || "Failed");
     }
+  }
+
+  async function confirmPendingStatus() {
+    if (!pendingStatus) return;
+    const reason = reasonDraft.trim();
+    if (reason.length < 3) {
+      toast.error("Please write at least 3 characters");
+      return;
+    }
+    await changeStatus(pendingStatus, reason);
   }
 
   async function submitNote() {
