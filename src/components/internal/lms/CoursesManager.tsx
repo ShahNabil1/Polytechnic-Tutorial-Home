@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useNavigate } from "@tanstack/react-router";
-import { Loader2, Plus, Search, Pencil, Trash2, GraduationCap, Sparkles, BookOpen } from "lucide-react";
+import { Loader2, Plus, Search, Pencil, Trash2, GraduationCap, Sparkles, BookOpen, Star } from "lucide-react";
 import { toast } from "sonner";
 import {
   listCourses,
   listAcademicTaxonomy,
   deleteCourse,
   generateMissingCourses,
+  setCourseFeatured,
 } from "@/lib/lms.functions";
 import type { AcademicCategory, LmsCourse } from "@/lib/lms";
 import { Button } from "@/components/ui/button";
@@ -23,12 +24,14 @@ import {
 import { confirm } from "@/components/ui/confirm-dialog";
 import { CourseFormDialog } from "@/components/internal/lms/CourseFormDialog";
 import { Pagination } from "@/components/internal/Pagination";
+import { Switch } from "@/components/ui/switch";
 
 export function CoursesManager() {
   const listFn = useServerFn(listCourses);
   const listTax = useServerFn(listAcademicTaxonomy);
   const deleteFn = useServerFn(deleteCourse);
   const generateFn = useServerFn(generateMissingCourses);
+  const featuredFn = useServerFn(setCourseFeatured);
   const navigate = useNavigate();
 
   const [courses, setCourses] = useState<LmsCourse[]>([]);
@@ -126,6 +129,18 @@ export function CoursesManager() {
     }
   }
 
+  async function handleToggleFeatured(c: LmsCourse, next: boolean) {
+    // optimistic
+    setCourses((prev) => prev.map((x) => (x.id === c.id ? { ...x, is_featured: next } : x)));
+    try {
+      await featuredFn({ data: { id: c.id, is_featured: next } } as never);
+      toast.success(next ? "Marked as featured" : "Removed from featured");
+    } catch (e: any) {
+      setCourses((prev) => prev.map((x) => (x.id === c.id ? { ...x, is_featured: !next } : x)));
+      toast.error(e?.message ?? "Failed to update");
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -191,6 +206,22 @@ export function CoursesManager() {
                 key={c.id}
                 className="group relative overflow-hidden rounded-2xl border border-white/60 bg-white/40 backdrop-blur-xl shadow-lg shadow-slate-200/50 transition-all hover:shadow-2xl hover:-translate-y-0.5"
               >
+                <div className="flex items-center justify-between gap-2 border-b border-slate-200/70 bg-white/60 px-3 py-2">
+                  <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer select-none">
+                    <Star
+                      className={
+                        c.is_featured
+                          ? "w-3.5 h-3.5 fill-amber-400 text-amber-500"
+                          : "w-3.5 h-3.5 text-slate-400"
+                      }
+                    />
+                    Featured on homepage
+                  </label>
+                  <Switch
+                    checked={c.is_featured}
+                    onCheckedChange={(v) => handleToggleFeatured(c, v)}
+                  />
+                </div>
                 <button
                   onClick={() =>
                     navigate({

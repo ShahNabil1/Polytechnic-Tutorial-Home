@@ -454,6 +454,7 @@ function toCourseRow(row: any, subjectCount = 0): LmsCourse {
     price_bdt: Number(row.price_bdt ?? 0),
     compare_at_price_bdt: row.compare_at_price_bdt != null ? Number(row.compare_at_price_bdt) : null,
     is_active: row.is_active,
+    is_featured: !!row.is_featured,
     sort_order: row.sort_order,
     subject_count: subjectCount,
     created_at: row.created_at,
@@ -542,6 +543,7 @@ const CoursePatch = z.object({
   price_bdt: z.number().min(0).max(1_000_000).default(0),
   compare_at_price_bdt: z.number().min(0).max(1_000_000).optional().nullable(),
   is_active: z.boolean().default(true),
+  is_featured: z.boolean().default(false),
   sort_order: z.number().int().min(0).max(9999).default(0),
 });
 
@@ -578,6 +580,7 @@ export const upsertCourse = createServerFn({ method: "POST" })
       price_bdt: data.patch.price_bdt,
       compare_at_price_bdt: data.patch.compare_at_price_bdt ?? null,
       is_active: data.patch.is_active,
+      is_featured: data.patch.is_featured,
       sort_order: data.patch.sort_order,
     };
     if (data.id) {
@@ -593,6 +596,21 @@ export const upsertCourse = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
     return { ok: true, id: (row as any).id as string };
+  });
+
+export const setCourseFeatured = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z.object({ id: z.string().uuid(), is_featured: z.boolean() }).parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureCanManage(context);
+    const { error } = await context.supabase
+      .from("lms_courses")
+      .update({ is_featured: data.is_featured })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 export const deleteCourse = createServerFn({ method: "POST" })
@@ -1131,6 +1149,7 @@ export type PublicCourseCard = {
   semester_slug: string;
   subject_count: number;
   lesson_count: number;
+  is_featured: boolean;
 };
 
 export const listPublicCourses = createServerFn({ method: "GET" }).handler(
@@ -1140,7 +1159,7 @@ export const listPublicCourses = createServerFn({ method: "GET" }).handler(
       sb
         .from("lms_courses")
         .select(
-          "id, slug, title, description, cover_image_url, media_items, price_bdt, compare_at_price_bdt, sort_order, department_id, semester_id",
+          "id, slug, title, description, cover_image_url, media_items, price_bdt, compare_at_price_bdt, sort_order, department_id, semester_id, is_featured",
         )
         .eq("is_active", true)
         .order("sort_order")
@@ -1228,6 +1247,7 @@ export const listPublicCourses = createServerFn({ method: "GET" }).handler(
           semester_slug: sem.slug,
           subject_count: subjectIds.length,
           lesson_count: lessonCount,
+          is_featured: !!r.is_featured,
         };
       })
       .filter((x): x is PublicCourseCard => x !== null);
@@ -1363,6 +1383,7 @@ export const getPublicCourseByPair = createServerFn({ method: "GET" })
         semester_slug: sem.slug,
         subject_count: subjects.length,
         lesson_count: lessonCount,
+        is_featured: !!c.is_featured,
         meta_title: c.meta_title ?? null,
         meta_description: c.meta_description ?? null,
       },

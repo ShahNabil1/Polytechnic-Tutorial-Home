@@ -82,6 +82,7 @@ export type LmsCourse = {
   price_bdt: number;
   compare_at_price_bdt: number | null;
   is_active: boolean;
+  is_featured: boolean;
   sort_order: number;
   subject_count?: number;
   created_at: string;

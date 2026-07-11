@@ -1,0 +1,2 @@
+ALTER TABLE public.lms_courses ADD COLUMN IF NOT EXISTS is_featured boolean NOT NULL DEFAULT false;
+CREATE INDEX IF NOT EXISTS idx_lms_courses_featured ON public.lms_courses(is_featured) WHERE is_featured = true;

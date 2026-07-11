@@ -2,16 +2,19 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { BookOpen, Clock, PlayCircle, GraduationCap } from "lucide-react";
-import { listPublicCourses, type PublicCourseCard } from "@/lib/lms.functions";
-import { toBanglaNumber } from "@/lib/format";
+import { ArrowLeft } from "lucide-react";
+import { listPublicCourses, type PublicCourseCard as PublicCourseCardData } from "@/lib/lms.functions";
 import { cn } from "@/lib/utils";
+import { PublicCourseCard } from "@/components/public-course-card";
+import { Pagination } from "@/components/internal/Pagination";
 
 const SITE_URL = "https://polytechnictutorial.com";
 
 const searchSchema = z.object({
   department: z.string().optional(),
   semester: z.string().optional(),
+  page: z.number().int().optional(),
+  pageSize: z.number().int().optional(),
 });
 
 export const Route = createFileRoute("/courses")({
@@ -39,9 +42,11 @@ export const Route = createFileRoute("/courses")({
 });
 
 function CoursesPage() {
-  const { department, semester } = Route.useSearch();
+  const { department, semester, page, pageSize } = Route.useSearch();
+  const currentPage = page ?? 1;
+  const currentSize = pageSize ?? 20;
   const fetchCourses = useServerFn(listPublicCourses);
-  const [courses, setCourses] = useState<PublicCourseCard[]>([]);
+  const [courses, setCourses] = useState<PublicCourseCardData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -79,9 +84,26 @@ function CoursesPage() {
     [courses, department, semester],
   );
 
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / currentSize));
+  const clampedPage = Math.min(Math.max(1, currentPage), totalPages);
+  const paged = filtered.slice((clampedPage - 1) * currentSize, clampedPage * currentSize);
+
+  const navigate = Route.useNavigate();
+
   return (
     <div className="px-4 py-10 md:px-6 md:py-14">
       <div className="mx-auto max-w-7xl">
+        <div className="mb-6">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-bold text-foreground transition-all hover:-translate-x-0.5 hover:bg-secondary"
+          >
+            <ArrowLeft className="size-4" />
+            Back to Home
+          </Link>
+        </div>
+
         <div className="mb-8">
           <h1 className="text-3xl font-extrabold tracking-tight md:text-4xl">সকল কোর্স</h1>
           <p className="mt-2 font-semibold text-muted-foreground">
@@ -91,14 +113,14 @@ function CoursesPage() {
 
         <div className="mb-8 space-y-5 rounded-2xl border border-border bg-card p-5">
           <FilterRow label="ডিপার্টমেন্ট">
-            <FilterChip active={!department} search={{ semester }}>
+            <FilterChip active={!department} search={{ semester, pageSize }}>
               সব বিভাগ
             </FilterChip>
             {departments.map((d) => (
               <FilterChip
                 key={d.slug}
                 active={department === d.slug}
-                search={{ department: d.slug, semester }}
+                search={{ department: d.slug, semester, pageSize }}
               >
                 {d.name}
               </FilterChip>
@@ -106,14 +128,14 @@ function CoursesPage() {
           </FilterRow>
 
           <FilterRow label="সেমিস্টার">
-            <FilterChip active={!semester} search={{ department }}>
+            <FilterChip active={!semester} search={{ department, pageSize }}>
               সব
             </FilterChip>
             {semesters.map((s) => (
               <FilterChip
                 key={s.slug}
                 active={semester === s.slug}
-                search={{ department, semester: s.slug }}
+                search={{ department, semester: s.slug, pageSize }}
               >
                 {s.name}
               </FilterChip>
@@ -146,78 +168,29 @@ function CoursesPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((c) => (
-              <CourseCard key={c.id} course={c} />
-            ))}
-          </div>
+          <>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {paged.map((c) => (
+                <PublicCourseCard key={c.id} course={c} />
+              ))}
+            </div>
+            <div className="mt-8">
+              <Pagination
+                page={clampedPage}
+                pageSize={currentSize}
+                total={total}
+                onPageChange={(p) =>
+                  navigate({ search: (prev: Record<string, unknown>) => ({ ...prev, page: p }) })
+                }
+                onPageSizeChange={(n) =>
+                  navigate({ search: (prev: Record<string, unknown>) => ({ ...prev, pageSize: n, page: 1 }) })
+                }
+              />
+            </div>
+          </>
         )}
       </div>
     </div>
-  );
-}
-
-function CourseCard({ course }: { course: PublicCourseCard }) {
-  const cover =
-    course.media_items.find((m) => m.type === "image")?.url ?? course.cover_image_url;
-  return (
-    <Link
-      to="/courses/$deptSlug/$semSlug"
-      params={{ deptSlug: course.department_slug, semSlug: course.semester_slug }}
-      className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all hover:-translate-y-0.5 hover:shadow-lg"
-    >
-      <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-indigo-100 via-sky-100 to-emerald-100">
-        {cover ? (
-          <img
-            src={cover}
-            alt={course.title}
-            className="h-full w-full object-cover transition-transform group-hover:scale-105"
-          />
-        ) : (
-          <div className="grid h-full w-full place-items-center">
-            <GraduationCap className="size-14 text-slate-400/60" />
-          </div>
-        )}
-      </div>
-      <div className="flex flex-1 flex-col p-5">
-        <div className="text-xs font-bold uppercase tracking-wide text-brand">
-          {course.department_name} · {course.semester_name}
-        </div>
-        <h3 className="mt-1.5 line-clamp-2 text-base font-extrabold leading-snug">
-          {course.title}
-        </h3>
-        <div className="mt-3 flex flex-wrap gap-3 text-xs font-medium text-muted-foreground">
-          <span className="inline-flex items-center gap-1">
-            <BookOpen className="size-3.5" />
-            {toBanglaNumber(course.subject_count)} সাব্জেক্ট
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <PlayCircle className="size-3.5" />
-            {toBanglaNumber(course.lesson_count)} লেসন
-          </span>
-        </div>
-        <div className="mt-4 flex items-end justify-between border-t border-border pt-3">
-          <div>
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              শুরু থেকে
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-lg font-extrabold tabular-nums text-foreground">
-                ৳{toBanglaNumber(course.price_bdt)}
-              </span>
-              {course.compare_at_price_bdt && course.compare_at_price_bdt > course.price_bdt && (
-                <span className="text-xs text-muted-foreground line-through">
-                  ৳{toBanglaNumber(course.compare_at_price_bdt)}
-                </span>
-              )}
-            </div>
-          </div>
-          <span className="text-sm font-bold text-foreground group-hover:text-brand">
-            বিস্তারিত →
-          </span>
-        </div>
-      </div>
-    </Link>
   );
 }
 

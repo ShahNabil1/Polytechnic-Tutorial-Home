@@ -15,7 +15,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { ProductCard } from "@/components/product-card";
 import type { Product } from "@/lib/products";
 import { listFeaturedProducts } from "@/lib/products.functions";
-import { listPublicCourses, type PublicCourseCard } from "@/lib/lms.functions";
+import { listPublicCourses, type PublicCourseCard as PublicCourseCardData } from "@/lib/lms.functions";
+import { PublicCourseCard } from "@/components/public-course-card";
 import { toBanglaNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -122,7 +123,7 @@ function HomePage() {
   const fetchFeatured = useServerFn(listFeaturedProducts);
   const fetchCourses = useServerFn(listPublicCourses);
   const [featured, setFeatured] = useState<Product[]>([]);
-  const [courses, setCourses] = useState<PublicCourseCard[]>([]);
+  const [courses, setCourses] = useState<PublicCourseCardData[]>([]);
 
   useEffect(() => {
     fetchFeatured({ data: undefined as never })
@@ -132,7 +133,11 @@ function HomePage() {
 
   useEffect(() => {
     fetchCourses(undefined as never)
-      .then((rows) => setCourses((rows ?? []).slice(0, 3)))
+      .then((rows) => {
+        const list = rows ?? [];
+        const featured = list.filter((c) => c.is_featured);
+        setCourses((featured.length > 0 ? featured : list).slice(0, 3));
+      })
       .catch(() => setCourses([]));
   }, [fetchCourses]);
 
@@ -218,7 +223,7 @@ function Stats() {
   );
 }
 
-function Courses({ items }: { items: PublicCourseCard[] }) {
+function Courses({ items }: { items: PublicCourseCardData[] }) {
   return (
     <section id="courses" className="scroll-mt-20 px-4 py-20 md:px-6 md:py-24">
       <div className="mx-auto max-w-6xl">
@@ -246,44 +251,9 @@ function Courses({ items }: { items: PublicCourseCard[] }) {
             শীঘ্রই নতুন কোর্স যুক্ত হচ্ছে।
           </div>
         ) : (
-          <div className="mt-10 grid gap-5 md:grid-cols-3">
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((c) => (
-              <Link
-                key={c.id}
-                to="/courses/$deptSlug/$semSlug"
-                params={{ deptSlug: c.department_slug, semSlug: c.semester_slug }}
-                className="group flex flex-col rounded-xl border border-border bg-card p-6 transition-colors hover:border-foreground/30"
-              >
-                <div className="text-xs font-medium text-brand">{c.department_name}</div>
-                <h3 className="mt-2 line-clamp-2 text-lg font-semibold leading-snug">
-                  {c.title}
-                </h3>
-                <div className="mt-5 flex flex-wrap gap-4 text-xs text-muted-foreground">
-                  <span className="inline-flex items-center gap-1.5">
-                    <PlayCircle className="size-3.5" />
-                    {toBanglaNumber(c.lesson_count)} লেসন
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <Users className="size-3.5" />
-                    {toBanglaNumber(c.subject_count)} সাব্জেক্ট
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <Clock className="size-3.5" />
-                    {c.semester_name}
-                  </span>
-                </div>
-                <div className="mt-6 flex items-end justify-between border-t border-border pt-5">
-                  <div>
-                    <div className="text-xs text-muted-foreground">শুরু থেকে</div>
-                    <div className="font-inter text-xl font-semibold tabular-nums">
-                      ৳{toBanglaNumber(c.price_bdt)}
-                    </div>
-                  </div>
-                  <span className="text-sm font-medium text-foreground transition-colors group-hover:text-brand">
-                    বিস্তারিত →
-                  </span>
-                </div>
-              </Link>
+              <PublicCourseCard key={c.id} course={c} />
             ))}
           </div>
         )}
