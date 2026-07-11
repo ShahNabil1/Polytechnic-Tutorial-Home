@@ -286,6 +286,7 @@ export function SubjectsManager({ deptFilter = "", semFilter = "" }: Props) {
         open={creating || !!editSubject}
         subject={editSubject}
         taxonomy={taxonomy}
+        initialPlacements={editSubject ? undefined : initialPlacementsForCreate}
         onClose={() => {
           setCreating(false);
           setEditSubject(null);
