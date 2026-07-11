@@ -548,9 +548,36 @@ export const updateOrderStatus = createServerFn({ method: "POST" })
     await ensureStaff(context);
     const { data: curr } = await context.supabase
       .from("orders")
-      .select("status")
+      .select("status, has_physical, steadfast_consignment_id")
       .eq("id", data.id)
       .single();
+
+    // Auto-dispatch to Steadfast when transitioning a physical order into RTS.
+    // Runs inline so the drawer surfaces the exact courier error if it fails
+    // (order stays in `processing` in that case).
+    if (
+      data.status === "ready_to_ship" &&
+      curr?.has_physical &&
+      !curr?.steadfast_consignment_id
+    ) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { dispatchOrderById } = await import("@/lib/steadfast.functions");
+      const res = await dispatchOrderById(supabaseAdmin, data.id);
+      if (!res.ok) {
+        // dispatchOrderById already persisted the error onto the order.
+        throw new Error(res.error || "Steadfast dispatch failed");
+      }
+      // dispatchOrderById already set status=ready_to_ship, so we just log.
+      await context.supabase.from("order_status_history").insert({
+        order_id: data.id,
+        from_status: curr?.status ?? null,
+        to_status: data.status,
+        changed_by: context.userId,
+        note: data.note ?? "Auto-dispatched to Steadfast",
+      } as any);
+      return { ok: true };
+    }
+
     const { error } = await context.supabase
       .from("orders")
       .update({ status: data.status })
