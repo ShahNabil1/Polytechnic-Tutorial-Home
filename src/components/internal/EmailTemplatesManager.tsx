@@ -159,6 +159,7 @@ export function EmailTemplatesManager() {
     setIsEditing(true);
     setName("New email template");
     setSubject("");
+    setCategory("campaign");
     setBodyHtml(
       `<div style="font-family:Inter,system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;">
   <h2 style="color:#0f172a;">Hello {{customer_name}},</h2>
