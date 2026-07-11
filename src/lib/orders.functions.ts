@@ -408,26 +408,37 @@ export const getAdminOrder = createServerFn({ method: "GET" })
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     await ensureStaff(context);
-    const [{ data: order, error: oe }, { data: items }, { data: notes }, { data: history }, { data: deliveries }] =
-      await Promise.all([
-        context.supabase.from("orders").select("*").eq("id", data.id).single(),
-        context.supabase.from("order_items").select("*").eq("order_id", data.id).order("created_at"),
-        context.supabase
-          .from("order_internal_notes")
-          .select("*")
-          .eq("order_id", data.id)
-          .order("created_at", { ascending: false }),
-        context.supabase
-          .from("order_status_history")
-          .select("*")
-          .eq("order_id", data.id)
-          .order("created_at", { ascending: false }),
-        context.supabase
-          .from("order_email_deliveries")
-          .select("*")
-          .eq("order_id", data.id)
-          .order("created_at", { ascending: false }),
-      ]);
+    const [
+      { data: order, error: oe },
+      { data: items },
+      { data: notes },
+      { data: history },
+      { data: deliveries },
+      { data: smsDeliveries },
+    ] = await Promise.all([
+      context.supabase.from("orders").select("*").eq("id", data.id).single(),
+      context.supabase.from("order_items").select("*").eq("order_id", data.id).order("created_at"),
+      context.supabase
+        .from("order_internal_notes")
+        .select("*")
+        .eq("order_id", data.id)
+        .order("created_at", { ascending: false }),
+      context.supabase
+        .from("order_status_history")
+        .select("*")
+        .eq("order_id", data.id)
+        .order("created_at", { ascending: false }),
+      context.supabase
+        .from("order_email_deliveries")
+        .select("*")
+        .eq("order_id", data.id)
+        .order("created_at", { ascending: false }),
+      context.supabase
+        .from("order_sms_deliveries")
+        .select("*")
+        .eq("order_id", data.id)
+        .order("created_at", { ascending: false }),
+    ]);
     if (oe) throw new Error(oe.message);
 
     let profile: any = null;
@@ -441,9 +452,12 @@ export const getAdminOrder = createServerFn({ method: "GET" })
     }
     const orderOut = order ? { ...order, ip: order.ip == null ? null : String(order.ip) } : null;
 
-    // Enrich notes with author display name
+    // Enrich notes + sms deliveries with author display name
     const authorIds = Array.from(
-      new Set((notes ?? []).map((n: any) => n.author_user_id).filter(Boolean)),
+      new Set([
+        ...(notes ?? []).map((n: any) => n.author_user_id).filter(Boolean),
+        ...(smsDeliveries ?? []).map((s: any) => s.sender_user_id).filter(Boolean),
+      ]),
     );
     let authorMap: Record<string, string> = {};
     if (authorIds.length) {
@@ -462,7 +476,19 @@ export const getAdminOrder = createServerFn({ method: "GET" })
       ...n,
       author_name: n.author_user_id ? authorMap[n.author_user_id] ?? "Staff" : "System",
     }));
-    return { order: orderOut, items: items ?? [], notes: notesOut, history: history ?? [], profile, deliveries: deliveries ?? [] };
+    const smsOut = (smsDeliveries ?? []).map((s: any) => ({
+      ...s,
+      sender_name: s.sender_user_id ? authorMap[s.sender_user_id] ?? "Staff" : "System",
+    }));
+    return {
+      order: orderOut,
+      items: items ?? [],
+      notes: notesOut,
+      history: history ?? [],
+      profile,
+      deliveries: deliveries ?? [],
+      smsDeliveries: smsOut,
+    };
   });
 
 // -------- ADMIN: update customer / order fields --------
