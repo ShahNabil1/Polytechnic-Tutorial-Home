@@ -252,8 +252,31 @@ export const createOrder = createServerFn({ method: "POST" })
     // On successful order: remove any incomplete-checkout rows for this phone.
     await sb.from("incomplete_checkouts").delete().eq("customer_phone", data.customer.phone);
 
+    // Fire-and-forget: trigger instant ebook delivery for ebook/mixed orders
+    if (hasEbook) {
+      triggerEbookDelivery(order.id);
+    }
+
     return { id: order.id, orderNo: order.order_no, status: order.status };
   });
+
+function triggerEbookDelivery(orderId: string) {
+  try {
+    const host = getRequestHeader("host") || getRequestHeader("x-forwarded-host") || "";
+    const proto = getRequestHeader("x-forwarded-proto") || "https";
+    if (!host) return;
+    const key = process.env.SUPABASE_PUBLISHABLE_KEY;
+    if (!key) return;
+    // Fire-and-forget: don't await; log errors only
+    fetch(`${proto}://${host}/api/public/hooks/deliver-ebook-batch`, {
+      method: "POST",
+      headers: { "content-type": "application/json", apikey: key },
+      body: JSON.stringify({ order_id: orderId }),
+    }).catch((err) => console.error("triggerEbookDelivery failed", err));
+  } catch (err) {
+    console.error("triggerEbookDelivery error", err);
+  }
+}
 
 
 function isUuid(v: string) {
