@@ -43,16 +43,15 @@ export const upsertEmailTemplate = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await ensureStaff(context);
     if (data.id) {
-      const patch: Record<string, unknown> = {
-        name: data.name,
-        subject: data.subject,
-        body_html: data.body_html,
-        variables: data.variables ?? [],
-      };
-      if (data.category) patch.category = data.category;
       const { error } = await context.supabase
         .from("email_templates")
-        .update(patch)
+        .update({
+          name: data.name,
+          subject: data.subject,
+          body_html: data.body_html,
+          variables: data.variables ?? [],
+          ...(data.category ? { category: data.category } : {}),
+        })
         .eq("id", data.id);
       if (error) throw new Error(error.message);
       return { ok: true, id: data.id };
