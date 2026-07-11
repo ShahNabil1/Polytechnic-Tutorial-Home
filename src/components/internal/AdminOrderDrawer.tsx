@@ -154,6 +154,7 @@ export function AdminOrderDrawer({
 
   const [savingCustomer, setSavingCustomer] = useState(false);
   const [savingNote, setSavingNote] = useState(false);
+  const [submittingNote, setSubmittingNote] = useState(false);
   const [custErrors, setCustErrors] = useState<Record<string, string>>({});
 
   function validateCustomer(): Record<string, string> {
@@ -311,7 +312,8 @@ export function AdminOrderDrawer({
   }
 
   async function submitNote() {
-    if (!noteBody.trim()) return;
+    if (!noteBody.trim() || submittingNote) return;
+    setSubmittingNote(true);
     try {
       await addNote({ data: { id: orderId, body: noteBody.trim() } });
       setNoteBody("");
@@ -319,6 +321,8 @@ export function AdminOrderDrawer({
       refetch();
     } catch (e: any) {
       toast.error(e.message || "Failed");
+    } finally {
+      setSubmittingNote(false);
     }
   }
 
@@ -593,15 +597,16 @@ export function AdminOrderDrawer({
                     </button>
                     <button
                       onClick={saveCustomer}
-                      className="btn-sm-primary disabled:opacity-60"
-                      disabled={savingCustomer}
+                      className="btn-sm-primary transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
+                      disabled={savingCustomer || !customerDirty}
+                      title={!customerDirty ? "কোনো পরিবর্তন নেই" : "Save customer details"}
                     >
                       {savingCustomer ? (
                         <Loader2 className="size-3.5 animate-spin" />
                       ) : (
                         <Save className="size-3.5" />
                       )}
-                      {savingCustomer ? "Saving…" : "Save"}
+                      {savingCustomer ? "Saving…" : customerDirty ? "Save" : "Saved"}
                     </button>
                   </>
                 ) : (
@@ -662,15 +667,16 @@ export function AdminOrderDrawer({
                 action={
                   <button
                     onClick={saveDeliveryNote}
-                    className="btn-sm-primary disabled:opacity-60"
-                    disabled={savingNote || deliveryNote === (customer.note ?? "")}
+                    className="btn-sm-primary transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
+                    disabled={savingNote || !deliveryNoteDirty}
+                    title={!deliveryNoteDirty ? "কোনো পরিবর্তন নেই" : "Save delivery note"}
                   >
                     {savingNote ? (
                       <Loader2 className="size-3.5 animate-spin" />
                     ) : (
                       <Save className="size-3.5" />
                     )}
-                    {savingNote ? "Saving…" : "Save Note"}
+                    {savingNote ? "Saving…" : deliveryNoteDirty ? "Save Note" : "Saved"}
                   </button>
                 }
               >
@@ -821,8 +827,18 @@ export function AdminOrderDrawer({
                   placeholder="Only staff can see this…"
                   className="min-h-[60px] flex-1 rounded-lg border border-slate-200 bg-white p-2 text-sm"
                 />
-                <button onClick={submitNote} className="btn-sm-primary self-start">
-                  <MessageSquarePlus className="size-3.5" /> Add
+                <button
+                  onClick={submitNote}
+                  disabled={submittingNote || !noteBody.trim()}
+                  className="btn-sm-primary self-start transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
+                  title={!noteBody.trim() ? "কিছু লিখুন" : "Add internal note"}
+                >
+                  {submittingNote ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <MessageSquarePlus className="size-3.5" />
+                  )}
+                  {submittingNote ? "Adding…" : "Add"}
                 </button>
               </div>
               <div className="mt-3 space-y-2">
