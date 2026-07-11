@@ -238,8 +238,15 @@ export function AdminOrderDrawer({
     setIsEditingCustomer(false);
   }
 
+  const [savingItems, setSavingItems] = useState(false);
+
   async function saveItems() {
-    if (!itemDraft) return;
+    if (!itemDraft || savingItems) return;
+    if (itemDraft.length === 0) {
+      toast.error("অন্তত একটি প্রোডাক্ট থাকতে হবে — সব প্রোডাক্ট ডিলিট করে সেভ করা যাবে না");
+      return;
+    }
+    setSavingItems(true);
     try {
       await upItems({
         data: {
@@ -260,6 +267,8 @@ export function AdminOrderDrawer({
       onChanged?.();
     } catch (e: any) {
       toast.error(e.message || "Failed");
+    } finally {
+      setSavingItems(false);
     }
   }
 
@@ -358,8 +367,51 @@ export function AdminOrderDrawer({
   const hasPhysical = activeItems.some((i: any) => (i.item_type ?? i.type) !== "ebook");
   const isEbookOnly = !hasPhysical && order?.order_type === "ebook";
 
+  const itemsSignature = (arr: OrderItem[]) =>
+    JSON.stringify(
+      arr.map((i) => ({
+        p: i.product_id,
+        t: i.title,
+        s: i.sku,
+        u: Number(i.unit_price),
+        q: Number(i.quantity),
+        y: i.item_type,
+      })),
+    );
+  const itemsDirty = itemDraft !== null && itemsSignature(itemDraft) !== itemsSignature(items);
+  const customerDirty =
+    isEditingCustomer &&
+    !!order &&
+    !!customer &&
+    (customer.customer_name !== order.customer_name ||
+      customer.customer_phone !== order.customer_phone ||
+      (customer.alternative_phone ?? "") !== (order.alternative_phone ?? "") ||
+      (customer.customer_email ?? "") !== (order.customer_email ?? "") ||
+      (customer.division ?? "") !== (order.division ?? "") ||
+      (customer.district ?? "") !== (order.district ?? "") ||
+      (customer.thana ?? "") !== (order.thana ?? "") ||
+      (customer.address_line ?? "") !== (order.address_line ?? ""));
+  const deliveryNoteDirty = !!order && deliveryNote !== (order.note ?? "");
+  const noteDraftDirty = noteBody.trim().length > 0;
+  const hasUnsaved = itemsDirty || customerDirty || deliveryNoteDirty || noteDraftDirty;
+
+  async function requestClose() {
+    if (hasUnsaved) {
+      const ok = await confirmDialog({
+        variant: "warning",
+        title: "সেভ করা হয়নি এমন পরিবর্তন আছে",
+        description:
+          "এই অর্ডারে আপনি কিছু পরিবর্তন করেছেন যা এখনো সেভ হয়নি। ক্লোজ করলে ওই পরিবর্তনগুলো হারিয়ে যাবে। এগুলো বাদ দিয়ে ক্লোজ করবেন?",
+        confirmLabel: "Discard & Close",
+        cancelLabel: "Keep Editing",
+      });
+      if (!ok) return;
+    }
+    onClose();
+  }
+
   return (
-    <div className="fixed inset-0 z-[60] flex justify-end bg-black/40" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] flex justify-end bg-black/40" onClick={requestClose}>
       <div
         className="flex h-full w-full max-w-4xl flex-col overflow-hidden bg-slate-50 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
@@ -400,7 +452,7 @@ export function AdminOrderDrawer({
                 </>
               )}
               <button
-                onClick={onClose}
+                onClick={requestClose}
                 className="grid size-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100"
               >
                 <X className="size-4" />
@@ -643,7 +695,25 @@ export function AdminOrderDrawer({
                 <button onClick={() => setShowSearch((v) => !v)} className="btn-sm">
                   <Plus className="size-3.5" /> Add Product
                 </button>
-                <button onClick={saveItems} className="btn-sm-primary"><Save className="size-3.5" /> Save Items</button>
+                <button
+                  onClick={saveItems}
+                  disabled={savingItems || !itemsDirty || (itemDraft?.length ?? 0) === 0}
+                  className="btn-sm-primary transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
+                  title={
+                    (itemDraft?.length ?? 0) === 0
+                      ? "অন্তত একটি প্রোডাক্ট থাকতে হবে"
+                      : !itemsDirty
+                      ? "কোনো পরিবর্তন নেই"
+                      : "Save items"
+                  }
+                >
+                  {savingItems ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Save className="size-3.5" />
+                  )}
+                  {savingItems ? "Saving…" : itemsDirty ? "Save Items" : "Saved"}
+                </button>
               </div>
             }>
               {showSearch && (
