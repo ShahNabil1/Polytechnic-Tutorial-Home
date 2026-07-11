@@ -134,6 +134,7 @@ export function EmailTemplatesManager() {
           body_html: bodyHtml,
           variables:
             selected?.key && SYSTEM_VARS[selected.key] ? SYSTEM_VARS[selected.key] : variables,
+          category,
         },
       });
       toast.success("Template saved");
