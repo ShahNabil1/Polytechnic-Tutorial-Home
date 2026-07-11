@@ -1,6 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
+function serverPublic() {
+  return createClient<Database>(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_PUBLISHABLE_KEY!,
+    { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
+  );
+}
 import type {
   AcademicCategory,
   AcademicKind,
@@ -947,9 +957,15 @@ export const revokeEnrollment = createServerFn({ method: "POST" })
 
 export const enrollInCourseTest = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i: unknown) => z.object({ course_id: z.string().uuid() }).parse(i))
+  .inputValidator((i: unknown) =>
+    z
+      .object({
+        course_id: z.string().uuid(),
+        coupon_code: z.string().trim().min(1).max(60).optional().nullable(),
+      })
+      .parse(i),
+  )
   .handler(async ({ data, context }) => {
-    // Only allow the 'student' role to self-enroll
     const { data: isStudent, error: rErr } = await context.supabase.rpc("has_role", {
       _user_id: context.userId,
       _role: "student",
@@ -959,10 +975,9 @@ export const enrollInCourseTest = createServerFn({ method: "POST" })
       throw new Error("শুধু স্টুডেন্ট রোলের ইউজার এনরোল করতে পারবে।");
     }
 
-    // Verify course exists and is active
     const { data: course, error: cErr } = await context.supabase
       .from("lms_courses")
-      .select("id, is_active")
+      .select("id, is_active, price_bdt")
       .eq("id", data.course_id)
       .maybeSingle();
     if (cErr) throw new Error(cErr.message);
@@ -970,12 +985,40 @@ export const enrollInCourseTest = createServerFn({ method: "POST" })
       throw new Error("এই কোর্সটি এখন উপলব্ধ নয়।");
     }
 
+    // Optional coupon validation. In test-mode we don't process real payment,
+    // so we just re-validate against the coupons RPC and record the code +
+    // discount amount in the enrollment note for CRM/audit purposes. A bad
+    // coupon rejects the enrollment so the client can retry without it.
+    let note = "test-mode: instant enroll (Paystation stub)";
+    if (data.coupon_code) {
+      const subtotal = Number((course as any).price_bdt ?? 0);
+      const { data: res, error: vErr } = await context.supabase.rpc("validate_coupon", {
+        _code: data.coupon_code,
+        _subtotal: subtotal,
+        _product_ids: [] as string[],
+        _category_ids: [data.course_id],
+        _phone: null,
+        _user_id: context.userId,
+        _scope: "course",
+      } as any);
+      if (vErr) throw new Error(vErr.message);
+      const r = (res ?? {}) as any;
+      if (!r.ok) {
+        throw new Error(
+          r.reason === "min_spend"
+            ? "কুপন প্রয়োগ করা যাচ্ছে না (মিনিমাম স্পেন্ড পূরণ হয়নি)।"
+            : "কুপন অবৈধ বা মেয়াদোত্তীর্ণ।",
+        );
+      }
+      note = `test-mode enroll · coupon=${r.code} · discount=৳${Number(r.discount ?? 0)}`;
+    }
+
     const { error } = await context.supabase.from("lms_enrollments").upsert(
       {
         user_id: context.userId,
         course_id: data.course_id,
         granted_by: context.userId,
-        note: "test-mode: instant enroll (Paystation stub)",
+        note,
       } as never,
       { onConflict: "user_id,course_id" },
     );
@@ -1062,3 +1105,267 @@ export const listCourseCurriculum = createServerFn({ method: "GET" })
     });
   });
 
+
+// ==================== Public (anon) course catalog ====================
+// These use a publishable-key client so they run for signed-out visitors
+// on `/courses` and `/courses/$deptSlug/$semSlug`. Public row visibility is
+// enforced by the `is_active` policies on lms_courses, lms_departments,
+// lms_semesters, lms_subjects, lms_modules, lms_lessons and the anon
+// SELECT policy on lms_subject_placements.
+
+export type PublicCourseCard = {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  cover_image_url: string | null;
+  media_items: { id: string; type: "image" | "video"; url: string; alt?: string | null }[];
+  price_bdt: number;
+  compare_at_price_bdt: number | null;
+  sort_order: number;
+  department_id: string;
+  department_name: string;
+  department_slug: string;
+  semester_id: string;
+  semester_name: string;
+  semester_slug: string;
+  subject_count: number;
+  lesson_count: number;
+};
+
+export const listPublicCourses = createServerFn({ method: "GET" }).handler(
+  async (): Promise<PublicCourseCard[]> => {
+    const sb = serverPublic();
+    const [coursesRes, depsRes, semsRes, placeRes] = await Promise.all([
+      sb
+        .from("lms_courses")
+        .select(
+          "id, slug, title, description, cover_image_url, media_items, price_bdt, compare_at_price_bdt, sort_order, department_id, semester_id",
+        )
+        .eq("is_active", true)
+        .order("sort_order")
+        .order("created_at", { ascending: false }),
+      sb.from("lms_departments").select("id, name, slug").eq("is_active", true),
+      sb.from("lms_semesters").select("id, name, slug").eq("is_active", true),
+      sb.from("lms_subject_placements").select("department_id, semester_id, subject_id"),
+    ]);
+    if (coursesRes.error) throw new Error(coursesRes.error.message);
+    if (depsRes.error) throw new Error(depsRes.error.message);
+    if (semsRes.error) throw new Error(semsRes.error.message);
+
+    const depMap = new Map<string, any>(((depsRes.data ?? []) as any[]).map((d) => [d.id, d]));
+    const semMap = new Map<string, any>(((semsRes.data ?? []) as any[]).map((s) => [s.id, s]));
+    const subjectSetByPair = new Map<string, Set<string>>();
+    for (const p of (placeRes.data ?? []) as any[]) {
+      const k = `${p.department_id}:${p.semester_id}`;
+      const set = subjectSetByPair.get(k) ?? new Set<string>();
+      set.add(p.subject_id);
+      subjectSetByPair.set(k, set);
+    }
+
+    // lesson counts per pair via subjects → modules → lessons (public read OK)
+    const allSubjectIds = Array.from(
+      new Set(Array.from(subjectSetByPair.values()).flatMap((s) => Array.from(s))),
+    );
+    let lessonsBySubject = new Map<string, number>();
+    if (allSubjectIds.length > 0) {
+      const { data: modRows } = await sb
+        .from("lms_modules")
+        .select("id, subject_id")
+        .in("subject_id", allSubjectIds);
+      const modToSubject = new Map<string, string>();
+      const modIds: string[] = [];
+      for (const m of (modRows ?? []) as any[]) {
+        modToSubject.set(m.id, m.subject_id);
+        modIds.push(m.id);
+      }
+      if (modIds.length > 0) {
+        const { data: lessonRows } = await sb
+          .from("lms_lessons")
+          .select("id, module_id")
+          .in("module_id", modIds);
+        for (const l of (lessonRows ?? []) as any[]) {
+          const sid = modToSubject.get(l.module_id);
+          if (!sid) continue;
+          lessonsBySubject.set(sid, (lessonsBySubject.get(sid) ?? 0) + 1);
+        }
+      }
+    }
+
+    return ((coursesRes.data ?? []) as any[])
+      .map((r): PublicCourseCard | null => {
+        const dep = depMap.get(r.department_id);
+        const sem = semMap.get(r.semester_id);
+        if (!dep || !sem) return null;
+        const media = Array.isArray(r.media_items) ? (r.media_items as any[]) : [];
+        const key = `${r.department_id}:${r.semester_id}`;
+        const subjectIds = Array.from(subjectSetByPair.get(key) ?? []);
+        const lessonCount = subjectIds.reduce(
+          (a, sid) => a + (lessonsBySubject.get(sid) ?? 0),
+          0,
+        );
+        return {
+          id: r.id,
+          slug: r.slug,
+          title: r.title,
+          description: r.description ?? null,
+          cover_image_url: r.cover_image_url ?? null,
+          media_items: media.map((m: any) => ({
+            id: String(m.id ?? Math.random().toString(36).slice(2)),
+            type: m.type === "video" ? "video" : "image",
+            url: String(m.url ?? ""),
+            alt: m.alt ?? null,
+          })),
+          price_bdt: Number(r.price_bdt ?? 0),
+          compare_at_price_bdt:
+            r.compare_at_price_bdt == null ? null : Number(r.compare_at_price_bdt),
+          sort_order: Number(r.sort_order ?? 0),
+          department_id: r.department_id,
+          department_name: dep.name,
+          department_slug: dep.slug,
+          semester_id: r.semester_id,
+          semester_name: sem.name,
+          semester_slug: sem.slug,
+          subject_count: subjectIds.length,
+          lesson_count: lessonCount,
+        };
+      })
+      .filter((x): x is PublicCourseCard => x !== null);
+  },
+);
+
+export type PublicCourseDetail = {
+  course: PublicCourseCard & {
+    meta_title: string | null;
+    meta_description: string | null;
+  };
+  subjects: {
+    id: string;
+    name: string;
+    slug: string;
+    modules: {
+      id: string;
+      title: string;
+      lesson_count: number;
+      lessons: { id: string; title: string; is_free: boolean; duration_seconds: number | null }[];
+    }[];
+  }[];
+};
+
+export const getPublicCourseByPair = createServerFn({ method: "GET" })
+  .inputValidator((i: unknown) =>
+    z.object({ dept_slug: z.string().min(1), sem_slug: z.string().min(1) }).parse(i),
+  )
+  .handler(async ({ data }): Promise<PublicCourseDetail | null> => {
+    const sb = serverPublic();
+    const [depRes, semRes] = await Promise.all([
+      sb.from("lms_departments").select("id, name, slug").eq("slug", data.dept_slug).maybeSingle(),
+      sb.from("lms_semesters").select("id, name, slug").eq("slug", data.sem_slug).maybeSingle(),
+    ]);
+    const dep = depRes.data as any;
+    const sem = semRes.data as any;
+    if (!dep || !sem) return null;
+
+    const { data: courseRow } = await sb
+      .from("lms_courses")
+      .select("*")
+      .eq("department_id", dep.id)
+      .eq("semester_id", sem.id)
+      .eq("is_active", true)
+      .maybeSingle();
+    if (!courseRow) return null;
+    const c = courseRow as any;
+
+    const { data: placements } = await sb
+      .from("lms_subject_placements")
+      .select("subject_id")
+      .eq("department_id", dep.id)
+      .eq("semester_id", sem.id);
+    const subjectIds = ((placements ?? []) as any[]).map((p) => p.subject_id);
+
+    let subjects: any[] = [];
+    const modulesBySubject = new Map<string, any[]>();
+    const lessonsByModule = new Map<string, any[]>();
+    if (subjectIds.length > 0) {
+      const { data: subjRows } = await sb
+        .from("lms_subjects")
+        .select("id, name, slug, sort_order, is_active")
+        .in("id", subjectIds)
+        .eq("is_active", true)
+        .order("sort_order");
+      subjects = (subjRows ?? []) as any[];
+
+      if (subjects.length > 0) {
+        const { data: modRows } = await sb
+          .from("lms_modules")
+          .select("id, subject_id, title, sort_order")
+          .in("subject_id", subjects.map((s) => s.id))
+          .order("sort_order");
+        const modules = (modRows ?? []) as any[];
+        for (const m of modules) {
+          const arr = modulesBySubject.get(m.subject_id) ?? [];
+          arr.push(m);
+          modulesBySubject.set(m.subject_id, arr);
+        }
+        const modIds = modules.map((m) => m.id);
+        if (modIds.length > 0) {
+          const { data: lessonRows } = await sb
+            .from("lms_lessons")
+            .select("id, module_id, title, is_free, duration_seconds, sort_order")
+            .in("module_id", modIds)
+            .order("sort_order");
+          for (const l of (lessonRows ?? []) as any[]) {
+            const arr = lessonsByModule.get(l.module_id) ?? [];
+            arr.push(l);
+            lessonsByModule.set(l.module_id, arr);
+          }
+        }
+      }
+    }
+
+    const media = Array.isArray(c.media_items) ? (c.media_items as any[]) : [];
+    let lessonCount = 0;
+    const subjectsOut = subjects.map((s) => {
+      const mods = (modulesBySubject.get(s.id) ?? []).map((m: any) => {
+        const lessons = (lessonsByModule.get(m.id) ?? []).map((l: any) => ({
+          id: l.id,
+          title: l.title,
+          is_free: !!l.is_free,
+          duration_seconds: l.duration_seconds ?? null,
+        }));
+        lessonCount += lessons.length;
+        return { id: m.id, title: m.title, lesson_count: lessons.length, lessons };
+      });
+      return { id: s.id, name: s.name, slug: s.slug, modules: mods };
+    });
+
+    return {
+      course: {
+        id: c.id,
+        slug: c.slug,
+        title: c.title,
+        description: c.description ?? null,
+        cover_image_url: c.cover_image_url ?? null,
+        media_items: media.map((m: any) => ({
+          id: String(m.id ?? Math.random().toString(36).slice(2)),
+          type: m.type === "video" ? "video" : "image",
+          url: String(m.url ?? ""),
+          alt: m.alt ?? null,
+        })),
+        price_bdt: Number(c.price_bdt ?? 0),
+        compare_at_price_bdt: c.compare_at_price_bdt == null ? null : Number(c.compare_at_price_bdt),
+        sort_order: Number(c.sort_order ?? 0),
+        department_id: c.department_id,
+        department_name: dep.name,
+        department_slug: dep.slug,
+        semester_id: c.semester_id,
+        semester_name: sem.name,
+        semester_slug: sem.slug,
+        subject_count: subjects.length,
+        lesson_count: lessonCount,
+        meta_title: c.meta_title ?? null,
+        meta_description: c.meta_description ?? null,
+      },
+      subjects: subjectsOut,
+    };
+  });

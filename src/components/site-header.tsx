@@ -1,7 +1,7 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import logoAsset from "@/assets/pth-logo.jpg.asset.json";
 import { ShoppingCart, Menu, X, LogOut, User as UserIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useCart } from "@/lib/cart-store";
 import { toBanglaNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -61,6 +61,13 @@ function AuthButton() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Global "please open sign-in" event so public pages (e.g. course enroll)
+  // can request the shared auth drawer without prop drilling.
+  useEffect(() => {
+    const handler = () => setDrawerOpen(true);
+    window.addEventListener("open-auth-drawer", handler);
+    return () => window.removeEventListener("open-auth-drawer", handler);
+  }, []);
   if (loading) return null;
   if (!user) {
     return (
