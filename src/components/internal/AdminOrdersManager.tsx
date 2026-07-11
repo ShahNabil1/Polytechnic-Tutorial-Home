@@ -306,11 +306,74 @@ export function AdminOrdersManager() {
         </div>
 
       ) : (
+        <div className="space-y-3">
+          {isProcessing && selected.size > 0 && (
+            <div className="sticky top-2 z-20 flex flex-wrap items-center gap-3 rounded-2xl border border-emerald-200 bg-white px-4 py-2.5 shadow-lg ring-1 ring-emerald-100">
+              <span className="text-xs font-extrabold text-slate-900">
+                {selected.size} selected
+              </span>
+              {selectionHasNonPhysical && (
+                <span className="rounded bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-800 ring-1 ring-amber-200">
+                  Selection contains digital / online-book orders — deselect those to send RTS.
+                </span>
+              )}
+              <div className="ml-auto flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelected(new Set())}
+                  className="rounded-lg px-2.5 py-1 text-[11px] font-bold text-slate-600 hover:bg-slate-100"
+                >
+                  Clear
+                </button>
+                <button
+                  type="button"
+                  onClick={openBulkRTS}
+                  disabled={selectionHasNonPhysical || selectedList.filter((o: any) => o.has_physical).length === 0}
+                  title={
+                    selectionHasNonPhysical
+                      ? "Deselect digital / online-book orders first"
+                      : "Send selected physical orders to Steadfast"
+                  }
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-extrabold text-white shadow-sm transition-all",
+                    "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700",
+                    "disabled:cursor-not-allowed disabled:from-slate-300 disabled:to-slate-300 disabled:text-slate-500",
+                  )}
+                >
+                  <Truck className="size-3.5" />
+                  Send {selectedList.filter((o: any) => o.has_physical).length} to Steadfast (RTS)
+                </button>
+              </div>
+            </div>
+          )}
         <div className="overflow-hidden rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/60 via-white to-sky-50/60 shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gradient-to-r from-indigo-100/70 to-sky-100/70 text-left text-[11px] font-bold uppercase tracking-wider text-indigo-900/70">
                 <tr>
+                  {isProcessing && (
+                    <th className="w-10 px-3 py-3">
+                      <button
+                        type="button"
+                        onClick={toggleSelectAllPhysical}
+                        disabled={selectablePhysicalIds.length === 0}
+                        title={
+                          selectablePhysicalIds.length === 0
+                            ? "No physical orders on this page"
+                            : allPhysicalSelected
+                              ? "Deselect all physical orders"
+                              : "Select all physical orders"
+                        }
+                        className="grid size-5 place-items-center text-indigo-700 disabled:text-slate-300"
+                      >
+                        {allPhysicalSelected ? (
+                          <CheckSquare className="size-4" />
+                        ) : (
+                          <Square className="size-4" />
+                        )}
+                      </button>
+                    </th>
+                  )}
                   <th className="px-4 py-3">Order</th>
                   <th className="px-4 py-3">Created (Asia/Dhaka)</th>
                   <th className="px-4 py-3">Customer</th>
@@ -321,24 +384,66 @@ export function AdminOrdersManager() {
               <tbody className="divide-y divide-indigo-100/70">
                 {isLoading ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-10 text-center">
+                    <td colSpan={isProcessing ? 6 : 5} className="px-4 py-10 text-center">
                       <Loader2 className="mx-auto size-5 animate-spin text-indigo-400" />
                     </td>
                   </tr>
                 ) : orders.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-10 text-center text-sm font-semibold text-slate-500">
+                    <td colSpan={isProcessing ? 6 : 5} className="px-4 py-10 text-center text-sm font-semibold text-slate-500">
                       No orders in <span className="font-extrabold">{STATUS_LABEL[tab]}</span>.
                     </td>
                   </tr>
                 ) : (
-                  orders.map((o: any) => (
+                  orders.map((o: any) => {
+                    const failedRTS =
+                      o.has_physical &&
+                      !o.steadfast_consignment_id &&
+                      !!o.steadfast_last_error &&
+                      o.status === "processing";
+                    const showSFCard = !!o.steadfast_consignment_id;
+                    return (
                     <tr key={o.id} className="transition-colors hover:bg-indigo-50/60">
+                      {isProcessing && (
+                        <td className="px-3 py-3.5 align-top">
+                          <button
+                            type="button"
+                            onClick={() => toggleSelect(o.id)}
+                            className={cn(
+                              "grid size-5 place-items-center rounded",
+                              o.has_physical ? "text-indigo-700" : "text-slate-300 cursor-not-allowed",
+                            )}
+                            title={
+                              o.has_physical
+                                ? "Toggle selection"
+                                : "Digital-only order cannot be sent to Steadfast"
+                            }
+                          >
+                            {selected.has(o.id) ? (
+                              <CheckSquare className="size-4" />
+                            ) : (
+                              <Square className="size-4" />
+                            )}
+                          </button>
+                        </td>
+                      )}
                       <td className="px-4 py-3.5 align-top">
                         <p className="font-mono text-sm font-extrabold text-slate-900">{o.order_no}</p>
                         <FulfillmentChips o={o} />
                         <ResendEventChips events={o.email_events ?? null} />
-
+                        {o.has_physical && (
+                          <SteadfastEventChips
+                            orderId={o.id}
+                            fallbackStatus={o.steadfast_delivery_status ?? o.steadfast_status ?? null}
+                          />
+                        )}
+                        {failedRTS && <FailedRTSBadge />}
+                        {showSFCard && (
+                          <SteadfastTrackingCard
+                            consignmentId={o.steadfast_consignment_id}
+                            trackingCode={o.steadfast_tracking_code}
+                          />
+                        )}
                       </td>
                       <td className="px-4 py-3.5 align-top text-xs font-semibold text-slate-700">
                         {formatDhakaDateTime(o.created_at)}
@@ -378,11 +483,12 @@ export function AdminOrdersManager() {
                         </button>
                       </td>
                     </tr>
-                  ))
+                  );})
                 )}
               </tbody>
             </table>
           </div>
+        </div>
         </div>
       )}
 
