@@ -894,3 +894,45 @@ export const revokeEnrollment = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// ==================== Test-mode instant enroll ====================
+// TEMPORARY: Simulates a successful Paystation payment by inserting an
+// enrollment directly. Only students can call this on their own behalf.
+
+export const enrollInCourseTest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => z.object({ course_id: z.string().uuid() }).parse(i))
+  .handler(async ({ data, context }) => {
+    // Only allow the 'student' role to self-enroll
+    const { data: isStudent, error: rErr } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "student",
+    });
+    if (rErr) throw new Error(rErr.message);
+    if (isStudent !== true) {
+      throw new Error("শুধু স্টুডেন্ট রোলের ইউজার এনরোল করতে পারবে।");
+    }
+
+    // Verify course exists and is active
+    const { data: course, error: cErr } = await context.supabase
+      .from("lms_courses")
+      .select("id, is_active")
+      .eq("id", data.course_id)
+      .maybeSingle();
+    if (cErr) throw new Error(cErr.message);
+    if (!course || !(course as any).is_active) {
+      throw new Error("এই কোর্সটি এখন উপলব্ধ নয়।");
+    }
+
+    const { error } = await context.supabase.from("lms_enrollments").upsert(
+      {
+        user_id: context.userId,
+        course_id: data.course_id,
+        granted_by: context.userId,
+        note: "test-mode: instant enroll (Paystation stub)",
+      } as never,
+      { onConflict: "user_id,course_id" },
+    );
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
