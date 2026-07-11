@@ -14,13 +14,16 @@ import {
   RefreshCw,
   Trash2,
   ChevronDown,
+  Eye,
 } from "lucide-react";
 import {
   listAdminIncompleteCheckouts,
   deleteIncompleteCheckout,
+  promoteIncompleteCheckoutToOrder,
 } from "@/lib/orders.functions";
 import { formatDhakaDateTime } from "@/lib/orders";
-import { formatBDT } from "@/lib/format";
+import { formatBDTEn } from "@/lib/format";
+import { AdminOrderDrawer } from "@/components/internal/AdminOrderDrawer";
 import { cn } from "@/lib/utils";
 
 type Attempt = {
@@ -76,7 +79,10 @@ function OutcomeBadge({ outcome }: { outcome?: string | null }) {
 export function AdminIncompleteCheckouts({ search }: { search: string }) {
   const fetchList = useServerFn(listAdminIncompleteCheckouts);
   const del = useServerFn(deleteIncompleteCheckout);
+  const promote = useServerFn(promoteIncompleteCheckoutToOrder);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [openOrderId, setOpenOrderId] = useState<string | null>(null);
+  const [promotingId, setPromotingId] = useState<string | null>(null);
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["admin-incomplete", search],
@@ -94,9 +100,24 @@ export function AdminIncompleteCheckouts({ search }: { search: string }) {
     }
   }
 
+  async function view(id: string) {
+    setPromotingId(id);
+    try {
+      const res = await promote({ data: { id } });
+      setOpenOrderId(res.id);
+      refetch();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to open");
+    } finally {
+      setPromotingId(null);
+    }
+  }
+
+
   const rows = (data ?? []) as Row[];
 
   return (
+    <>
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">
         <span>{rows.length} incomplete checkout{rows.length === 1 ? "" : "s"}</span>
@@ -159,7 +180,7 @@ export function AdminIncompleteCheckouts({ search }: { search: string }) {
                     <div className="mt-2 flex flex-wrap gap-3 text-[11px] font-semibold text-slate-500">
                       <span>First: {formatDhakaDateTime(r.first_attempt_at)}</span>
                       <span>Last: {formatDhakaDateTime(r.last_attempt_at)}</span>
-                      <span>Total: <span className="font-mono text-slate-800">{formatBDT(Number(r.total_bdt))}</span></span>
+                      <span>Total: <span className="font-mono text-slate-800">{formatBDTEn(Number(r.total_bdt))}</span></span>
                     </div>
 
                     <div className="mt-2 flex flex-wrap gap-1.5">
@@ -176,6 +197,18 @@ export function AdminIncompleteCheckouts({ search }: { search: string }) {
                   </div>
 
                   <div className="flex flex-col items-end gap-1.5">
+                    <button
+                      onClick={() => view(r.id)}
+                      disabled={promotingId === r.id}
+                      className="inline-flex items-center gap-1 rounded-lg bg-brand px-2.5 py-1 text-[11px] font-extrabold text-white shadow-sm hover:bg-brand/90 disabled:opacity-60"
+                    >
+                      {promotingId === r.id ? (
+                        <Loader2 className="size-3 animate-spin" />
+                      ) : (
+                        <Eye className="size-3" />
+                      )}
+                      View
+                    </button>
                     <button
                       onClick={() => setExpandedId(isOpen ? null : r.id)}
                       className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-700 hover:bg-slate-50"
@@ -237,5 +270,13 @@ export function AdminIncompleteCheckouts({ search }: { search: string }) {
         </ul>
       )}
     </div>
+      {openOrderId && (
+        <AdminOrderDrawer
+          orderId={openOrderId}
+          onClose={() => setOpenOrderId(null)}
+          onChanged={() => refetch()}
+        />
+      )}
+    </>
   );
 }
