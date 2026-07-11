@@ -1037,5 +1037,6 @@ export const retryEbookDelivery = createServerFn({ method: "POST" })
       })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+    triggerEbookDelivery(data.id);
     return { ok: true };
   });
