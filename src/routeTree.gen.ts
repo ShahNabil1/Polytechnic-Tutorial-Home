@@ -39,6 +39,7 @@ import { Route as AuthenticatedInternalWorkspaceInstructorsRouteImport } from '.
 import { Route as AuthenticatedInternalWorkspaceEmployeesRouteImport } from './routes/_authenticated/_internal.workspace.employees'
 import { Route as AuthenticatedInternalInstructorProfileRouteImport } from './routes/_authenticated/_internal.instructor.profile'
 import { Route as AuthenticatedInternalWorkspaceEcommerceIndexRouteImport } from './routes/_authenticated/_internal.workspace.ecommerce.index'
+import { Route as ApiPublicWebhooksSteadfastSecretRouteImport } from './routes/api/public/webhooks/steadfast.$secret'
 import { Route as AuthenticatedInternalWorkspaceEcommerceProductsRouteImport } from './routes/_authenticated/_internal.workspace.ecommerce.products'
 import { Route as AuthenticatedInternalWorkspaceEcommerceOrdersRouteImport } from './routes/_authenticated/_internal.workspace.ecommerce.orders'
 import { Route as AuthenticatedInternalWorkspaceEcommerceCouponsRouteImport } from './routes/_authenticated/_internal.workspace.ecommerce.coupons'
@@ -204,6 +205,12 @@ const AuthenticatedInternalWorkspaceEcommerceIndexRoute =
     path: '/ecommerce/',
     getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
   } as any)
+const ApiPublicWebhooksSteadfastSecretRoute =
+  ApiPublicWebhooksSteadfastSecretRouteImport.update({
+    id: '/api/public/webhooks/steadfast/$secret',
+    path: '/api/public/webhooks/steadfast/$secret',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedInternalWorkspaceEcommerceProductsRoute =
   AuthenticatedInternalWorkspaceEcommerceProductsRouteImport.update({
     id: '/ecommerce/products',
@@ -261,6 +268,7 @@ export interface FileRoutesByFullPath {
   '/workspace/ecommerce/coupons': typeof AuthenticatedInternalWorkspaceEcommerceCouponsRoute
   '/workspace/ecommerce/orders': typeof AuthenticatedInternalWorkspaceEcommerceOrdersRoute
   '/workspace/ecommerce/products': typeof AuthenticatedInternalWorkspaceEcommerceProductsRoute
+  '/api/public/webhooks/steadfast/$secret': typeof ApiPublicWebhooksSteadfastSecretRoute
   '/workspace/ecommerce/': typeof AuthenticatedInternalWorkspaceEcommerceIndexRoute
 }
 export interface FileRoutesByTo {
@@ -292,6 +300,7 @@ export interface FileRoutesByTo {
   '/workspace/ecommerce/coupons': typeof AuthenticatedInternalWorkspaceEcommerceCouponsRoute
   '/workspace/ecommerce/orders': typeof AuthenticatedInternalWorkspaceEcommerceOrdersRoute
   '/workspace/ecommerce/products': typeof AuthenticatedInternalWorkspaceEcommerceProductsRoute
+  '/api/public/webhooks/steadfast/$secret': typeof ApiPublicWebhooksSteadfastSecretRoute
   '/workspace/ecommerce': typeof AuthenticatedInternalWorkspaceEcommerceIndexRoute
 }
 export interface FileRoutesById {
@@ -329,6 +338,7 @@ export interface FileRoutesById {
   '/_authenticated/_internal/workspace/ecommerce/coupons': typeof AuthenticatedInternalWorkspaceEcommerceCouponsRoute
   '/_authenticated/_internal/workspace/ecommerce/orders': typeof AuthenticatedInternalWorkspaceEcommerceOrdersRoute
   '/_authenticated/_internal/workspace/ecommerce/products': typeof AuthenticatedInternalWorkspaceEcommerceProductsRoute
+  '/api/public/webhooks/steadfast/$secret': typeof ApiPublicWebhooksSteadfastSecretRoute
   '/_authenticated/_internal/workspace/ecommerce/': typeof AuthenticatedInternalWorkspaceEcommerceIndexRoute
 }
 export interface FileRouteTypes {
@@ -365,6 +375,7 @@ export interface FileRouteTypes {
     | '/workspace/ecommerce/coupons'
     | '/workspace/ecommerce/orders'
     | '/workspace/ecommerce/products'
+    | '/api/public/webhooks/steadfast/$secret'
     | '/workspace/ecommerce/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -396,6 +407,7 @@ export interface FileRouteTypes {
     | '/workspace/ecommerce/coupons'
     | '/workspace/ecommerce/orders'
     | '/workspace/ecommerce/products'
+    | '/api/public/webhooks/steadfast/$secret'
     | '/workspace/ecommerce'
   id:
     | '__root__'
@@ -432,6 +444,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_internal/workspace/ecommerce/coupons'
     | '/_authenticated/_internal/workspace/ecommerce/orders'
     | '/_authenticated/_internal/workspace/ecommerce/products'
+    | '/api/public/webhooks/steadfast/$secret'
     | '/_authenticated/_internal/workspace/ecommerce/'
   fileRoutesById: FileRoutesById
 }
@@ -451,6 +464,7 @@ export interface RootRouteChildren {
   ApiPublicHooksDeliverEbookBatchRoute: typeof ApiPublicHooksDeliverEbookBatchRoute
   ApiPublicSessionsActionRoute: typeof ApiPublicSessionsActionRoute
   ApiPublicWebhooksResendRoute: typeof ApiPublicWebhooksResendRoute
+  ApiPublicWebhooksSteadfastSecretRoute: typeof ApiPublicWebhooksSteadfastSecretRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -665,6 +679,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInternalWorkspaceEcommerceIndexRouteImport
       parentRoute: typeof AuthenticatedInternalWorkspaceRoute
     }
+    '/api/public/webhooks/steadfast/$secret': {
+      id: '/api/public/webhooks/steadfast/$secret'
+      path: '/api/public/webhooks/steadfast/$secret'
+      fullPath: '/api/public/webhooks/steadfast/$secret'
+      preLoaderRoute: typeof ApiPublicWebhooksSteadfastSecretRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/_internal/workspace/ecommerce/products': {
       id: '/_authenticated/_internal/workspace/ecommerce/products'
       path: '/ecommerce/products'
@@ -816,6 +837,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksDeliverEbookBatchRoute: ApiPublicHooksDeliverEbookBatchRoute,
   ApiPublicSessionsActionRoute: ApiPublicSessionsActionRoute,
   ApiPublicWebhooksResendRoute: ApiPublicWebhooksResendRoute,
+  ApiPublicWebhooksSteadfastSecretRoute: ApiPublicWebhooksSteadfastSecretRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
