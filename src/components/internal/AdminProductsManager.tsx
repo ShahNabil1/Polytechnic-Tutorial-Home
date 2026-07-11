@@ -699,8 +699,23 @@ function ProductEditor({
                 </span>
               </label>
             </div>
+            {draft.is_online_book && (
+              <Field label="Ebook Download URL" full>
+                <input
+                  type="url"
+                  value={draft.ebook_file_url}
+                  onChange={(e) => setDraft({ ...draft, ebook_file_url: e.target.value })}
+                  placeholder="https://cdn.example.com/books/xxxx.pdf"
+                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                />
+                <p className="mt-1 text-[11px] font-medium text-slate-500">
+                  This URL is emailed to the customer after checkout. Leave empty to hold delivery for manual review.
+                </p>
+              </Field>
+            )}
           </div>
         </div>
+
 
         <div className="flex items-center justify-end gap-2 border-t border-slate-200 bg-slate-50 px-6 py-3">
           <button
