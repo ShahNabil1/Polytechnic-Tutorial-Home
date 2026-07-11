@@ -1159,7 +1159,7 @@ export const listPublicCourses = createServerFn({ method: "GET" }).handler(
       sb
         .from("lms_courses")
         .select(
-          "id, slug, title, description, cover_image_url, media_items, price_bdt, compare_at_price_bdt, sort_order, department_id, semester_id",
+          "id, slug, title, description, cover_image_url, media_items, price_bdt, compare_at_price_bdt, sort_order, department_id, semester_id, is_featured",
         )
         .eq("is_active", true)
         .order("sort_order")
