@@ -193,6 +193,7 @@ export type Database = {
       email_templates: {
         Row: {
           body_html: string
+          category: string
           created_at: string
           created_by: string | null
           enabled: boolean
@@ -206,6 +207,7 @@ export type Database = {
         }
         Insert: {
           body_html: string
+          category?: string
           created_at?: string
           created_by?: string | null
           enabled?: boolean
@@ -219,6 +221,7 @@ export type Database = {
         }
         Update: {
           body_html?: string
+          category?: string
           created_at?: string
           created_by?: string | null
           enabled?: boolean
@@ -1020,6 +1023,7 @@ export type Database = {
       sms_templates: {
         Row: {
           body: string
+          category: string
           created_at: string
           created_by: string | null
           enabled: boolean
@@ -1032,6 +1036,7 @@ export type Database = {
         }
         Insert: {
           body: string
+          category?: string
           created_at?: string
           created_by?: string | null
           enabled?: boolean
@@ -1044,6 +1049,7 @@ export type Database = {
         }
         Update: {
           body?: string
+          category?: string
           created_at?: string
           created_by?: string | null
           enabled?: boolean
