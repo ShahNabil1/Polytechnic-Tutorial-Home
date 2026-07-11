@@ -827,8 +827,18 @@ export function AdminOrderDrawer({
                   placeholder="Only staff can see this…"
                   className="min-h-[60px] flex-1 rounded-lg border border-slate-200 bg-white p-2 text-sm"
                 />
-                <button onClick={submitNote} className="btn-sm-primary self-start">
-                  <MessageSquarePlus className="size-3.5" /> Add
+                <button
+                  onClick={submitNote}
+                  disabled={submittingNote || !noteBody.trim()}
+                  className="btn-sm-primary self-start transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
+                  title={!noteBody.trim() ? "কিছু লিখুন" : "Add internal note"}
+                >
+                  {submittingNote ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <MessageSquarePlus className="size-3.5" />
+                  )}
+                  {submittingNote ? "Adding…" : "Add"}
                 </button>
               </div>
               <div className="mt-3 space-y-2">
