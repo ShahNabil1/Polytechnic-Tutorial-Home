@@ -580,6 +580,7 @@ export const upsertCourse = createServerFn({ method: "POST" })
       price_bdt: data.patch.price_bdt,
       compare_at_price_bdt: data.patch.compare_at_price_bdt ?? null,
       is_active: data.patch.is_active,
+      is_featured: data.patch.is_featured,
       sort_order: data.patch.sort_order,
     };
     if (data.id) {
