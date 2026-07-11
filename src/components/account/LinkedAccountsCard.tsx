@@ -4,6 +4,7 @@ import { Loader2, Mail, Phone, Link2, Unlink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { UserIdentity } from "@supabase/supabase-js";
 import { ensureReauth } from "@/lib/reauth";
+import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 const MAX_RESENDS = 3;
@@ -122,7 +123,7 @@ export function LinkedAccountsCard() {
       toast.error("এটাই একমাত্র লগইন মেথড — আনলিংক করা যাবে না");
       return;
     }
-    if (!confirm("Google একাউন্ট আনলিংক করবেন?")) return;
+    if (!(await confirmDialog({ variant: "danger", description: "Google একাউন্ট আনলিংক করবেন?" }))) return;
     if (!(await ensureReauth())) return;
     const { error } = await supabase.auth.unlinkIdentity(googleIdentity);
     if (error) toast.error(error.message);

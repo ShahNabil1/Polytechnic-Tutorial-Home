@@ -11,6 +11,7 @@ import {
   type AdminUserRow,
 } from "@/lib/admin-users.functions";
 import { toEnglishText } from "@/lib/input-filter";
+import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 
 export function AdminUsersManager({ role }: { role: "employee" | "instructor" }) {
   const list = useServerFn(listInternalUsers);
@@ -71,7 +72,7 @@ export function AdminUsersManager({ role }: { role: "employee" | "instructor" })
   }
 
   async function revokeUser(userId: string) {
-    if (!confirm("এই রোল বাতিল করবেন?")) return;
+    if (!(await confirmDialog({ variant: "danger", description: "এই রোল বাতিল করবেন?" }))) return;
     setBusyId(userId);
     try {
       await revoke({ data: { user_id: userId, role } });

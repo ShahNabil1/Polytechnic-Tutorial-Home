@@ -25,6 +25,7 @@ import {
 import type { Product, ProductImage } from "@/lib/products";
 import { formatBDT } from "@/lib/format";
 import { AdminBundlesManager } from "@/components/internal/AdminBundlesManager";
+import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 
 type Draft = {
   id?: string;
@@ -188,7 +189,7 @@ export function AdminProductsManager() {
   }
 
   async function removeProduct(p: Product) {
-    if (!confirm(`Delete "${p.title}"?`)) return;
+    if (!(await confirmDialog({ variant: "danger", description: `Delete "${p.title}"?` }))) return;
     try {
       await remove({ data: { id: p.id } });
       toast.success("Deleted");

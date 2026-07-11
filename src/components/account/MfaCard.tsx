@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { syncMyPrimaryAuthEmail, updateMyInternalProfile } from "@/lib/internal-profile.functions";
 import { toEnglishDigits } from "@/lib/input-filter";
+import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 
 type Factor = { id: string; friendly_name?: string | null; status: string; factor_type: string };
 
@@ -127,7 +128,7 @@ export function MfaCard() {
   }
 
   async function disableMfa(factorId: string) {
-    if (!confirm("2FA বন্ধ করতে চান? এতে অ্যাকাউন্ট কম সুরক্ষিত হয়ে যাবে।")) return;
+    if (!(await confirmDialog({ variant: "danger", description: "2FA বন্ধ করতে চান? এতে অ্যাকাউন্ট কম সুরক্ষিত হয়ে যাবে।" }))) return;
     setBusy(true);
     try {
       const { error } = await supabase.auth.mfa.unenroll({ factorId });

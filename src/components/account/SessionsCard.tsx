@@ -5,6 +5,7 @@ import { ensureReauth } from "@/lib/reauth";
 import { toEnglishText } from "@/lib/input-filter";
 import { SESSION_LABEL_MAX, validateSessionLabel } from "@/lib/session-label";
 import {
+import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
   listTrackedSessions,
   registerTrackedSession,
   renameTrackedSession,
@@ -67,7 +68,7 @@ export function SessionsCard() {
   }, [refresh]);
 
   async function handleRevoke(id: string) {
-    if (!confirm("এই সেশন থেকে সাইন আউট করবেন?")) return;
+    if (!(await confirmDialog({ variant: "danger", description: "এই সেশন থেকে সাইন আউট করবেন?" }))) return;
     setRevoking(id);
     try {
       await revokeTrackedSession(id);
@@ -82,7 +83,7 @@ export function SessionsCard() {
 
   async function handleRevokeOthers() {
     if (otherCount === 0) return;
-    if (!confirm(`অন্য ${otherCount} টা ডিভাইস থেকে সাইন আউট করবেন?`)) return;
+    if (!(await confirmDialog({ variant: "danger", description: `অন্য ${otherCount} টা ডিভাইস থেকে সাইন আউট করবেন?` }))) return;
     if (!(await ensureReauth())) return;
     setRevokingOthers(true);
     try {

@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { KeyRound, Loader2, Plus, Trash2 } from "lucide-react";
 import { listMyPasskeys, deleteMyPasskey } from "@/lib/passkey.functions";
 import { ensureReauth } from "@/lib/reauth";
+import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 
 const MAX_PASSKEYS = 3;
 
@@ -56,7 +57,7 @@ export function PasskeysCard() {
   }
 
   async function handleRemove(id: string, name: string | null) {
-    if (!confirm(`"${name || "এই Passkey"}" রিমুভ করবেন?`)) return;
+    if (!(await confirmDialog({ variant: "danger", description: `"${name || "এই Passkey"}" রিমুভ করবেন?` }))) return;
     if (!(await ensureReauth())) return;
     try {
       await deleteMyPasskey({ data: { id } });

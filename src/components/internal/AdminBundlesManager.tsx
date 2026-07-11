@@ -7,6 +7,7 @@ import { uploadFileToR2 } from "@/lib/upload-client";
 import type { Product, ProductImage } from "@/lib/products";
 import { formatBDT } from "@/lib/format";
 import {
+import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
   listAdminBundles,
   upsertBundle,
   deleteBundle,
@@ -155,7 +156,7 @@ export function AdminBundlesManager({ products }: { products: Product[] }) {
   }
 
   async function removeBundle(b: Bundle) {
-    if (!confirm(`Delete bundle "${b.title}"?`)) return;
+    if (!(await confirmDialog({ variant: "danger", description: `Delete bundle "${b.title}"?` }))) return;
     try {
       await remove({ data: { id: b.id } });
       toast.success("Deleted");

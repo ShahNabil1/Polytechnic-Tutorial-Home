@@ -13,6 +13,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import {
+import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
   listInternalUsers,
   createInternalUser,
   revokeInternalRole,
@@ -96,7 +97,7 @@ export function AdminUsersManagerEN({ role }: { role: "employee" | "instructor" 
   }
 
   async function revokeUser(userId: string) {
-    if (!confirm("Revoke this role?")) return;
+    if (!(await confirmDialog({ variant: "danger", description: "Revoke this role?" }))) return;
     setBusyId(userId);
     try {
       await revoke({ data: { user_id: userId, role } });

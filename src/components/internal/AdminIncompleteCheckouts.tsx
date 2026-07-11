@@ -21,6 +21,7 @@ import {
 import { formatDhakaDateTime } from "@/lib/orders";
 import { formatBDT } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 
 type Attempt = {
   at: string;
@@ -83,7 +84,7 @@ export function AdminIncompleteCheckouts({ search }: { search: string }) {
   });
 
   async function remove(id: string) {
-    if (!confirm("Delete this incomplete checkout record?")) return;
+    if (!(await confirmDialog({ variant: "danger", description: "Delete this incomplete checkout record?" }))) return;
     try {
       await del({ data: { id } });
       toast.success("Deleted");

@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { syncMyPrimaryAuthEmail, updateMyInternalProfile } from "@/lib/internal-profile.functions";
 import { toEnglishDigits } from "@/lib/input-filter";
+import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 
 type Factor = { id: string; friendly_name?: string | null; status: string; factor_type: string };
 
@@ -116,7 +117,7 @@ export function MfaCardEN() {
   }
 
   async function disableMfa(factorId: string) {
-    if (!confirm("Disable 2FA? Your account will be less secure.")) return;
+    if (!(await confirmDialog({ variant: "danger", description: "Disable 2FA? Your account will be less secure." }))) return;
     setBusy(true);
     try {
       const { error } = await supabase.auth.mfa.unenroll({ factorId });
