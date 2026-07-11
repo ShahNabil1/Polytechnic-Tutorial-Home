@@ -132,6 +132,46 @@ export const createOrder = createServerFn({ method: "POST" })
       data.items.map((i) => ({ title: i.title, quantity: i.quantity })),
     );
 
+    // ---- Coupon revalidation (authoritative) ----
+    let couponId: string | null = null;
+    let discountAmount = 0;
+    if (data.couponCode && data.couponCode.trim()) {
+      const productUuids = data.items
+        .map((i) => i.productId)
+        .filter((p) => isUuid(p));
+      let categoryIds: string[] = [];
+      if (productUuids.length) {
+        const { data: subs } = await sb
+          .from("product_subcategories")
+          .select("category_id")
+          .in("product_id", productUuids);
+        categoryIds = Array.from(new Set((subs ?? []).map((s: any) => s.category_id)));
+      }
+      const { data: vres, error: vErr } = await sb.rpc("validate_coupon", {
+        _code: data.couponCode.trim(),
+        _subtotal: data.totals.subtotal,
+        _product_ids: productUuids,
+        _category_ids: categoryIds,
+        _phone: data.customer.phone,
+        _user_id: null,
+        _scope: "shop",
+      } as any);
+      if (!vErr && vres) {
+        const r = vres as any;
+        if (r.ok) {
+          couponId = r.coupon_id as string;
+          discountAmount = Number(r.discount || 0);
+        }
+      }
+    }
+    // Trust server-computed discount over client-provided value
+    const finalDiscount = discountAmount || (data.totals.discount ?? 0);
+    const finalTotal = Math.max(
+      0,
+      data.totals.subtotal + data.totals.shipping - finalDiscount,
+    );
+
+
     const { data: order, error: insErr } = await sb
       .from("orders")
       .insert({
