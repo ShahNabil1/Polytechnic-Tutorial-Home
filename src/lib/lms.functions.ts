@@ -982,3 +982,83 @@ export const enrollInCourseTest = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// ==================== Course curriculum snapshot (admin) ====================
+// Returns the subjects placed in a course's (dept, sem) pair with modules
+// and lesson (video) counts — reuses the same tables Subjects / Structure use.
+
+export const listCourseCurriculum = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z.object({ department_id: z.string().uuid(), semester_id: z.string().uuid() }).parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: placeRows, error: pErr } = await context.supabase
+      .from("lms_subject_placements")
+      .select("subject_id")
+      .eq("department_id", data.department_id)
+      .eq("semester_id", data.semester_id);
+    if (pErr) throw new Error(pErr.message);
+    const subjectIds = ((placeRows ?? []) as any[]).map((p) => p.subject_id);
+    if (subjectIds.length === 0) return [] as any[];
+
+    const { data: subjRows, error: sErr } = await context.supabase
+      .from("lms_subjects")
+      .select("id, name, code, slug, description, cover_image_url, is_active, sort_order")
+      .in("id", subjectIds)
+      .order("sort_order");
+    if (sErr) throw new Error(sErr.message);
+    const subjects = (subjRows ?? []) as any[];
+
+    const { data: modRows } = await context.supabase
+      .from("lms_modules")
+      .select("id, subject_id, title, sort_order")
+      .in("subject_id", subjectIds)
+      .order("sort_order");
+    const modules = (modRows ?? []) as any[];
+    const moduleIds = modules.map((m) => m.id);
+
+    const lessonCountByModule = new Map<string, number>();
+    let lessonsByModule = new Map<string, number>();
+    if (moduleIds.length > 0) {
+      const { data: lessonRows } = await context.supabase
+        .from("lms_lessons")
+        .select("id, module_id, video_url")
+        .in("module_id", moduleIds);
+      for (const l of (lessonRows ?? []) as any[]) {
+        lessonCountByModule.set(l.module_id, (lessonCountByModule.get(l.module_id) ?? 0) + 1);
+        if (l.video_url && l.video_url !== "") {
+          lessonsByModule.set(l.module_id, (lessonsByModule.get(l.module_id) ?? 0) + 1);
+        }
+      }
+    }
+
+    const modulesBySubject = new Map<string, any[]>();
+    for (const m of modules) {
+      const arr = modulesBySubject.get(m.subject_id) ?? [];
+      arr.push({
+        id: m.id,
+        title: m.title,
+        sort_order: m.sort_order,
+        lesson_count: lessonCountByModule.get(m.id) ?? 0,
+        video_count: lessonsByModule.get(m.id) ?? 0,
+      });
+      modulesBySubject.set(m.subject_id, arr);
+    }
+
+    return subjects.map((s) => {
+      const mods = modulesBySubject.get(s.id) ?? [];
+      return {
+        id: s.id,
+        name: s.name,
+        code: s.code,
+        slug: s.slug,
+        is_active: s.is_active,
+        module_count: mods.length,
+        lesson_count: mods.reduce((a, m) => a + m.lesson_count, 0),
+        video_count: mods.reduce((a, m) => a + m.video_count, 0),
+        modules: mods,
+      };
+    });
+  });
+
