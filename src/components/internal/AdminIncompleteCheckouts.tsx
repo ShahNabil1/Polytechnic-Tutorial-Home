@@ -85,11 +85,21 @@ export function AdminIncompleteCheckouts({ search }: { search: string }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [openOrderId, setOpenOrderId] = useState<string | null>(null);
   const [promotingId, setPromotingId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, pageSize]);
+
+  const offset = (page - 1) * pageSize;
 
   const { data, isLoading, refetch, isFetching } = useQuery({
-    queryKey: ["admin-incomplete", search],
-    queryFn: () => fetchList({ data: { search: search || undefined, limit: 200 } }),
+    queryKey: ["admin-incomplete", search, page, pageSize],
+    queryFn: () =>
+      fetchList({ data: { search: search || undefined, limit: pageSize, offset } }),
   });
+
 
   async function remove(id: string) {
     if (!(await confirmDialog({ variant: "danger", description: "Delete this incomplete checkout record?" }))) return;
