@@ -95,6 +95,32 @@ async function readBody(res: Response): Promise<unknown> {
   }
 }
 
+function parseMaybeJson(value: unknown): unknown {
+  if (typeof value !== "string") return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}
+
+function extractBulkRows(body: unknown): any[] {
+  const b = parseMaybeJson(body) as any;
+  const possible = [
+    b?.data,
+    b?.response,
+    b?.result,
+    b?.consignments,
+    Array.isArray(b) ? b : null,
+  ];
+  for (const candidate of possible) {
+    const parsed = parseMaybeJson(candidate);
+    if (Array.isArray(parsed)) return parsed;
+    if (Array.isArray((parsed as any)?.data)) return (parsed as any).data;
+  }
+  return [];
+}
+
 function findResponseRow(body: any, invoice?: string): any | null {
   if (Array.isArray(body?.data)) {
     return (
@@ -181,13 +207,14 @@ export async function createBulkOrders(
     fetch(`${baseUrl()}/create_order/bulk-order`, {
       method: "POST",
       headers: headers(),
-      body: JSON.stringify({ data: payloads }),
+      // Steadfast's bulk docs specify `data` as a JSON-encoded array string
+      // (max 500 items). Single item is allowed, there is no documented minimum.
+      body: JSON.stringify({ data: JSON.stringify(payloads) }),
     }),
   );
   const body = await readBody(res);
   if (!res.ok) throw new Error(normalizeError(res.status, body));
-  const b = body as any;
-  const rows: any[] = Array.isArray(b?.data) ? b.data : Array.isArray(b) ? b : [];
+  const rows = extractBulkRows(body);
   if (!rows.length) {
     // Some Steadfast responses wrap under different keys — fall back to marking all failed.
     return payloads.map((p) => ({
