@@ -229,17 +229,6 @@ export function AcademicStructureManager() {
         </Tabs>
       )}
 
-      <ConfirmDialog
-        open={!!confirmDelete}
-        onOpenChange={(o) => !o && setConfirmDelete(null)}
-        title={`Delete ${confirmDelete?.name || "entry"}?`}
-        description="This will remove the entry. Subjects linked to it will lose the association."
-        confirmText="Delete"
-        onConfirm={async () => {
-          if (confirmDelete) await doDelete(confirmDelete);
-          setConfirmDelete(null);
-        }}
-      />
     </div>
   );
 }
