@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
+import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 import { Loader2, Mail, Phone, Link2, Unlink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { UserIdentity } from "@supabase/supabase-js";
 import { ensureReauth } from "@/lib/reauth";
-import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 const MAX_RESENDS = 3;

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Loader2, Search, UserPlus, ShieldOff, ShieldCheck, UserMinus, IdCard } from "lucide-react";
@@ -11,7 +12,6 @@ import {
   type AdminUserRow,
 } from "@/lib/admin-users.functions";
 import { toEnglishText } from "@/lib/input-filter";
-import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 
 export function AdminUsersManager({ role }: { role: "employee" | "instructor" }) {
   const list = useServerFn(listInternalUsers);

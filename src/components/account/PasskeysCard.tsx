@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
+import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 import { KeyRound, Loader2, Plus, Trash2 } from "lucide-react";
 import { listMyPasskeys, deleteMyPasskey } from "@/lib/passkey.functions";
 import { ensureReauth } from "@/lib/reauth";
-import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 
 const MAX_PASSKEYS = 3;
 

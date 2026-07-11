@@ -1,4 +1,5 @@
 /**
+import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
  * TOTP (Authenticator app) enrollment card for internal users.
  * Uses Supabase Auth MFA API (aal2). On successful verify, updates
  * internal_profiles.mfa_enrolled via server fn.
@@ -10,7 +11,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { syncMyPrimaryAuthEmail, updateMyInternalProfile } from "@/lib/internal-profile.functions";
 import { toEnglishDigits } from "@/lib/input-filter";
-import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 
 type Factor = { id: string; friendly_name?: string | null; status: string; factor_type: string };
 

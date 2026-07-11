@@ -1,4 +1,5 @@
 /**
+import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
  * English fork of MfaCard for internal (/workspace, /instructor) routes.
  */
 import { useEffect, useState } from "react";
@@ -8,7 +9,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { syncMyPrimaryAuthEmail, updateMyInternalProfile } from "@/lib/internal-profile.functions";
 import { toEnglishDigits } from "@/lib/input-filter";
-import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 
 type Factor = { id: string; friendly_name?: string | null; status: string; factor_type: string };
 
