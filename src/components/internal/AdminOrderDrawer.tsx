@@ -51,9 +51,10 @@ import {
   type OrderItem,
   type OrderStatus,
 } from "@/lib/orders";
-import { formatBDT } from "@/lib/format";
+import { formatBDTEn, waLinkBD } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
+import { confirm as confirmDialog, promptText } from "@/components/ui/confirm-dialog";
+import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
 
 export function AdminOrderDrawer({
   orderId,
@@ -254,8 +255,34 @@ export function AdminOrderDrawer({
   }
 
   async function changeStatus(s: OrderStatus) {
+    if (!order || s === order.status) return;
+
+    // Hold / Cancel require a written reason before we commit the status change.
+    let reasonNote: string | undefined;
+    if (s === "hold" || s === "cancelled") {
+      const isHold = s === "hold";
+      const reason = await promptText({
+        title: isHold ? "Put order on hold?" : "Cancel this order?",
+        description: isHold
+          ? "Please write a short reason for putting this order on hold. It will be saved to the order's status history."
+          : "Please write a short reason for cancelling this order. It will be saved to the order's status history.",
+        inputLabel: "Reason",
+        placeholder: isHold
+          ? "e.g. Customer asked to pause, awaiting stock, address unclear…"
+          : "e.g. Customer requested cancellation, duplicate order, out of stock…",
+        multiline: true,
+        minLength: 3,
+        maxLength: 500,
+        variant: isHold ? "warning" : "danger",
+        confirmLabel: isHold ? "Confirm Hold" : "Confirm Cancel",
+        cancelLabel: "Back",
+      });
+      if (!reason) return; // user cancelled or dismissed
+      reasonNote = reason;
+    }
+
     try {
-      await upStatus({ data: { id: orderId, status: s } });
+      await upStatus({ data: { id: orderId, status: s, note: reasonNote } });
       toast.success(`Marked ${STATUS_LABEL[s]}`);
       refetch();
       onChanged?.();
@@ -448,17 +475,13 @@ export function AdminOrderDrawer({
               ) : (
                 <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
                   <ReadField label="Name" value={customer.customer_name} />
-                  <ReadField
+                  <PhoneField
                     label="Phone"
-                    value={customer.customer_phone}
-                    href={customer.customer_phone ? `tel:${customer.customer_phone}` : undefined}
-                    icon={<Phone className="size-3.5 text-brand" />}
+                    phone={customer.customer_phone}
                   />
-                  <ReadField
+                  <PhoneField
                     label="Alternative Phone"
-                    value={customer.alternative_phone || "—"}
-                    href={customer.alternative_phone ? `tel:${customer.alternative_phone}` : undefined}
-                    icon={customer.alternative_phone ? <Phone className="size-3.5 text-brand" /> : undefined}
+                    phone={customer.alternative_phone}
                   />
                   <ReadField
                     label="Email"
@@ -549,7 +572,7 @@ export function AdminOrderDrawer({
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-semibold">{p.title}</p>
                           <p className="font-mono text-[10px] text-slate-500">
-                            {p.sku ?? "no-sku"} · {formatBDT(p.price)}
+                            {p.sku ?? "no-sku"} · {formatBDTEn(p.price)}
                           </p>
                         </div>
                       </button>
@@ -586,7 +609,7 @@ export function AdminOrderDrawer({
                       className="w-24 rounded border border-slate-200 px-2 py-1 text-right text-sm font-mono"
                     />
                     <p className="w-24 text-right font-mono text-sm font-bold">
-                      {formatBDT(Number(it.quantity) * Number(it.unit_price))}
+                      {formatBDTEn(Number(it.quantity) * Number(it.unit_price))}
                     </p>
                     <button onClick={() => removeItemDraft(idx)} className="text-slate-400 hover:text-rose-600">
                       <Trash2 className="size-4" />
@@ -595,9 +618,9 @@ export function AdminOrderDrawer({
                 ))}
               </div>
               <div className="mt-3 border-t border-dashed border-slate-200 pt-3 text-right text-sm">
-                <p>Subtotal: <span className="font-mono font-bold">{formatBDT(totals.subtotal)}</span></p>
-                <p>Shipping: <span className="font-mono font-bold">{formatBDT(totals.shipping)}</span></p>
-                <p className="mt-1 text-base">Total: <span className="font-mono font-extrabold">{formatBDT(totals.total)}</span></p>
+                <p>Subtotal: <span className="font-mono font-bold">{formatBDTEn(totals.subtotal)}</span></p>
+                <p>Shipping: <span className="font-mono font-bold">{formatBDTEn(totals.shipping)}</span></p>
+                <p className="mt-1 text-base">Total: <span className="font-mono font-extrabold">{formatBDTEn(totals.total)}</span></p>
               </div>
             </Section>
 
@@ -681,6 +704,49 @@ function ReadField({
     </div>
   );
 }
+
+function PhoneField({ label, phone }: { label: string; phone?: string | null }) {
+  const value = (phone ?? "").trim();
+  const wa = waLinkBD(value);
+  if (!value) {
+    return (
+      <div className="block">
+        <p className="mb-0.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+          {label}
+        </p>
+        <span className="text-sm font-semibold text-slate-400">—</span>
+      </div>
+    );
+  }
+  return (
+    <div className="block">
+      <p className="mb-0.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+        {label}
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <a
+          href={`tel:${value}`}
+          className="inline-flex items-center gap-1.5 rounded-md bg-brand/10 px-2 py-1 text-sm font-semibold text-brand hover:bg-brand/15"
+        >
+          <Phone className="size-3.5" />
+          <span className="font-mono">{value}</span>
+        </a>
+        {wa && (
+          <a
+            href={wa}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Open WhatsApp chat"
+            className="inline-flex items-center justify-center rounded-md bg-emerald-50 p-1.5 ring-1 ring-emerald-200 transition-colors hover:bg-emerald-100"
+          >
+            <WhatsAppIcon className="size-4" />
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
 
 
 
