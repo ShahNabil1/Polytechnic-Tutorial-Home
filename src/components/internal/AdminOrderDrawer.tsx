@@ -92,6 +92,8 @@ export function AdminOrderDrawer({
   const [showSearch, setShowSearch] = useState(false);
   const [isEditingCustomer, setIsEditingCustomer] = useState(false);
   const [deliveryNote, setDeliveryNote] = useState("");
+  const [pendingStatus, setPendingStatus] = useState<OrderStatus | null>(null);
+  const [reasonDraft, setReasonDraft] = useState("");
   const queryClient = useQueryClient();
 
   useEffect(() => {
