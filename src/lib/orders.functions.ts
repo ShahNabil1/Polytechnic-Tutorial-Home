@@ -162,6 +162,8 @@ export const createOrder = createServerFn({ method: "POST" })
         user_agent: ua || null,
         device_fingerprint: data.fingerprint || null,
         idempotency_key: data.idempotencyKey,
+        source: data.source || "website",
+        source_detail: data.sourceDetail || null,
       } as any)
       .select("id, order_no, status")
       .single();
