@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Phone, Eye, Search, Fingerprint, Globe } from "lucide-react";
+import { Loader2, Phone, Eye, Search } from "lucide-react";
 import { listAdminOrders } from "@/lib/orders.functions";
 import { ORDER_STATUSES, STATUS_LABEL, formatDhakaDateTime, type OrderStatus } from "@/lib/orders";
 import { formatBDT } from "@/lib/format";
