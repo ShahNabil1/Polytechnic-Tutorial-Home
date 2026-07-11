@@ -43,6 +43,67 @@ export const STATUS_STYLE: Record<OrderStatus, string> = {
   incomplete: "bg-slate-100 text-slate-700 ring-slate-300",
 };
 
+// ---- Digital / Physical fulfillment ----
+
+export type DigitalStatus =
+  | "not_applicable"
+  | "pending"
+  | "sending"
+  | "sent"
+  | "delivered"
+  | "bounced"
+  | "complaint"
+  | "failed"
+  | "delayed"
+  | "manual_review";
+
+export type PhysicalStatus =
+  | "not_applicable"
+  | "pending"
+  | "ready_to_ship"
+  | "shipped"
+  | "delivered"
+  | "returned"
+  | "cancelled"
+  | "hold";
+
+export const DIGITAL_STATUS_LABEL: Record<DigitalStatus, string> = {
+  not_applicable: "N/A",
+  pending: "Pending Send",
+  sending: "Sending…",
+  sent: "Email Sent",
+  delivered: "Delivered",
+  bounced: "Bounced",
+  complaint: "Complaint",
+  failed: "Send Failed",
+  delayed: "Delayed",
+  manual_review: "Manual Review",
+};
+
+export const DIGITAL_STATUS_STYLE: Record<DigitalStatus, string> = {
+  not_applicable: "bg-slate-100 text-slate-500 ring-slate-200",
+  pending: "bg-amber-100 text-amber-800 ring-amber-300",
+  sending: "bg-sky-100 text-sky-800 ring-sky-300",
+  sent: "bg-sky-100 text-sky-800 ring-sky-300",
+  delivered: "bg-emerald-100 text-emerald-800 ring-emerald-300",
+  bounced: "bg-rose-100 text-rose-800 ring-rose-300",
+  complaint: "bg-rose-100 text-rose-800 ring-rose-300",
+  failed: "bg-rose-100 text-rose-800 ring-rose-300",
+  delayed: "bg-amber-100 text-amber-800 ring-amber-300",
+  manual_review: "bg-fuchsia-100 text-fuchsia-800 ring-fuchsia-300",
+};
+
+export const PHYSICAL_STATUS_LABEL: Record<PhysicalStatus, string> = {
+  not_applicable: "N/A",
+  pending: "Pending",
+  ready_to_ship: "Ready To Ship",
+  shipped: "Shipped",
+  delivered: "Delivered",
+  returned: "Returned",
+  cancelled: "Cancelled",
+  hold: "Hold",
+};
+
 export type OrderItem = {
   id: string;
   order_id: string;
@@ -97,6 +158,13 @@ export type Order = {
   created_by_user_id: string | null;
   created_at: string;
   updated_at: string;
+  digital_status: DigitalStatus;
+  physical_status: PhysicalStatus;
+  digital_delivered_at: string | null;
+  digital_locked_until: string | null;
+  digital_last_error: string | null;
+  digital_attempt_count: number;
+  digital_next_retry_at: string | null;
 };
 
 export type SteadfastPayload = {

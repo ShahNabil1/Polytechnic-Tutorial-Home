@@ -41,15 +41,21 @@ import {
   bulkBlockIdentifiers,
   bulkUnblockIdentifiers,
   getBlockStatus,
+  retryEbookDelivery,
 } from "@/lib/orders.functions";
 import {
   ORDER_STATUSES,
   STATUS_LABEL,
   STATUS_STYLE,
+  DIGITAL_STATUS_LABEL,
+  DIGITAL_STATUS_STYLE,
+  PHYSICAL_STATUS_LABEL,
   formatDhakaDateTime,
   type Order,
   type OrderItem,
   type OrderStatus,
+  type DigitalStatus,
+  type PhysicalStatus,
 } from "@/lib/orders";
 import { formatBDTEn, waLinkBD } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -718,8 +724,12 @@ export function AdminOrderDrawer({
               </div>
             </Section>
 
+            {/* Fulfillment */}
+            <FulfillmentSection order={order} deliveries={data?.deliveries ?? []} orderId={orderId} onChanged={() => { refetch(); onChanged?.(); }} />
+
             {/* Source attribution */}
             <SourceSection order={order} />
+
 
 
 
@@ -1295,3 +1305,107 @@ function CustomerEditForm({
 }
 
 
+
+function FulfillmentSection({
+  order,
+  deliveries,
+  orderId,
+  onChanged,
+}: {
+  order: Order;
+  deliveries: any[];
+  orderId: string;
+  onChanged: () => void;
+}) {
+  const retry = useServerFn(retryEbookDelivery);
+  const [busy, setBusy] = useState(false);
+  const digital = order.digital_status;
+  const physical = order.physical_status;
+  const showDigital = digital !== "not_applicable";
+  const showPhysical = physical !== "not_applicable";
+  if (!showDigital && !showPhysical) return null;
+
+  async function onRetry() {
+    setBusy(true);
+    try {
+      await retry({ data: { id: orderId } });
+      toast.success("Queued for retry");
+      onChanged();
+    } catch (e: any) {
+      toast.error(e.message || "Retry failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const canRetry = showDigital && ["failed", "bounced", "manual_review", "delayed"].includes(digital);
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-700">Fulfillment</h3>
+        {canRetry && (
+          <button
+            onClick={onRetry}
+            disabled={busy}
+            className="rounded-lg bg-slate-900 px-3 py-1 text-xs font-bold text-white hover:bg-slate-800 disabled:opacity-60"
+          >
+            {busy ? "Retrying…" : "Retry Delivery"}
+          </button>
+        )}
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {showDigital && (
+          <div className="rounded-xl border border-slate-200 p-3">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Digital (ebook)</p>
+            <span
+              className={cn(
+                "mt-1 inline-block rounded-full px-2.5 py-1 text-[11px] font-extrabold ring-1",
+                DIGITAL_STATUS_STYLE[digital as DigitalStatus],
+              )}
+            >
+              {DIGITAL_STATUS_LABEL[digital as DigitalStatus]}
+            </span>
+            <div className="mt-2 space-y-0.5 text-[11px] font-semibold text-slate-600">
+              <p>Attempts: {order.digital_attempt_count ?? 0}</p>
+              {order.digital_delivered_at && (
+                <p>Delivered: {formatDhakaDateTime(order.digital_delivered_at)}</p>
+              )}
+              {order.digital_next_retry_at && (
+                <p>Next retry: {formatDhakaDateTime(order.digital_next_retry_at)}</p>
+              )}
+              {order.digital_last_error && (
+                <p className="text-rose-600">Error: {order.digital_last_error}</p>
+              )}
+            </div>
+            {deliveries.length > 0 && (
+              <div className="mt-2 max-h-40 space-y-1 overflow-auto border-t border-slate-100 pt-2">
+                {deliveries.map((d) => (
+                  <div key={d.id} className="text-[10px] font-medium text-slate-500">
+                    <span className="font-mono font-bold text-slate-700">{d.status}</span>
+                    {" · "}
+                    {formatDhakaDateTime(d.created_at)}
+                    {d.error_message ? ` · ${d.error_message}` : ""}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        {showPhysical && (
+          <div className="rounded-xl border border-slate-200 p-3">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Physical shipment</p>
+            <span className="mt-1 inline-block rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-extrabold text-indigo-700 ring-1 ring-indigo-200">
+              {PHYSICAL_STATUS_LABEL[physical as PhysicalStatus]}
+            </span>
+            {order.steadfast_tracking_code && (
+              <p className="mt-2 text-[11px] font-semibold text-slate-600">
+                Tracking: <span className="font-mono">{order.steadfast_tracking_code}</span>
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

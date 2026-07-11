@@ -46,6 +46,7 @@ type Draft = {
   is_active: boolean;
   is_featured: boolean;
   is_online_book: boolean;
+  ebook_file_url: string;
 };
 
 const EMPTY_DRAFT: Draft = {
@@ -66,6 +67,7 @@ const EMPTY_DRAFT: Draft = {
   is_active: true,
   is_featured: false,
   is_online_book: false,
+  ebook_file_url: "",
 };
 
 function slugify(v: string) {
@@ -143,6 +145,7 @@ export function AdminProductsManager() {
       is_active: p.isActive ?? true,
       is_featured: p.featured ?? false,
       is_online_book: p.isOnlineBook ?? false,
+      ebook_file_url: p.ebookFileUrl ?? "",
     });
     setEditorOpen(true);
   }
@@ -178,6 +181,7 @@ export function AdminProductsManager() {
           is_active: draft.is_active,
           is_featured: draft.is_featured,
           is_online_book: draft.is_online_book,
+          ebook_file_url: draft.is_online_book ? (draft.ebook_file_url.trim() || null) : null,
         },
       });
       toast.success(draft.id ? "Product updated" : "Product created");
@@ -695,8 +699,23 @@ function ProductEditor({
                 </span>
               </label>
             </div>
+            {draft.is_online_book && (
+              <Field label="Ebook Download URL" full>
+                <input
+                  type="url"
+                  value={draft.ebook_file_url}
+                  onChange={(e) => setDraft({ ...draft, ebook_file_url: e.target.value })}
+                  placeholder="https://cdn.example.com/books/xxxx.pdf"
+                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                />
+                <p className="mt-1 text-[11px] font-medium text-slate-500">
+                  This URL is emailed to the customer after checkout. Leave empty to hold delivery for manual review.
+                </p>
+              </Field>
+            )}
           </div>
         </div>
+
 
         <div className="flex items-center justify-end gap-2 border-t border-slate-200 bg-slate-50 px-6 py-3">
           <button

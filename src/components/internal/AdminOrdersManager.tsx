@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Phone, Eye, Search } from "lucide-react";
 import { listAdminOrders, getAdminOrderCounts } from "@/lib/orders.functions";
-import { ORDER_STATUSES, STATUS_LABEL, formatDhakaDateTime, type OrderStatus } from "@/lib/orders";
+import { ORDER_STATUSES, STATUS_LABEL, DIGITAL_STATUS_LABEL, DIGITAL_STATUS_STYLE, PHYSICAL_STATUS_LABEL, formatDhakaDateTime, type OrderStatus, type DigitalStatus, type PhysicalStatus } from "@/lib/orders";
 import { formatBDTEn, waLinkBD } from "@/lib/format";
 import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,37 @@ import { AdminOrderDrawer } from "@/components/internal/AdminOrderDrawer";
 import { AdminIncompleteCheckouts } from "@/components/internal/AdminIncompleteCheckouts";
 import { Pagination } from "@/components/internal/Pagination";
 import { supabase } from "@/integrations/supabase/client";
+
+function FulfillmentChips({ o }: { o: any }) {
+  const digital = (o.digital_status ?? "not_applicable") as DigitalStatus;
+  const physical = (o.physical_status ?? "not_applicable") as PhysicalStatus;
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-1">
+      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-600">
+        {o.order_type}
+      </span>
+      {digital !== "not_applicable" && (
+        <span
+          className={cn(
+            "rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ring-1",
+            DIGITAL_STATUS_STYLE[digital],
+          )}
+          title="Digital delivery"
+        >
+          📩 {DIGITAL_STATUS_LABEL[digital]}
+        </span>
+      )}
+      {physical !== "not_applicable" && (
+        <span
+          className="rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-700 ring-1 ring-indigo-200"
+          title="Physical shipment"
+        >
+          📦 {PHYSICAL_STATUS_LABEL[physical]}
+        </span>
+      )}
+    </div>
+  );
+}
 
 export function AdminOrdersManager() {
   const [tab, setTab] = useState<OrderStatus>("processing");
@@ -154,9 +185,8 @@ export function AdminOrdersManager() {
                       <tr key={o.id} className="transition-colors hover:bg-indigo-50/60">
                         <td className="px-4 py-3.5 align-top">
                           <p className="font-mono text-sm font-extrabold text-slate-900">{o.order_no}</p>
-                          <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-indigo-500">
-                            {o.order_type} · {o.payment_status}
-                          </p>
+                          <FulfillmentChips o={o} />
+
                         </td>
                         <td className="px-4 py-3.5 align-top text-xs font-semibold text-slate-700">
                           {formatDhakaDateTime(o.created_at)}
@@ -243,9 +273,8 @@ export function AdminOrdersManager() {
                     <tr key={o.id} className="transition-colors hover:bg-indigo-50/60">
                       <td className="px-4 py-3.5 align-top">
                         <p className="font-mono text-sm font-extrabold text-slate-900">{o.order_no}</p>
-                        <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-indigo-500">
-                          {o.order_type} · {o.payment_status}
-                        </p>
+                        <FulfillmentChips o={o} />
+
                       </td>
                       <td className="px-4 py-3.5 align-top text-xs font-semibold text-slate-700">
                         {formatDhakaDateTime(o.created_at)}

@@ -57,6 +57,7 @@ function mapProduct(row: any, subs: { slug: string; kind: string }[]): Product {
     featured: row.is_featured,
     isActive: row.is_active,
     isOnlineBook: row.is_online_book ?? false,
+    ebookFileUrl: row.ebook_file_url ?? null,
   };
 }
 
@@ -246,6 +247,7 @@ const ProductUpsertInput = z.object({
   is_active: z.boolean().default(true),
   is_featured: z.boolean().default(false),
   is_online_book: z.boolean().default(false),
+  ebook_file_url: z.string().trim().url().max(1000).optional().nullable().or(z.literal("")),
 });
 
 export const upsertProduct = createServerFn({ method: "POST" })
@@ -253,11 +255,12 @@ export const upsertProduct = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => ProductUpsertInput.parse(i))
   .handler(async ({ data, context }) => {
     await ensureCanManage(context);
-    const { subcategory_ids, id, sku, ...rest } = data;
+    const { subcategory_ids, id, sku, ebook_file_url, ...rest } = data;
     const finalSku = (sku ?? "").trim() || randomSku();
     const payload = {
       ...rest,
       sku: finalSku,
+      ebook_file_url: ebook_file_url ? ebook_file_url : null,
       images: rest.images as never,
       created_by: id ? undefined : context.userId,
     };
