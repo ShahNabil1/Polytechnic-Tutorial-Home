@@ -62,6 +62,7 @@ const CreateOrderInput = z.object({
   userId: z.string().uuid().optional().nullable(),
   source: z.enum(["website", "direct", "manual", "fb_utm", "google", "other"]).optional(),
   sourceDetail: z.string().max(200).optional().or(z.literal("")),
+  couponCode: z.string().max(60).optional().or(z.literal("")),
 });
 
 export const createOrder = createServerFn({ method: "POST" })
