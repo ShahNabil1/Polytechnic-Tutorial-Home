@@ -88,8 +88,10 @@ export function EmailTemplatesManager() {
   const [name, setName] = useState("");
   const [subject, setSubject] = useState("");
   const [bodyHtml, setBodyHtml] = useState("");
+  const [category, setCategory] = useState<string>("other");
   const [tab, setTab] = useState<"code" | "preview">("preview");
   const [saving, setSaving] = useState(false);
+  const [filter, setFilter] = useState<string>("all");
 
   useEffect(() => {
     if (selected) {
