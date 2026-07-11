@@ -8,7 +8,6 @@ import {
   MoreHorizontal,
   type LucideIcon,
 } from "lucide-react";
-import { SteadfastBalanceCard } from "@/components/internal/SteadfastBalanceCard";
 
 export const Route = createFileRoute("/_authenticated/_internal/workspace/ecommerce/")({
   head: () => ({
@@ -89,9 +88,6 @@ function EcommerceDashboard() {
           <ArrowUpRight className="size-4" />
         </button>
       </div>
-
-      {/* Steadfast integration health */}
-      <SteadfastBalanceCard />
 
       {/* Stat cards */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
