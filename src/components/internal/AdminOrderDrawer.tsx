@@ -475,17 +475,13 @@ export function AdminOrderDrawer({
               ) : (
                 <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
                   <ReadField label="Name" value={customer.customer_name} />
-                  <ReadField
+                  <PhoneField
                     label="Phone"
-                    value={customer.customer_phone}
-                    href={customer.customer_phone ? `tel:${customer.customer_phone}` : undefined}
-                    icon={<Phone className="size-3.5 text-brand" />}
+                    phone={customer.customer_phone}
                   />
-                  <ReadField
+                  <PhoneField
                     label="Alternative Phone"
-                    value={customer.alternative_phone || "—"}
-                    href={customer.alternative_phone ? `tel:${customer.alternative_phone}` : undefined}
-                    icon={customer.alternative_phone ? <Phone className="size-3.5 text-brand" /> : undefined}
+                    phone={customer.alternative_phone}
                   />
                   <ReadField
                     label="Email"
