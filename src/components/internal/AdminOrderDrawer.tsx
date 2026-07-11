@@ -663,15 +663,16 @@ export function AdminOrderDrawer({
                 action={
                   <button
                     onClick={saveDeliveryNote}
-                    className="btn-sm-primary disabled:opacity-60"
-                    disabled={savingNote || deliveryNote === (customer.note ?? "")}
+                    className="btn-sm-primary transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
+                    disabled={savingNote || !deliveryNoteDirty}
+                    title={!deliveryNoteDirty ? "কোনো পরিবর্তন নেই" : "Save delivery note"}
                   >
                     {savingNote ? (
                       <Loader2 className="size-3.5 animate-spin" />
                     ) : (
                       <Save className="size-3.5" />
                     )}
-                    {savingNote ? "Saving…" : "Save Note"}
+                    {savingNote ? "Saving…" : deliveryNoteDirty ? "Save Note" : "Saved"}
                   </button>
                 }
               >
