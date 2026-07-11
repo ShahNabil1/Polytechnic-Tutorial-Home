@@ -1796,6 +1796,8 @@ function CustomerSmsSection({
       toast.success(`SMS sent to ${order.customer_phone}`);
       setMessage("");
       setSelectedId("");
+      setOpen(false);
+      onSent?.();
     } catch (e: any) {
       toast.error(e.message || "SMS failed");
     } finally {
@@ -1804,9 +1806,339 @@ function CustomerSmsSection({
   }
 
   return (
-    <Section title="Send SMS to customer" icon={MessageSquareText}>
-      <div className="space-y-3">
+    <section className="rounded-2xl border border-slate-200 bg-white p-3">
+      {!open ? (
+        <button
+          onClick={() => setOpen(true)}
+          disabled={!order?.customer_phone}
+          className="group relative w-full overflow-hidden rounded-xl border border-white/40 bg-gradient-to-br from-slate-900/95 via-slate-800/90 to-indigo-900/90 px-4 py-3 text-left text-white shadow-lg backdrop-blur-xl transition-all hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+          <span className="pointer-events-none absolute -top-6 -right-6 h-24 w-24 rounded-full bg-indigo-400/30 blur-2xl" />
+          <span className="pointer-events-none absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-fuchsia-400/20 blur-2xl" />
+          <span className="relative flex items-center gap-3">
+            <span className="flex size-9 items-center justify-center rounded-lg bg-white/15 ring-1 ring-white/20 backdrop-blur">
+              <Send className="size-4" />
+            </span>
+            <span className="flex-1">
+              <span className="block text-sm font-extrabold tracking-tight">Send SMS to customer</span>
+              <span className="block text-[11px] font-medium text-white/70">
+                {order?.customer_phone ? `Ready → ${order.customer_phone}` : "No phone number on file"}
+              </span>
+            </span>
+            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold ring-1 ring-white/20">
+              Open
+            </span>
+          </span>
+        </button>
+      ) : (
+        <div className="animate-fade-in space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="flex items-center gap-1.5 text-sm font-extrabold text-slate-900">
+              <MessageSquareText className="size-4 text-slate-500" />
+              Send SMS to customer
+            </h3>
+            <button
+              onClick={() => setOpen(false)}
+              className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              title="Close"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
         <div>
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            Template
+          </label>
+          <select
+            value={selectedId}
+            onChange={(e) => applyTemplate(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2 text-sm"
+          >
+            <option value="">— Select or write your own —</option>
+            {templates.map((t: any) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            Variables (click to insert & copy)
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {availableVars.map((v) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => insertVar(v)}
+                className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 font-mono text-[11px] font-semibold text-slate-700 hover:bg-brand/5 hover:text-brand"
+                title={vars[v] || ""}
+              >
+                <Copy className="size-3" />
+                {`{{${v}}}`}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            Message
+          </label>
+          <textarea
+            ref={textRef}
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            rows={5}
+            placeholder="আপনার SMS টাইপ করুন — variables ব্যবহার করুন personalized করতে"
+            className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2 font-mono text-sm"
+          />
+          <p className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
+            <span>Sends to: <span className="font-mono font-semibold text-slate-700">{order?.customer_phone ?? "—"}</span></span>
+            <span>{message.length}/1000</span>
+          </p>
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={() => setOpen(false)}
+            className="btn-sm"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={doSend}
+            disabled={sending || !message.trim() || !order?.customer_phone}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-bold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {sending ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
+            Send SMS
+          </button>
+        </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ---------- Communication log ----------
+
+const EMAIL_EVENT_STYLE: Record<string, string> = {
+  queued: "bg-slate-100 text-slate-700 ring-slate-200",
+  scheduled: "bg-slate-100 text-slate-700 ring-slate-200",
+  sent: "bg-sky-50 text-sky-700 ring-sky-200",
+  delivered: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  opened: "bg-indigo-50 text-indigo-700 ring-indigo-200",
+  clicked: "bg-violet-50 text-violet-700 ring-violet-200",
+  bounced: "bg-rose-50 text-rose-700 ring-rose-200",
+  failed: "bg-rose-50 text-rose-700 ring-rose-200",
+  delayed: "bg-amber-50 text-amber-700 ring-amber-200",
+};
+
+function CommunicationLogSection({
+  smsDeliveries,
+  emailDeliveries,
+}: {
+  smsDeliveries: any[];
+  emailDeliveries: any[];
+}) {
+  type Entry =
+    | { kind: "sms"; ts: string; row: any }
+    | { kind: "email"; ts: string; row: any };
+  const entries: Entry[] = [
+    ...smsDeliveries.map((r) => ({ kind: "sms" as const, ts: r.created_at, row: r })),
+    ...emailDeliveries.map((r) => ({
+      kind: "email" as const,
+      ts: r.updated_at ?? r.created_at,
+      row: r,
+    })),
+  ].sort((a, b) => (a.ts < b.ts ? 1 : -1));
+
+  const autoSmsCount = smsDeliveries.filter((s) => s.kind === "order_confirm").length;
+  const autoEmailCount = emailDeliveries.filter((e) => e.kind === "order_confirm").length;
+
+  return (
+    <Section title="Communication log" icon={MessageSquareText}>
+      <div className="mb-3 grid grid-cols-2 gap-2 text-[11px]">
+        <div
+          className={cn(
+            "rounded-lg border p-2",
+            autoSmsCount > 0
+              ? "border-emerald-200 bg-emerald-50"
+              : "border-slate-200 bg-slate-50",
+          )}
+        >
+          <p className="font-bold uppercase tracking-wider text-slate-500">Auto SMS confirmation</p>
+          <p
+            className={cn(
+              "mt-0.5 font-extrabold",
+              autoSmsCount > 0 ? "text-emerald-700" : "text-slate-500",
+            )}
+          >
+            {autoSmsCount > 0 ? `✓ Sent (${autoSmsCount})` : "Not sent"}
+          </p>
+        </div>
+        <div
+          className={cn(
+            "rounded-lg border p-2",
+            autoEmailCount > 0
+              ? "border-emerald-200 bg-emerald-50"
+              : "border-slate-200 bg-slate-50",
+          )}
+        >
+          <p className="font-bold uppercase tracking-wider text-slate-500">Auto Email confirmation</p>
+          <p
+            className={cn(
+              "mt-0.5 font-extrabold",
+              autoEmailCount > 0 ? "text-emerald-700" : "text-slate-500",
+            )}
+          >
+            {autoEmailCount > 0 ? `✓ Sent (${autoEmailCount})` : "Not sent"}
+          </p>
+        </div>
+      </div>
+
+      {entries.length === 0 ? (
+        <p className="text-xs text-slate-400">No SMS or emails have been sent yet.</p>
+      ) : (
+        <div className="max-h-96 space-y-2 overflow-y-auto pr-1">
+          {entries.map((e) =>
+            e.kind === "sms" ? (
+              <SmsLogRow key={"sms-" + e.row.id} row={e.row} />
+            ) : (
+              <EmailLogRow key={"email-" + e.row.id} row={e.row} />
+            ),
+          )}
+        </div>
+      )}
+    </Section>
+  );
+}
+
+function SmsLogRow({ row }: { row: any }) {
+  const sent = row.status === "sent";
+  return (
+    <div
+      className={cn(
+        "rounded-lg border p-2 text-xs",
+        sent ? "border-slate-200 bg-white" : "border-rose-200 bg-rose-50/60",
+      )}
+    >
+      <div className="mb-1 flex flex-wrap items-center gap-1.5">
+        <span className="inline-flex items-center gap-1 rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-white">
+          <MessageSquareText className="size-3" /> SMS
+        </span>
+        <span
+          className={cn(
+            "rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase ring-1",
+            sent
+              ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+              : "bg-rose-50 text-rose-700 ring-rose-200",
+          )}
+        >
+          {sent ? "Delivered to gateway" : "Failed"}
+        </span>
+        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 ring-1 ring-slate-200">
+          {row.kind === "order_confirm" ? "Auto confirmation" : row.kind === "manual" ? "Manual" : row.kind}
+        </span>
+        {row.sms_count > 0 && (
+          <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 ring-1 ring-amber-200">
+            {row.sms_count} SMS {row.is_unicode ? "(unicode)" : ""}
+          </span>
+        )}
+        <span className="ml-auto tabular-nums text-[10px] text-slate-500">
+          {formatDhakaDateTime(row.created_at)}
+        </span>
+      </div>
+      <p className="whitespace-pre-wrap break-words text-slate-800">{row.body}</p>
+      <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] text-slate-500">
+        <User className="size-3" />
+        <span className="font-semibold text-slate-600">{row.sender_name ?? "System"}</span>
+        <span>·</span>
+        <span className="font-mono">{row.to_phone}</span>
+        {row.provider_status != null && (
+          <>
+            <span>·</span>
+            <span className="font-mono">HTTP {row.provider_status}</span>
+          </>
+        )}
+      </p>
+      {row.error_reason && (
+        <p className="mt-1 text-[10px] font-semibold text-rose-600">Error: {row.error_reason}</p>
+      )}
+    </div>
+  );
+}
+
+function EmailLogRow({ row }: { row: any }) {
+  const events: Array<{ label: string; at: string }> = [];
+  if (row.sent_at) events.push({ label: "sent", at: row.sent_at });
+  if (row.delivered_at) events.push({ label: "delivered", at: row.delivered_at });
+  if (row.opened_at) events.push({ label: "opened", at: row.opened_at });
+  if (row.clicked_at) events.push({ label: "clicked", at: row.clicked_at });
+  if (row.bounced_at) events.push({ label: "bounced", at: row.bounced_at });
+  const currentStatus = String(row.status ?? "queued");
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-2 text-xs">
+      <div className="mb-1 flex flex-wrap items-center gap-1.5">
+        <span className="inline-flex items-center gap-1 rounded-full bg-indigo-600 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-white">
+          <Mail className="size-3" /> Email
+        </span>
+        <span
+          className={cn(
+            "rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase ring-1",
+            EMAIL_EVENT_STYLE[currentStatus] ?? "bg-slate-100 text-slate-700 ring-slate-200",
+          )}
+        >
+          {currentStatus}
+        </span>
+        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 ring-1 ring-slate-200">
+          {row.kind === "order_confirm"
+            ? "Auto confirmation"
+            : row.kind === "ebook_delivery"
+              ? "Ebook delivery"
+              : row.kind ?? "email"}
+        </span>
+        {row.attempt_no > 1 && (
+          <span className="text-[10px] text-slate-400">attempt #{row.attempt_no}</span>
+        )}
+        <span className="ml-auto tabular-nums text-[10px] text-slate-500">
+          {formatDhakaDateTime(row.updated_at ?? row.created_at)}
+        </span>
+      </div>
+      {row.subject && (
+        <p className="truncate font-semibold text-slate-800">{row.subject}</p>
+      )}
+      <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] text-slate-500">
+        <Mail className="size-3" />
+        <span className="font-mono">{row.to_email}</span>
+      </p>
+      {events.length > 0 && (
+        <div className="mt-1.5 flex flex-wrap gap-1">
+          {events.map((ev) => (
+            <span
+              key={ev.label}
+              className={cn(
+                "rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase ring-1",
+                EMAIL_EVENT_STYLE[ev.label] ?? "bg-slate-100 text-slate-700 ring-slate-200",
+              )}
+              title={formatDhakaDateTime(ev.at)}
+            >
+              {ev.label}
+            </span>
+          ))}
+        </div>
+      )}
+      {row.error_reason && (
+        <p className="mt-1 text-[10px] font-semibold text-rose-600">Error: {row.error_reason}</p>
+      )}
+    </div>
+  );
+}
+
           <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">
             Template
           </label>
