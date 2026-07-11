@@ -84,6 +84,16 @@ export function CoursesManager() {
     );
   });
 
+  useEffect(() => {
+    setPage(1);
+  }, [q, deptFilter, semFilter, pageSize]);
+
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const paged = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+
   async function handleGenerate() {
     setGenerating(true);
     try {
