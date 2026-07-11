@@ -125,6 +125,8 @@ export function CourseDetail({ deptSlug, semSlug }: Props) {
         </div>
       </div>
 
+      {course && <EnrollmentsPanel courseId={course.id} />}
+
       <div>
         <h2 className="font-display text-xl font-bold tracking-tight text-slate-900 mb-3">
           Subjects in this course
