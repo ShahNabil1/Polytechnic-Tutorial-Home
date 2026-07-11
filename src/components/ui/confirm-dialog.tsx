@@ -25,9 +25,25 @@ export interface ConfirmOptions {
   icon?: React.ReactNode;
 }
 
-interface ConfirmState extends ConfirmOptions {
+export interface PromptOptions extends ConfirmOptions {
+  /** Placeholder for the input. */
+  placeholder?: string;
+  /** Initial value. */
+  defaultValue?: string;
+  /** Minimum length required to enable confirm (default 3). */
+  minLength?: number;
+  /** Maximum length allowed (default 500). */
+  maxLength?: number;
+  /** Optional label above the input. */
+  inputLabel?: string;
+  /** Use multi-line textarea instead of input. */
+  multiline?: boolean;
+}
+
+interface ConfirmState extends PromptOptions {
   open: boolean;
-  resolver?: (v: boolean) => void;
+  mode?: "confirm" | "prompt";
+  resolver?: (v: boolean | string | null) => void;
 }
 
 // ---------- Store (external, framework-agnostic) ----------
