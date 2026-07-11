@@ -378,7 +378,32 @@ export function AdminOrdersManager() {
               </div>
             </div>
           )}
+          {isProcessing && failedRTSOrders.length > 0 && (
+            <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50/70 px-4 py-2.5 ring-1 ring-rose-100">
+              <div className="flex items-center gap-2">
+                <span className="grid size-6 place-items-center rounded-full bg-rose-100 ring-1 ring-rose-200">
+                  <Truck className="size-3.5 text-rose-700" />
+                </span>
+                <span className="text-xs font-extrabold text-rose-900">
+                  {failedRTSOrders.length} order{failedRTSOrders.length === 1 ? "" : "s"} failed Steadfast dispatch
+                </span>
+                <span className="rounded bg-white/70 px-2 py-0.5 font-mono text-[10px] font-bold text-rose-800 ring-1 ring-rose-200">
+                  See card for exact reason
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={retryAllFailedRTS}
+                title="Re-attempt only the failed orders — updates each card's reason live"
+                className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-rose-600 to-rose-500 px-3 py-1.5 text-xs font-extrabold text-white shadow-sm hover:from-rose-700 hover:to-rose-600"
+              >
+                <Truck className="size-3.5" />
+                Retry {failedRTSOrders.length} Failed RTS
+              </button>
+            </div>
+          )}
         <div className="overflow-hidden rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/60 via-white to-sky-50/60 shadow-sm">
+
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gradient-to-r from-indigo-100/70 to-sky-100/70 text-left text-[11px] font-bold uppercase tracking-wider text-indigo-900/70">
