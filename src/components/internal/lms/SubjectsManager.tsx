@@ -115,8 +115,13 @@ export function SubjectsManager() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((s) => {
-            const depts = s.department_ids.map((id) => taxonomyById.get(id)).filter(Boolean) as AcademicCategory[];
-            const sems = s.semester_ids.map((id) => taxonomyById.get(id)).filter(Boolean) as AcademicCategory[];
+            const pairs = s.placements
+              .map((p) => {
+                const d = taxonomyById.get(p.department_id);
+                const se = taxonomyById.get(p.semester_id);
+                return d && se ? { key: `${p.department_id}:${p.semester_id}`, dept: d, sem: se } : null;
+              })
+              .filter(Boolean) as { key: string; dept: AcademicCategory; sem: AcademicCategory }[];
             return (
               <div
                 key={s.id}
@@ -154,20 +159,12 @@ export function SubjectsManager() {
                       <p className="text-xs text-slate-600 line-clamp-2">{s.description}</p>
                     )}
                     <div className="flex flex-wrap gap-1 pt-1">
-                      {depts.map((d) => (
+                      {pairs.map((p) => (
                         <span
-                          key={d.id}
+                          key={p.key}
                           className="rounded-md bg-indigo-50 px-1.5 py-0.5 text-[10px] font-medium text-indigo-700"
                         >
-                          {d.name}
-                        </span>
-                      ))}
-                      {sems.map((se) => (
-                        <span
-                          key={se.id}
-                          className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700"
-                        >
-                          {se.name}
+                          {p.dept.name} · {p.sem.name}
                         </span>
                       ))}
                     </div>

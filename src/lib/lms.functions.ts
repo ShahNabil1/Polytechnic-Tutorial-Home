@@ -108,12 +108,12 @@ export const deleteAcademicTaxonomy = createServerFn({ method: "POST" })
 // ==================== Subjects ====================
 
 async function mapSubjectRow(
-  supabase: any,
+  _supabase: any,
   row: any,
-  subs: { subject_id: string; category_id: string; kind: AcademicKind }[] = [],
+  placements: { subject_id: string; department_id: string; semester_id: string }[] = [],
   counts: Map<string, { modules: number; lessons: number }> = new Map(),
 ): Promise<LmsSubject> {
-  const filtered = subs.filter((s) => s.subject_id === row.id);
+  const mine = placements.filter((p) => p.subject_id === row.id);
   return {
     id: row.id,
     name: row.name,
@@ -123,8 +123,7 @@ async function mapSubjectRow(
     cover_image_url: row.cover_image_url ?? null,
     is_active: row.is_active,
     sort_order: row.sort_order,
-    department_ids: filtered.filter((s) => s.kind === "department").map((s) => s.category_id),
-    semester_ids: filtered.filter((s) => s.kind === "semester").map((s) => s.category_id),
+    placements: mine.map((p) => ({ department_id: p.department_id, semester_id: p.semester_id })),
     module_count: counts.get(row.id)?.modules ?? 0,
     lesson_count: counts.get(row.id)?.lessons ?? 0,
     created_at: row.created_at,
@@ -144,19 +143,17 @@ export const listSubjects = createServerFn({ method: "GET" })
     if (!rows || rows.length === 0) return [] as LmsSubject[];
 
     const ids = rows.map((r: any) => r.id);
-    const [deptRes, semRes, modRes] = await Promise.all([
-      context.supabase.from("lms_subject_departments").select("subject_id, category_id").in("subject_id", ids),
-      context.supabase.from("lms_subject_semesters").select("subject_id, category_id").in("subject_id", ids),
+    const [placeRes, modRes] = await Promise.all([
+      context.supabase
+        .from("lms_subject_placements")
+        .select("subject_id, department_id, semester_id")
+        .in("subject_id", ids),
       context.supabase.from("lms_modules").select("id, subject_id").in("subject_id", ids),
     ]);
-    if (deptRes.error) throw new Error(deptRes.error.message);
-    if (semRes.error) throw new Error(semRes.error.message);
+    if (placeRes.error) throw new Error(placeRes.error.message);
     if (modRes.error) throw new Error(modRes.error.message);
 
-    const subs = [
-      ...((deptRes.data ?? []) as any[]).map((r) => ({ ...r, kind: "department" as const })),
-      ...((semRes.data ?? []) as any[]).map((r) => ({ ...r, kind: "semester" as const })),
-    ];
+    const placements = (placeRes.data ?? []) as any[];
 
     const moduleIds = ((modRes.data ?? []) as any[]).map((m) => m.id);
     const counts = new Map<string, { modules: number; lessons: number }>();
@@ -181,7 +178,7 @@ export const listSubjects = createServerFn({ method: "GET" })
       }
     }
 
-    return await Promise.all(rows.map((r: any) => mapSubjectRow(context.supabase, r, subs, counts)));
+    return await Promise.all(rows.map((r: any) => mapSubjectRow(context.supabase, r, placements, counts)));
   });
 
 export const getSubjectBySlug = createServerFn({ method: "GET" })
@@ -195,22 +192,13 @@ export const getSubjectBySlug = createServerFn({ method: "GET" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!row) return null;
-    const [deptRes, semRes] = await Promise.all([
-      context.supabase
-        .from("lms_subject_departments")
-        .select("subject_id, category_id")
-        .eq("subject_id", (row as any).id),
-      context.supabase
-        .from("lms_subject_semesters")
-        .select("subject_id, category_id")
-        .eq("subject_id", (row as any).id),
-    ]);
-    const subs = [
-      ...((deptRes.data ?? []) as any[]).map((r) => ({ ...r, kind: "department" as const })),
-      ...((semRes.data ?? []) as any[]).map((r) => ({ ...r, kind: "semester" as const })),
-    ];
-    return await mapSubjectRow(context.supabase, row, subs);
+    const { data: placeRows } = await context.supabase
+      .from("lms_subject_placements")
+      .select("subject_id, department_id, semester_id")
+      .eq("subject_id", (row as any).id);
+    return await mapSubjectRow(context.supabase, row, (placeRows ?? []) as any[]);
   });
+
 
 const SubjectInput = z.object({
   name: z.string().trim().min(1).max(200),
@@ -226,8 +214,15 @@ const SubjectInput = z.object({
   cover_image_url: z.string().url().max(1000).optional().nullable().or(z.literal("")),
   is_active: z.boolean().default(true),
   sort_order: z.number().int().min(0).max(9999).default(0),
-  department_ids: z.array(z.string().uuid()).max(50).default([]),
-  semester_ids: z.array(z.string().uuid()).max(50).default([]),
+  placements: z
+    .array(
+      z.object({
+        department_id: z.string().uuid(),
+        semester_id: z.string().uuid(),
+      }),
+    )
+    .max(200)
+    .default([]),
 });
 
 export const upsertSubject = createServerFn({ method: "POST" })
@@ -237,7 +232,7 @@ export const upsertSubject = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await ensureCanManage(context);
-    const { department_ids, semester_ids, ...rest } = data.patch;
+    const { placements, ...rest } = data.patch;
     const payload: any = {
       name: rest.name,
       code: rest.code?.trim() ? rest.code.trim() : null,
@@ -264,25 +259,29 @@ export const upsertSubject = createServerFn({ method: "POST" })
       if (error) throw new Error(error.message);
       subjectId = (row as any).id;
     }
-    // reset joins
-    await Promise.all([
-      context.supabase.from("lms_subject_departments").delete().eq("subject_id", subjectId!),
-      context.supabase.from("lms_subject_semesters").delete().eq("subject_id", subjectId!),
-    ]);
-    if (department_ids.length > 0) {
-      const { error } = await context.supabase
-        .from("lms_subject_departments")
-        .insert(department_ids.map((cid) => ({ subject_id: subjectId!, category_id: cid })));
-      if (error) throw new Error(error.message);
-    }
-    if (semester_ids.length > 0) {
-      const { error } = await context.supabase
-        .from("lms_subject_semesters")
-        .insert(semester_ids.map((cid) => ({ subject_id: subjectId!, category_id: cid })));
+    // reset placements
+    await context.supabase.from("lms_subject_placements").delete().eq("subject_id", subjectId!);
+    if (placements.length > 0) {
+      // Dedupe pairs
+      const seen = new Set<string>();
+      const rows = placements
+        .filter((p) => {
+          const k = `${p.department_id}:${p.semester_id}`;
+          if (seen.has(k)) return false;
+          seen.add(k);
+          return true;
+        })
+        .map((p) => ({
+          subject_id: subjectId!,
+          department_id: p.department_id,
+          semester_id: p.semester_id,
+        }));
+      const { error } = await context.supabase.from("lms_subject_placements").insert(rows);
       if (error) throw new Error(error.message);
     }
     return { ok: true, id: subjectId! };
   });
+
 
 export const deleteSubject = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

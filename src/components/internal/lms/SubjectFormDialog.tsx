@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Upload, X, Check } from "lucide-react";
+import { Loader2, Upload, X, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { upsertSubject } from "@/lib/lms.functions";
 import { uploadFileToR2 } from "@/lib/upload-client";
-import type { AcademicCategory, LmsSubject } from "@/lib/lms";
+import type { AcademicCategory, LmsSubject, SubjectPlacement } from "@/lib/lms";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -45,8 +52,9 @@ export function SubjectFormDialog({ open, subject, taxonomy, onClose, onSaved }:
   const [description, setDescription] = useState("");
   const [coverUrl, setCoverUrl] = useState("");
   const [isActive, setIsActive] = useState(true);
-  const [deptIds, setDeptIds] = useState<string[]>([]);
-  const [semIds, setSemIds] = useState<string[]>([]);
+  const [placements, setPlacements] = useState<SubjectPlacement[]>([]);
+  const [newDept, setNewDept] = useState<string>("");
+  const [newSem, setNewSem] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
@@ -59,8 +67,9 @@ export function SubjectFormDialog({ open, subject, taxonomy, onClose, onSaved }:
       setDescription(subject?.description ?? "");
       setCoverUrl(subject?.cover_image_url ?? "");
       setIsActive(subject?.is_active ?? true);
-      setDeptIds(subject?.department_ids ?? []);
-      setSemIds(subject?.semester_ids ?? []);
+      setPlacements(subject?.placements ?? []);
+      setNewDept("");
+      setNewSem("");
       setSlugManuallyEdited(!!subject);
     }
   }, [open, subject]);
@@ -69,11 +78,32 @@ export function SubjectFormDialog({ open, subject, taxonomy, onClose, onSaved }:
     if (!slugManuallyEdited) setSlug(slugify(name));
   }, [name, slugManuallyEdited]);
 
-  const departments = taxonomy.filter((t) => t.kind === "department");
-  const semesters = taxonomy.filter((t) => t.kind === "semester");
+  const departments = useMemo(
+    () => taxonomy.filter((t) => t.kind === "department").sort((a, b) => a.sort_order - b.sort_order),
+    [taxonomy],
+  );
+  const semesters = useMemo(
+    () => taxonomy.filter((t) => t.kind === "semester").sort((a, b) => a.sort_order - b.sort_order),
+    [taxonomy],
+  );
+  const byId = useMemo(() => new Map(taxonomy.map((t) => [t.id, t])), [taxonomy]);
 
-  function toggle(list: string[], id: string, setter: (v: string[]) => void) {
-    setter(list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
+  function addPlacement() {
+    if (!newDept || !newSem) {
+      toast.error("Select both department and semester");
+      return;
+    }
+    if (placements.some((p) => p.department_id === newDept && p.semester_id === newSem)) {
+      toast.error("This pair is already added");
+      return;
+    }
+    setPlacements((prev) => [...prev, { department_id: newDept, semester_id: newSem }]);
+    setNewDept("");
+    setNewSem("");
+  }
+
+  function removePlacement(idx: number) {
+    setPlacements((prev) => prev.filter((_, i) => i !== idx));
   }
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -113,8 +143,7 @@ export function SubjectFormDialog({ open, subject, taxonomy, onClose, onSaved }:
             cover_image_url: coverUrl || null,
             is_active: isActive,
             sort_order: subject?.sort_order ?? 0,
-            department_ids: deptIds,
-            semester_ids: semIds,
+            placements,
           },
         },
       } as never);
@@ -207,60 +236,78 @@ export function SubjectFormDialog({ open, subject, taxonomy, onClose, onSaved }:
           </div>
 
           <div>
-            <Label className="mb-2 block">Departments</Label>
-            {departments.length === 0 ? (
-              <p className="text-xs text-slate-500">No departments yet — add them in Academic Structure.</p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {departments.map((d) => {
-                  const active = deptIds.includes(d.id);
-                  return (
-                    <button
-                      key={d.id}
-                      type="button"
-                      onClick={() => toggle(deptIds, d.id, setDeptIds)}
-                      className={cn(
-                        "px-3 py-1.5 rounded-full text-xs font-medium border transition-all",
-                        active
-                          ? "bg-indigo-600 text-white border-indigo-600"
-                          : "bg-white text-slate-700 border-slate-200 hover:border-indigo-400",
-                      )}
-                    >
-                      {active && <Check className="w-3 h-3 inline mr-1" />}
-                      {d.name}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+            <Label className="mb-2 block">Placements (Department · Semester)</Label>
+            <p className="text-xs text-slate-500 mb-2">
+              Add one pair per department-semester where this subject appears. Same subject in Civil 1st and Computer 2nd? Add both pairs.
+            </p>
 
-          <div>
-            <Label className="mb-2 block">Semesters</Label>
-            {semesters.length === 0 ? (
-              <p className="text-xs text-slate-500">No semesters yet — add them in Academic Structure.</p>
+            {departments.length === 0 || semesters.length === 0 ? (
+              <p className="text-xs text-amber-600">
+                Add departments and semesters in Academic Structure first.
+              </p>
             ) : (
-              <div className="flex flex-wrap gap-2">
-                {semesters.map((s) => {
-                  const active = semIds.includes(s.id);
-                  return (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => toggle(semIds, s.id, setSemIds)}
-                      className={cn(
-                        "px-3 py-1.5 rounded-full text-xs font-medium border transition-all",
-                        active
-                          ? "bg-emerald-600 text-white border-emerald-600"
-                          : "bg-white text-slate-700 border-slate-200 hover:border-emerald-400",
-                      )}
-                    >
-                      {active && <Check className="w-3 h-3 inline mr-1" />}
-                      {s.name}
-                    </button>
-                  );
-                })}
-              </div>
+              <>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                  <div className="flex-1">
+                    <Label className="text-xs text-slate-500">Department</Label>
+                    <Select value={newDept} onValueChange={setNewDept}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select department" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {departments.map((d) => (
+                          <SelectItem key={d.id} value={d.id}>
+                            {d.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex-1">
+                    <Label className="text-xs text-slate-500">Semester</Label>
+                    <Select value={newSem} onValueChange={setNewSem}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select semester" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {semesters.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button type="button" onClick={addPlacement} className="shrink-0">
+                    <Plus className="w-4 h-4 mr-1" /> Add
+                  </Button>
+                </div>
+
+                {placements.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {placements.map((p, idx) => {
+                      const d = byId.get(p.department_id);
+                      const s = byId.get(p.semester_id);
+                      return (
+                        <span
+                          key={`${p.department_id}:${p.semester_id}:${idx}`}
+                          className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 pl-3 pr-1 py-1 text-xs font-medium text-indigo-700"
+                        >
+                          {d?.name ?? "?"} · {s?.name ?? "?"}
+                          <button
+                            type="button"
+                            onClick={() => removePlacement(idx)}
+                            className="rounded-full p-0.5 hover:bg-indigo-100"
+                            aria-label="Remove"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
             )}
           </div>
 

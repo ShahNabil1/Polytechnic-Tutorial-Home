@@ -11,6 +11,11 @@ export type AcademicCategory = {
   is_active: boolean;
 };
 
+export type SubjectPlacement = {
+  department_id: string;
+  semester_id: string;
+};
+
 export type LmsSubject = {
   id: string;
   name: string;
@@ -20,8 +25,7 @@ export type LmsSubject = {
   cover_image_url: string | null;
   is_active: boolean;
   sort_order: number;
-  department_ids: string[];
-  semester_ids: string[];
+  placements: SubjectPlacement[];
   module_count?: number;
   lesson_count?: number;
   created_at: string;

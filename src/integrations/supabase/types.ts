@@ -580,6 +580,52 @@ export type Database = {
           },
         ]
       }
+      lms_subject_placements: {
+        Row: {
+          created_at: string
+          department_id: string
+          id: string
+          semester_id: string
+          subject_id: string
+        }
+        Insert: {
+          created_at?: string
+          department_id: string
+          id?: string
+          semester_id: string
+          subject_id: string
+        }
+        Update: {
+          created_at?: string
+          department_id?: string
+          id?: string
+          semester_id?: string
+          subject_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_subject_placements_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "lms_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_subject_placements_semester_id_fkey"
+            columns: ["semester_id"]
+            isOneToOne: false
+            referencedRelation: "lms_semesters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_subject_placements_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "lms_subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lms_subject_semesters: {
         Row: {
           category_id: string
