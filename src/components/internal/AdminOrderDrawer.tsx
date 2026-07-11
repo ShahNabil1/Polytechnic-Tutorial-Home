@@ -1009,8 +1009,8 @@ export function AdminOrderDrawer({
               emailDeliveries={data?.deliveries ?? []}
             />
 
-            {/* Send SMS to customer */}
-            <CustomerSmsSection orderId={orderId} order={order} onSent={() => refetch()} />
+
+
           </div>
         )}
       </div>
