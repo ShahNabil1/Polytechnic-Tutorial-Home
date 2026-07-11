@@ -206,6 +206,22 @@ export function CoursesManager() {
                 key={c.id}
                 className="group relative overflow-hidden rounded-2xl border border-white/60 bg-white/40 backdrop-blur-xl shadow-lg shadow-slate-200/50 transition-all hover:shadow-2xl hover:-translate-y-0.5"
               >
+                <div className="flex items-center justify-between gap-2 border-b border-slate-200/70 bg-white/60 px-3 py-2">
+                  <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer select-none">
+                    <Star
+                      className={
+                        c.is_featured
+                          ? "w-3.5 h-3.5 fill-amber-400 text-amber-500"
+                          : "w-3.5 h-3.5 text-slate-400"
+                      }
+                    />
+                    Featured on homepage
+                  </label>
+                  <Switch
+                    checked={c.is_featured}
+                    onCheckedChange={(v) => handleToggleFeatured(c, v)}
+                  />
+                </div>
                 <button
                   onClick={() =>
                     navigate({
