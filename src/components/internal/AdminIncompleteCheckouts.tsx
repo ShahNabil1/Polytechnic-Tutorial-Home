@@ -126,13 +126,15 @@ export function AdminIncompleteCheckouts({ search }: { search: string }) {
   }
 
 
-  const rows = (data ?? []) as Row[];
+  const rows = (data?.items ?? []) as Row[];
+  const total = data?.total ?? rows.length;
 
   return (
     <>
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-        <span>{rows.length} incomplete checkout{rows.length === 1 ? "" : "s"}</span>
+        <span>{total} incomplete checkout{total === 1 ? "" : "s"}</span>
+
         <button
           onClick={() => refetch()}
           className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-bold text-slate-600 hover:bg-slate-100"
