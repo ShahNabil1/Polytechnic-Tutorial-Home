@@ -933,6 +933,7 @@ export type Database = {
       order_items: {
         Row: {
           bundle_id: string | null
+          course_id: string | null
           created_at: string
           id: string
           image_url: string | null
@@ -948,6 +949,7 @@ export type Database = {
         }
         Insert: {
           bundle_id?: string | null
+          course_id?: string | null
           created_at?: string
           id?: string
           image_url?: string | null
@@ -963,6 +965,7 @@ export type Database = {
         }
         Update: {
           bundle_id?: string | null
+          course_id?: string | null
           created_at?: string
           id?: string
           image_url?: string | null
@@ -977,6 +980,13 @@ export type Database = {
           unit_price?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "order_items_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "lms_courses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "order_items_order_id_fkey"
             columns: ["order_id"]
@@ -1810,6 +1820,10 @@ export type Database = {
           _user_id: string
         }
         Returns: string
+      }
+      enroll_user_from_order: {
+        Args: { _order_id: string }
+        Returns: undefined
       }
       generate_internal_display_id: {
         Args: { _role: Database["public"]["Enums"]["app_role"] }
