@@ -273,9 +273,8 @@ export function AdminOrdersManager() {
                     <tr key={o.id} className="transition-colors hover:bg-indigo-50/60">
                       <td className="px-4 py-3.5 align-top">
                         <p className="font-mono text-sm font-extrabold text-slate-900">{o.order_no}</p>
-                        <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-indigo-500">
-                          {o.order_type} · {o.payment_status}
-                        </p>
+                        <FulfillmentChips o={o} />
+
                       </td>
                       <td className="px-4 py-3.5 align-top text-xs font-semibold text-slate-700">
                         {formatDhakaDateTime(o.created_at)}
