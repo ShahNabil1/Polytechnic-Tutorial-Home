@@ -222,10 +222,8 @@ function PublicCoursePage() {
 
   async function handleEnroll() {
     if (!userId) {
-      // Redirect to /auth then come back to this page after login.
-      const returnTo = `/courses/${deptSlug}/${semSlug}`;
       toast.info("এনরোল করতে সাইন ইন করুন।");
-      navigate({ to: "/auth", search: { redirect: returnTo } as never });
+      window.dispatchEvent(new CustomEvent("open-auth-drawer"));
       return;
     }
     setEnrolling(true);
