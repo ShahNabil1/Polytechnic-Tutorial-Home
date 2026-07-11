@@ -327,7 +327,7 @@ export const getAdminOrder = createServerFn({ method: "GET" })
   .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     await ensureStaff(context);
-    const [{ data: order, error: oe }, { data: items }, { data: notes }, { data: history }] =
+    const [{ data: order, error: oe }, { data: items }, { data: notes }, { data: history }, { data: deliveries }] =
       await Promise.all([
         context.supabase.from("orders").select("*").eq("id", data.id).single(),
         context.supabase.from("order_items").select("*").eq("order_id", data.id).order("created_at"),
@@ -338,6 +338,11 @@ export const getAdminOrder = createServerFn({ method: "GET" })
           .order("created_at", { ascending: false }),
         context.supabase
           .from("order_status_history")
+          .select("*")
+          .eq("order_id", data.id)
+          .order("created_at", { ascending: false }),
+        context.supabase
+          .from("order_email_deliveries")
           .select("*")
           .eq("order_id", data.id)
           .order("created_at", { ascending: false }),
@@ -354,7 +359,7 @@ export const getAdminOrder = createServerFn({ method: "GET" })
       profile = p;
     }
     const orderOut = order ? { ...order, ip: order.ip == null ? null : String(order.ip) } : null;
-    return { order: orderOut, items: items ?? [], notes: notes ?? [], history: history ?? [], profile };
+    return { order: orderOut, items: items ?? [], notes: notes ?? [], history: history ?? [], profile, deliveries: deliveries ?? [] };
   });
 
 // -------- ADMIN: update customer / order fields --------
