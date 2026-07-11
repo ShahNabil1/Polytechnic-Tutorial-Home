@@ -179,4 +179,25 @@
   }
 }
 
+@utility input {
+  display: block;
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: var(--background);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--foreground);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  &:focus {
+    border-color: var(--brand, var(--primary));
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand, var(--primary)) 20%, transparent);
+  }
+  &::placeholder { color: color-mix(in oklab, var(--foreground) 45%, transparent); }
+}
+
+
+
+
 
