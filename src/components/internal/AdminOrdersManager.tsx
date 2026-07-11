@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { AdminOrderDrawer } from "@/components/internal/AdminOrderDrawer";
 import { AdminIncompleteCheckouts } from "@/components/internal/AdminIncompleteCheckouts";
 import { Pagination } from "@/components/internal/Pagination";
+import { ResendEventChips } from "@/components/internal/ResendEventChips";
 import { supabase } from "@/integrations/supabase/client";
 
 function FulfillmentChips({ o }: { o: any }) {
@@ -88,6 +89,11 @@ export function AdminOrdersManager() {
       .on("postgres_changes", { event: "*", schema: "public", table: "incomplete_checkouts" }, () => {
         queryClient.invalidateQueries({ queryKey: ["admin-order-counts"] });
         queryClient.invalidateQueries({ queryKey: ["admin-incomplete"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "order_email_deliveries" }, () => {
+        // Resend webhook → any sent/delivered/opened/clicked/bounced update refreshes chips live.
+        queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+        queryClient.invalidateQueries({ queryKey: ["admin-order"] });
       })
       .subscribe();
     return () => {
@@ -186,6 +192,7 @@ export function AdminOrdersManager() {
                         <td className="px-4 py-3.5 align-top">
                           <p className="font-mono text-sm font-extrabold text-slate-900">{o.order_no}</p>
                           <FulfillmentChips o={o} />
+                          <ResendEventChips events={o.email_events ?? null} />
 
                         </td>
                         <td className="px-4 py-3.5 align-top text-xs font-semibold text-slate-700">
@@ -274,6 +281,7 @@ export function AdminOrdersManager() {
                       <td className="px-4 py-3.5 align-top">
                         <p className="font-mono text-sm font-extrabold text-slate-900">{o.order_no}</p>
                         <FulfillmentChips o={o} />
+                        <ResendEventChips events={o.email_events ?? null} />
 
                       </td>
                       <td className="px-4 py-3.5 align-top text-xs font-semibold text-slate-700">
