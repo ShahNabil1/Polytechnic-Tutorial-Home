@@ -412,13 +412,13 @@ function CTA() {
           প্রথম ৫টি লেসন সম্পূর্ণ ফ্রি — কোনো কার্ড লাগবে না।
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <a
-            href="#pricing"
+          <Link
+            to="/courses"
             className="inline-flex items-center gap-2 rounded-md bg-background px-5 py-3 text-sm font-medium text-foreground transition-opacity hover:opacity-90"
           >
             এনরোল করুন
             <ArrowRight className="size-4" />
-          </a>
+          </Link>
           <Link
             to="/shop"
             className="inline-flex items-center gap-2 rounded-md border border-background/30 px-5 py-3 text-sm font-medium text-background transition-colors hover:bg-background/10"
