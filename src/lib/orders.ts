@@ -158,6 +158,13 @@ export type Order = {
   created_by_user_id: string | null;
   created_at: string;
   updated_at: string;
+  digital_status: DigitalStatus;
+  physical_status: PhysicalStatus;
+  digital_delivered_at: string | null;
+  digital_locked_until: string | null;
+  digital_last_error: string | null;
+  digital_attempt_count: number;
+  digital_next_retry_at: string | null;
 };
 
 export type SteadfastPayload = {
