@@ -197,6 +197,18 @@ export function AdminIncompleteCheckouts({ search }: { search: string }) {
 
                   <div className="flex flex-col items-end gap-1.5">
                     <button
+                      onClick={() => view(r.id)}
+                      disabled={promotingId === r.id}
+                      className="inline-flex items-center gap-1 rounded-lg bg-brand px-2.5 py-1 text-[11px] font-extrabold text-white shadow-sm hover:bg-brand/90 disabled:opacity-60"
+                    >
+                      {promotingId === r.id ? (
+                        <Loader2 className="size-3 animate-spin" />
+                      ) : (
+                        <Eye className="size-3" />
+                      )}
+                      View
+                    </button>
+                    <button
                       onClick={() => setExpandedId(isOpen ? null : r.id)}
                       className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-700 hover:bg-slate-50"
                     >
