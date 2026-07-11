@@ -238,8 +238,15 @@ export function AdminOrderDrawer({
     setIsEditingCustomer(false);
   }
 
+  const [savingItems, setSavingItems] = useState(false);
+
   async function saveItems() {
-    if (!itemDraft) return;
+    if (!itemDraft || savingItems) return;
+    if (itemDraft.length === 0) {
+      toast.error("অন্তত একটি প্রোডাক্ট থাকতে হবে — সব প্রোডাক্ট ডিলিট করে সেভ করা যাবে না");
+      return;
+    }
+    setSavingItems(true);
     try {
       await upItems({
         data: {
@@ -260,6 +267,8 @@ export function AdminOrderDrawer({
       onChanged?.();
     } catch (e: any) {
       toast.error(e.message || "Failed");
+    } finally {
+      setSavingItems(false);
     }
   }
 
