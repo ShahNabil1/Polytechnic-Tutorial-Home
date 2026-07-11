@@ -1436,8 +1436,14 @@ function FulfillmentSection({
           <button
             onClick={onRetry}
             disabled={busy}
-            className="rounded-lg bg-slate-900 px-3 py-1 text-xs font-bold text-white hover:bg-slate-800 disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1 text-xs font-bold text-white transition-transform hover:bg-slate-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
+            title={retryLabel}
           >
+            {busy ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <Truck className="size-3.5" />
+            )}
             {busy ? "Sending…" : retryLabel}
           </button>
         )}
