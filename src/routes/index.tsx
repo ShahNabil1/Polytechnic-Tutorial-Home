@@ -15,6 +15,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { ProductCard } from "@/components/product-card";
 import type { Product } from "@/lib/products";
 import { listFeaturedProducts } from "@/lib/products.functions";
+import { listPublicCourses, type PublicCourseCard } from "@/lib/lms.functions";
 import { toBanglaNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
