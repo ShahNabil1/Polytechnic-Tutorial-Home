@@ -284,11 +284,21 @@ export function EmailTemplatesManager() {
                     className="min-w-0 flex-1 text-left hover:opacity-80"
                   >
                     <p className="truncate font-semibold text-slate-900">{t.name}</p>
-                    {t.key && (
-                      <p className="mt-0.5 font-mono text-[10px] uppercase tracking-wider text-slate-400">
-                        {t.key}
-                      </p>
-                    )}
+                    <div className="mt-0.5 flex items-center gap-1.5">
+                      <span
+                        className={cn(
+                          "rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide",
+                          categoryMeta(t.category).color,
+                        )}
+                      >
+                        {categoryMeta(t.category).label}
+                      </span>
+                      {t.key && (
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-slate-400">
+                          {t.key}
+                        </span>
+                      )}
+                    </div>
                   </button>
                   {t.key && AUTO_KEYS.has(t.key) && (
                     <Switch
