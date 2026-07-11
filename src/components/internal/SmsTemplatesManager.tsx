@@ -63,9 +63,10 @@ export function SmsTemplatesManager() {
     }
   }, [selected?.id]);
 
-  const variables = useMemo(() => {
+  const variables = useMemo<string[]>(() => {
     if (selected?.key && SYSTEM_VARS[selected.key]) return SYSTEM_VARS[selected.key];
-    const arr = Array.isArray(selected?.variables) ? selected!.variables : ALL_KNOWN_VARS;
+    const raw = selected?.variables;
+    const arr = Array.isArray(raw) ? (raw as unknown[]).map((x) => String(x)) : [];
     return arr.length ? arr : ALL_KNOWN_VARS;
   }, [selected]);
 
