@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SubjectsManager } from "@/components/internal/lms/SubjectsManager";
 import { CourseFormDialog } from "@/components/internal/lms/CourseFormDialog";
+import { EnrollmentsPanel } from "@/components/internal/lms/EnrollmentsPanel";
 
 type Props = { deptSlug: string; semSlug: string };
 
@@ -123,6 +124,8 @@ export function CourseDetail({ deptSlug, semSlug }: Props) {
           </Button>
         </div>
       </div>
+
+      {course && <EnrollmentsPanel courseId={course.id} />}
 
       <div>
         <h2 className="font-display text-xl font-bold tracking-tight text-slate-900 mb-3">

@@ -598,3 +598,299 @@ export const generateMissingCourses = createServerFn({ method: "POST" })
     return { ok: true, created: rows.length };
   });
 
+
+// ==================== Enrollments & Student Catalog ====================
+
+export const listCourseCatalog = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const [coursesRes, depsRes, semsRes, enrolRes] = await Promise.all([
+      context.supabase
+        .from("lms_courses")
+        .select("*")
+        .eq("is_active", true)
+        .order("sort_order")
+        .order("created_at", { ascending: false }),
+      context.supabase.from("lms_departments").select("id, name, slug"),
+      context.supabase.from("lms_semesters").select("id, name, slug"),
+      context.supabase
+        .from("lms_enrollments")
+        .select("course_id, expires_at")
+        .eq("user_id", context.userId),
+    ]);
+    if (coursesRes.error) throw new Error(coursesRes.error.message);
+    if (depsRes.error) throw new Error(depsRes.error.message);
+    if (semsRes.error) throw new Error(semsRes.error.message);
+    if (enrolRes.error) throw new Error(enrolRes.error.message);
+
+    const depMap = new Map<string, any>(((depsRes.data ?? []) as any[]).map((d) => [d.id, d]));
+    const semMap = new Map<string, any>(((semsRes.data ?? []) as any[]).map((s) => [s.id, s]));
+    const now = Date.now();
+    const accessSet = new Set<string>(
+      ((enrolRes.data ?? []) as any[])
+        .filter((e) => !e.expires_at || new Date(e.expires_at).getTime() > now)
+        .map((e) => e.course_id),
+    );
+
+    // subject counts
+    const { data: placeRows } = await context.supabase
+      .from("lms_subject_placements")
+      .select("department_id, semester_id, subject_id");
+    const counts = new Map<string, Set<string>>();
+    for (const p of (placeRows ?? []) as any[]) {
+      const k = `${p.department_id}:${p.semester_id}`;
+      const set = counts.get(k) ?? new Set<string>();
+      set.add(p.subject_id);
+      counts.set(k, set);
+    }
+
+    return ((coursesRes.data ?? []) as any[])
+      .map((r) => {
+        const dep = depMap.get(r.department_id);
+        const sem = semMap.get(r.semester_id);
+        if (!dep || !sem) return null;
+        return {
+          id: r.id,
+          department_id: r.department_id,
+          semester_id: r.semester_id,
+          title: r.title,
+          slug: r.slug,
+          description: r.description,
+          cover_image_url: r.cover_image_url,
+          price_bdt: Number(r.price_bdt ?? 0),
+          compare_at_price_bdt:
+            r.compare_at_price_bdt == null ? null : Number(r.compare_at_price_bdt),
+          is_active: r.is_active,
+          sort_order: r.sort_order,
+          subject_count: counts.get(`${r.department_id}:${r.semester_id}`)?.size ?? 0,
+          created_at: r.created_at,
+          updated_at: r.updated_at,
+          department_name: dep.name,
+          department_slug: dep.slug,
+          semester_name: sem.name,
+          semester_slug: sem.slug,
+          has_access: accessSet.has(r.id),
+        };
+      })
+      .filter(Boolean);
+  });
+
+export const listMyEnrollments = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("lms_enrollments")
+      .select("*, course:lms_courses(*)")
+      .eq("user_id", context.userId)
+      .order("granted_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return (data ?? []) as any[];
+  });
+
+export const getCourseContentForUser = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z.object({ dept_slug: z.string(), sem_slug: z.string() }).parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    const [depRes, semRes] = await Promise.all([
+      context.supabase.from("lms_departments").select("*").eq("slug", data.dept_slug).maybeSingle(),
+      context.supabase.from("lms_semesters").select("*").eq("slug", data.sem_slug).maybeSingle(),
+    ]);
+    if (depRes.error) throw new Error(depRes.error.message);
+    if (semRes.error) throw new Error(semRes.error.message);
+    const dep = depRes.data as any;
+    const sem = semRes.data as any;
+    if (!dep || !sem) throw new Error("Course not found");
+
+    const { data: courseRow, error: cErr } = await context.supabase
+      .from("lms_courses")
+      .select("*")
+      .eq("department_id", dep.id)
+      .eq("semester_id", sem.id)
+      .maybeSingle();
+    if (cErr) throw new Error(cErr.message);
+    if (!courseRow) throw new Error("Course not found");
+
+    const accessRes = await context.supabase.rpc("has_course_access", {
+      _user_id: context.userId,
+      _course_id: (courseRow as any).id,
+    });
+    const hasAccess = accessRes.data === true;
+
+    // Subjects placed in this (dept,sem)
+    const { data: placements, error: pErr } = await context.supabase
+      .from("lms_subject_placements")
+      .select("subject_id")
+      .eq("department_id", dep.id)
+      .eq("semester_id", sem.id);
+    if (pErr) throw new Error(pErr.message);
+    const subjectIds = ((placements ?? []) as any[]).map((p) => p.subject_id);
+
+    let subjects: any[] = [];
+    if (subjectIds.length > 0) {
+      const { data: subjRows, error: sErr } = await context.supabase
+        .from("lms_subjects")
+        .select("*")
+        .in("id", subjectIds)
+        .eq("is_active", true)
+        .order("sort_order");
+      if (sErr) throw new Error(sErr.message);
+      subjects = (subjRows ?? []) as any[];
+    }
+
+    // Load modules + lessons
+    const subjectIdList = subjects.map((s) => s.id);
+    const modulesBySubject = new Map<string, any[]>();
+    const lessonsByModule = new Map<string, any[]>();
+    if (subjectIdList.length > 0) {
+      const { data: modRows } = await context.supabase
+        .from("lms_modules")
+        .select("*")
+        .in("subject_id", subjectIdList)
+        .order("sort_order");
+      const mods = (modRows ?? []) as any[];
+      for (const m of mods) {
+        const arr = modulesBySubject.get(m.subject_id) ?? [];
+        arr.push(m);
+        modulesBySubject.set(m.subject_id, arr);
+      }
+      const moduleIds = mods.map((m) => m.id);
+      if (moduleIds.length > 0) {
+        const { data: lessonRows } = await context.supabase
+          .from("lms_lessons")
+          .select("*")
+          .in("module_id", moduleIds)
+          .order("sort_order");
+        for (const l of (lessonRows ?? []) as any[]) {
+          const arr = lessonsByModule.get(l.module_id) ?? [];
+          // Strip video url if no access and lesson isn't free
+          if (!hasAccess && !l.is_free) {
+            arr.push({ ...l, video_url: null });
+          } else {
+            arr.push(l);
+          }
+          lessonsByModule.set(l.module_id, arr);
+        }
+      }
+    }
+
+    return {
+      course: {
+        id: (courseRow as any).id,
+        department_id: (courseRow as any).department_id,
+        semester_id: (courseRow as any).semester_id,
+        title: (courseRow as any).title,
+        slug: (courseRow as any).slug,
+        description: (courseRow as any).description,
+        cover_image_url: (courseRow as any).cover_image_url,
+        price_bdt: Number((courseRow as any).price_bdt ?? 0),
+        compare_at_price_bdt:
+          (courseRow as any).compare_at_price_bdt == null
+            ? null
+            : Number((courseRow as any).compare_at_price_bdt),
+        is_active: (courseRow as any).is_active,
+        sort_order: (courseRow as any).sort_order,
+        created_at: (courseRow as any).created_at,
+        updated_at: (courseRow as any).updated_at,
+      },
+      department: {
+        id: dep.id,
+        kind: "department",
+        slug: dep.slug,
+        name: dep.name,
+        sort_order: dep.sort_order,
+        is_active: dep.is_active,
+      },
+      semester: {
+        id: sem.id,
+        kind: "semester",
+        slug: sem.slug,
+        name: sem.name,
+        sort_order: sem.sort_order,
+        is_active: sem.is_active,
+      },
+      has_access: hasAccess,
+      subjects: subjects.map((s) => ({
+        ...s,
+        modules: (modulesBySubject.get(s.id) ?? []).map((m) => ({
+          ...m,
+          lessons: lessonsByModule.get(m.id) ?? [],
+        })),
+      })),
+    };
+  });
+
+// ---------- Admin enrollment management ----------
+
+export const listCourseEnrollments = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => z.object({ course_id: z.string().uuid() }).parse(i))
+  .handler(async ({ data, context }) => {
+    await ensureCanManage(context);
+    const { data: rows, error } = await context.supabase
+      .from("lms_enrollments")
+      .select("*")
+      .eq("course_id", data.course_id)
+      .order("granted_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    const userIds = Array.from(new Set(((rows ?? []) as any[]).map((r) => r.user_id)));
+    let profileMap = new Map<string, any>();
+    if (userIds.length > 0) {
+      const { data: profs } = await context.supabase
+        .from("profiles")
+        .select("id, email, full_name")
+        .in("id", userIds);
+      profileMap = new Map(((profs ?? []) as any[]).map((p) => [p.id, p]));
+    }
+    return ((rows ?? []) as any[]).map((r) => ({
+      ...r,
+      user_email: profileMap.get(r.user_id)?.email ?? null,
+      user_full_name: profileMap.get(r.user_id)?.full_name ?? null,
+    }));
+  });
+
+export const grantEnrollment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z
+      .object({
+        course_id: z.string().uuid(),
+        email: z.string().email(),
+        expires_at: z.string().optional().nullable(),
+        note: z.string().max(500).optional().nullable(),
+      })
+      .parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureCanManage(context);
+    const { data: prof, error: pErr } = await context.supabase
+      .from("profiles")
+      .select("id")
+      .eq("email", data.email.toLowerCase().trim())
+      .maybeSingle();
+    if (pErr) throw new Error(pErr.message);
+    if (!prof) throw new Error("No user found with that email");
+    const { error } = await context.supabase.from("lms_enrollments").upsert(
+      {
+        user_id: (prof as any).id,
+        course_id: data.course_id,
+        granted_by: context.userId,
+        expires_at: data.expires_at || null,
+        note: data.note || null,
+      } as never,
+      { onConflict: "user_id,course_id" },
+    );
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const revokeEnrollment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
+  .handler(async ({ data, context }) => {
+    await ensureCanManage(context);
+    const { error } = await context.supabase.from("lms_enrollments").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
