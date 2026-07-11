@@ -11,6 +11,7 @@ import {
   Settings,
   UserCog,
   BookOpen,
+  MessageSquareText,
 } from "lucide-react";
 import { useRole } from "@/hooks/use-role";
 import { InternalShell, type NavGroup } from "@/components/internal/InternalShell";
@@ -68,8 +69,11 @@ function WorkspaceLayout() {
         ? [
             { to: "/workspace/employees", label: "Employees", icon: Users },
             { to: "/workspace/instructors", label: "Instructors", icon: GraduationCap },
+            { to: "/workspace/settings/sms-templates", label: "SMS Templates", icon: MessageSquareText },
           ]
-        : [],
+        : [
+            { to: "/workspace/settings/sms-templates", label: "SMS Templates", icon: MessageSquareText },
+          ],
     },
   ];
 
