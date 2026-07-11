@@ -115,8 +115,32 @@ export const sendOrderSms = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!order?.customer_phone) throw new Error("Order has no phone number");
 
-    const { sendBulksmsbd } = await import("@/lib/sms.server");
+    const { sendBulksmsbd, estimateSmsCount, isUnicodeMessage } = await import("@/lib/sms.server");
+    const isUnicode = isUnicodeMessage(data.message);
+    const smsCount = estimateSmsCount(data.message);
     const res = await sendBulksmsbd({ to: order.customer_phone, message: data.message });
+
+    // Log to order_sms_deliveries (requires service role — RLS blocks writes for staff)
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await supabaseAdmin.from("order_sms_deliveries").insert({
+        order_id: data.orderId,
+        kind: "manual",
+        sender_user_id: context.userId,
+        to_phone: order.customer_phone,
+        body: data.message,
+        status: res.ok ? "sent" : "failed",
+        sms_count: smsCount,
+        is_unicode: isUnicode,
+        provider_status: res.status,
+        provider_response: res.response?.slice(0, 500) ?? null,
+        error_reason: res.ok ? null : res.response?.slice(0, 500) ?? null,
+      } as never);
+    } catch (logErr) {
+      console.error("[sendOrderSms] log failed", logErr);
+    }
+
     if (!res.ok) throw new Error(`SMS provider failed: ${res.response}`);
-    return { ok: true, to: order.customer_phone };
+    return { ok: true, to: order.customer_phone, smsCount };
   });
+

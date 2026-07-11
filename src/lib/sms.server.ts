@@ -16,6 +16,26 @@ export function renderTemplate(body: string, vars: Record<string, string | numbe
   return out;
 }
 
+export function isUnicodeMessage(message: string): boolean {
+  return /[^\x00-\x7F]/.test(message);
+}
+
+/**
+ * Estimate the number of SMS segments a message will be billed for by
+ * Bulksmsbd. Unicode: 70 chars single / 67 chars concatenated.
+ * GSM-7 (text): 160 chars single / 153 chars concatenated.
+ */
+export function estimateSmsCount(message: string): number {
+  const len = message.length;
+  if (len === 0) return 0;
+  if (isUnicodeMessage(message)) {
+    if (len <= 70) return 1;
+    return Math.ceil(len / 67);
+  }
+  if (len <= 160) return 1;
+  return Math.ceil(len / 153);
+}
+
 export function normalizeBdPhone(phone: string): string {
   const digits = String(phone ?? "").replace(/\D/g, "");
   if (digits.startsWith("88")) return digits;
