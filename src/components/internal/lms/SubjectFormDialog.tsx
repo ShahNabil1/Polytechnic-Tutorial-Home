@@ -30,6 +30,7 @@ type Props = {
   open: boolean;
   subject: LmsSubject | null;
   taxonomy: AcademicCategory[];
+  initialPlacements?: SubjectPlacement[];
   onClose: () => void;
   onSaved: () => void;
 };
