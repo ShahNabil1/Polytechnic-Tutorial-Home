@@ -454,6 +454,7 @@ function toCourseRow(row: any, subjectCount = 0): LmsCourse {
     price_bdt: Number(row.price_bdt ?? 0),
     compare_at_price_bdt: row.compare_at_price_bdt != null ? Number(row.compare_at_price_bdt) : null,
     is_active: row.is_active,
+    is_featured: !!row.is_featured,
     sort_order: row.sort_order,
     subject_count: subjectCount,
     created_at: row.created_at,
