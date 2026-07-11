@@ -46,6 +46,7 @@ type Draft = {
   is_active: boolean;
   is_featured: boolean;
   is_online_book: boolean;
+  ebook_file_url: string;
 };
 
 const EMPTY_DRAFT: Draft = {
