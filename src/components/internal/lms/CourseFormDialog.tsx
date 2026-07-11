@@ -242,6 +242,7 @@ export function CourseFormDialog({
             price_bdt: priceNum,
             compare_at_price_bdt: compareNum,
             is_active: isActive,
+            is_featured: course?.is_featured ?? false,
             sort_order: sortOrder,
           },
         },
