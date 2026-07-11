@@ -190,14 +190,13 @@
   color: var(--foreground);
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
-}
-@utility input {
   &:focus {
     border-color: var(--brand, var(--primary));
     box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand, var(--primary)) 20%, transparent);
   }
   &::placeholder { color: color-mix(in oklab, var(--foreground) 45%, transparent); }
 }
+
 
 
 
