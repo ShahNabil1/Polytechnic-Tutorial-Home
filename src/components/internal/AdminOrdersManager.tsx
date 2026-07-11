@@ -56,14 +56,19 @@ export function AdminOrdersManager() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkOrders, setBulkOrders] = useState<BulkDispatchOrder[]>([]);
 
   const fetchOrders = useServerFn(listAdminOrders);
   const fetchCounts = useServerFn(getAdminOrderCounts);
   const queryClient = useQueryClient();
   const isIncomplete = tab === "incomplete";
+  const isProcessing = tab === "processing";
 
-  // Reset to page 1 when tab / search / pageSize changes.
+  // Reset selection whenever the filters that change the visible row set change.
   useEffect(() => {
+    setSelected(new Set());
     setPage(1);
   }, [tab, search, pageSize]);
 
