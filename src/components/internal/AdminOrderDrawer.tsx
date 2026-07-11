@@ -832,6 +832,10 @@ export function AdminOrderDrawer({
               </section>
             )}
 
+            {/* Send SMS to customer — placed right under delivery note toggle */}
+            <CustomerSmsSection orderId={orderId} order={order} onSent={() => refetch()} />
+
+
 
 
 
@@ -1005,8 +1009,8 @@ export function AdminOrderDrawer({
               emailDeliveries={data?.deliveries ?? []}
             />
 
-            {/* Send SMS to customer */}
-            <CustomerSmsSection orderId={orderId} order={order} onSent={() => refetch()} />
+
+
           </div>
         )}
       </div>
