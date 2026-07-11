@@ -106,7 +106,7 @@ export function SmsTemplatesManager() {
     const ok = await confirmDialog({
       title: "Delete template?",
       description: `"${selected.name}" delete করা হবে`,
-      confirmText: "Delete",
+      
       variant: "danger",
     });
     if (!ok) return;
