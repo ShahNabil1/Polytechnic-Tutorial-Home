@@ -11,11 +11,22 @@ const ALLOWED_MIME = new Set([
   "application/pdf",
 ]);
 
+const EBOOK_MIME = new Set([
+  "application/pdf",
+  "application/epub+zip",
+  "application/zip",
+  "application/x-zip-compressed",
+  "application/octet-stream",
+]);
+
+const MAX_DEFAULT_SIZE = 15 * 1024 * 1024; // 15 MB
+const MAX_EBOOK_SIZE = 300 * 1024 * 1024; // 300 MB
+
 const InputSchema = z.object({
-  folder: z.enum(["avatars", "profile", "uploads", "docs", "internal-docs"]).default("uploads"),
+  folder: z.enum(["avatars", "profile", "uploads", "docs", "internal-docs", "ebooks"]).default("uploads"),
   filename: z.string().min(1).max(200),
-  contentType: z.string().min(1).max(120),
-  size: z.number().int().positive().max(15 * 1024 * 1024), // 15 MB hard cap
+  contentType: z.string().min(1).max(150),
+  size: z.number().int().positive().max(MAX_EBOOK_SIZE),
 });
 
 export const createUploadUrl = createServerFn({ method: "POST" })
