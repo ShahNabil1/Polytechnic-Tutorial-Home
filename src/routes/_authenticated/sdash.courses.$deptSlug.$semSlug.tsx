@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   ArrowLeft,
@@ -13,9 +13,26 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { getCourseContentForUser, enrollInCourseTest } from "@/lib/lms.functions";
-import type { LmsCourseContent } from "@/lib/lms";
+import type { CourseMediaItem, LmsCourseContent } from "@/lib/lms";
+
+const SITE_URL = "https://polytechnictutorial.com";
 
 export const Route = createFileRoute("/_authenticated/sdash/courses/$deptSlug/$semSlug")({
+  head: ({ params }) => {
+    const url = `${SITE_URL}/sdash/courses/${params.deptSlug}/${params.semSlug}`;
+    // Loader data isn't populated (component fetches on mount), so we set
+    // stable per-URL SEO tags here. Once client renders, richer JSON-LD is
+    // still emitted below in the component's <script>.
+    return {
+      meta: [
+        { property: "og:url", content: url },
+        { property: "og:type", content: "product" },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "robots", content: "noindex" },
+      ],
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
   component: StudentCourseView,
 });
 
@@ -31,6 +48,7 @@ function StudentCourseView() {
   const [enrolling, setEnrolling] = useState(false);
   const [activeLesson, setActiveLesson] = useState<any | null>(null);
   const [openSubjects, setOpenSubjects] = useState<Record<string, boolean>>({});
+  const [activeMediaIdx, setActiveMediaIdx] = useState(0);
 
   async function refetch() {
     setLoading(true);
@@ -39,6 +57,7 @@ function StudentCourseView() {
         data: { dept_slug: deptSlug, sem_slug: semSlug },
       } as never)) as LmsCourseContent;
       setData(res);
+      setActiveMediaIdx(0);
       if (res.subjects[0]) setOpenSubjects((p) => (Object.keys(p).length ? p : { [res.subjects[0].id]: true }));
     } catch (e: any) {
       toast.error(e?.message ?? "Failed to load");
@@ -66,6 +85,74 @@ function StudentCourseView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deptSlug, semSlug]);
 
+  // Client-side head sync so the tab title / description reflect the loaded
+  // course. Server-rendered defaults come from the route head() above.
+  useEffect(() => {
+    if (!data) return;
+    const { course } = data;
+    const title = (course.meta_title || course.title || "Course").slice(0, 60);
+    const desc = (course.meta_description || course.description || `${title} — enroll now`).slice(0, 160);
+    const firstImage = (course.media_items || []).find((m) => m.type === "image")?.url
+      ?? course.cover_image_url
+      ?? "";
+    document.title = title;
+    setMeta("name", "description", desc);
+    setMeta("property", "og:title", title);
+    setMeta("property", "og:description", desc);
+    if (firstImage) setMeta("property", "og:image", firstImage);
+    setMeta("name", "twitter:title", title);
+    setMeta("name", "twitter:description", desc);
+    if (firstImage) setMeta("name", "twitter:image", firstImage);
+  }, [data]);
+
+  const heroMedia: CourseMediaItem[] = useMemo(() => {
+    if (!data) return [];
+    const items = data.course.media_items ?? [];
+    if (items.length > 0) return items;
+    if (data.course.cover_image_url) {
+      return [{ id: "cover", type: "image", url: data.course.cover_image_url }];
+    }
+    return [];
+  }, [data]);
+
+  const jsonLd = useMemo(() => {
+    if (!data) return null;
+    const { course, department, semester } = data;
+    const url = `${SITE_URL}/sdash/courses/${deptSlug}/${semSlug}`;
+    const firstImage = heroMedia.find((m) => m.type === "image")?.url;
+    return {
+      "@context": "https://schema.org",
+      "@type": "Course",
+      name: course.meta_title || course.title,
+      description: course.meta_description || course.description || course.title,
+      url,
+      ...(firstImage ? { image: firstImage } : {}),
+      provider: {
+        "@type": "Organization",
+        name: "Polytechnic Tutorial",
+        sameAs: SITE_URL,
+      },
+      about: `${department.name} · ${semester.name}`,
+      offers: {
+        "@type": "Offer",
+        price: course.price_bdt,
+        priceCurrency: "BDT",
+        availability: course.is_active
+          ? "https://schema.org/InStock"
+          : "https://schema.org/OutOfStock",
+        url,
+      },
+      hasCourseInstance: {
+        "@type": "CourseInstance",
+        courseMode: "online",
+        courseWorkload: `PT${data.subjects.reduce(
+          (a, s) => a + s.modules.reduce((b, m) => b + (m.lessons?.length ?? 0), 0),
+          0,
+        )}H`,
+      },
+    };
+  }, [data, heroMedia, deptSlug, semSlug]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -78,9 +165,17 @@ function StudentCourseView() {
   }
 
   const { course, department, semester, has_access, subjects } = data;
+  const activeMedia = heroMedia[activeMediaIdx];
 
   return (
     <div className="space-y-6">
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
+
       <Link
         to="/sdash/courses"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
@@ -88,31 +183,73 @@ function StudentCourseView() {
         <ArrowLeft className="w-4 h-4" /> সকল কোর্স
       </Link>
 
-      <div className="rounded-2xl border border-border bg-card p-5">
-        <div className="flex items-start gap-4 flex-wrap">
-          <div className="w-24 h-24 rounded-xl overflow-hidden bg-gradient-to-br from-indigo-100 via-sky-100 to-emerald-100 grid place-items-center shrink-0">
-            {course.cover_image_url ? (
-              <img src={course.cover_image_url} alt={course.title} className="w-full h-full object-cover" />
+      <div className="grid gap-6 lg:grid-cols-[1.2fr,1fr]">
+        {/* Media gallery */}
+        <div className="rounded-2xl border border-border bg-card overflow-hidden">
+          <div className="aspect-video bg-black">
+            {activeMedia ? (
+              activeMedia.type === "video" ? (
+                <video src={activeMedia.url} controls className="w-full h-full" />
+              ) : (
+                <img
+                  src={activeMedia.url}
+                  alt={course.title}
+                  className="w-full h-full object-cover"
+                />
+              )
             ) : (
-              <GraduationCap className="w-10 h-10 text-slate-400/60" />
+              <div className="w-full h-full grid place-items-center bg-gradient-to-br from-indigo-100 via-sky-100 to-emerald-100">
+                <GraduationCap className="w-14 h-14 text-slate-400/60" />
+              </div>
             )}
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">
-              {department.name} · {semester.name}
+          {heroMedia.length > 1 && (
+            <div className="flex gap-2 p-2 overflow-x-auto">
+              {heroMedia.map((m, idx) => {
+                const active = idx === activeMediaIdx;
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => setActiveMediaIdx(idx)}
+                    className={`shrink-0 h-16 w-24 rounded-md overflow-hidden border-2 relative ${
+                      active ? "border-brand" : "border-transparent hover:border-slate-300"
+                    }`}
+                  >
+                    {m.type === "video" ? (
+                      <>
+                        <video src={m.url} className="w-full h-full object-cover" muted preload="metadata" />
+                        <div className="absolute inset-0 grid place-items-center bg-black/40">
+                          <PlayCircle className="w-5 h-5 text-white" />
+                        </div>
+                      </>
+                    ) : (
+                      <img src={m.url} alt="" className="w-full h-full object-cover" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
-            <h1 className="text-2xl font-semibold mt-0.5">{course.title}</h1>
-            {course.description && (
-              <p className="text-sm text-muted-foreground mt-1">{course.description}</p>
-            )}
-            <div className="mt-3">
-              {has_access ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-700 text-xs px-2 py-1">
-                  ✓ আপনার এ্যাক্সেস আছে
-                </span>
-              ) : (
-                <div className="flex items-center gap-3">
-                  <span className="text-xl font-bold text-brand">
+          )}
+        </div>
+
+        {/* Info & CTA */}
+        <div className="rounded-2xl border border-border bg-card p-5 flex flex-col">
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">
+            {department.name} · {semester.name}
+          </div>
+          <h1 className="text-2xl font-semibold mt-1">{course.title}</h1>
+          {course.description && (
+            <p className="text-sm text-muted-foreground mt-2">{course.description}</p>
+          )}
+          <div className="mt-4">
+            {has_access ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-700 text-xs px-2 py-1">
+                ✓ আপনার এ্যাক্সেস আছে
+              </span>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-baseline gap-3">
+                  <span className="text-2xl font-bold text-brand">
                     ৳{course.price_bdt.toLocaleString()}
                   </span>
                   {course.compare_at_price_bdt && course.compare_at_price_bdt > course.price_bdt && (
@@ -120,20 +257,20 @@ function StudentCourseView() {
                       ৳{course.compare_at_price_bdt.toLocaleString()}
                     </span>
                   )}
-                  <button
-                    onClick={handleEnroll}
-                    disabled={enrolling}
-                    className="inline-flex items-center gap-1 rounded-lg bg-brand text-brand-foreground px-4 py-2 text-sm font-medium hover:bg-brand/90 disabled:opacity-60"
-                  >
-                    {enrolling && <Loader2 className="w-4 h-4 animate-spin" />}
-                    {enrolling ? "প্রসেসিং..." : "Buy Now — এনরোল করুন"}
-                  </button>
-                  <span className="text-[11px] text-muted-foreground">
-                    (টেস্ট মোড: Paystation gateway এর জায়গায় ইনস্ট্যান্ট এনরোল)
-                  </span>
                 </div>
-              )}
-            </div>
+                <button
+                  onClick={handleEnroll}
+                  disabled={enrolling}
+                  className="inline-flex items-center gap-1 rounded-lg bg-brand text-brand-foreground px-4 py-2 text-sm font-medium hover:bg-brand/90 disabled:opacity-60"
+                >
+                  {enrolling && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {enrolling ? "প্রসেসিং..." : "Buy Now — এনরোল করুন"}
+                </button>
+                <div className="text-[11px] text-muted-foreground">
+                  (টেস্ট মোড: Paystation gateway এর জায়গায় ইনস্ট্যান্ট এনরোল)
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -266,6 +403,16 @@ function StudentCourseView() {
       </div>
     </div>
   );
+}
+
+function setMeta(attr: "name" | "property", key: string, content: string) {
+  let el = document.querySelector<HTMLMetaElement>(`meta[${attr}="${key}"]`);
+  if (!el) {
+    el = document.createElement("meta");
+    el.setAttribute(attr, key);
+    document.head.appendChild(el);
+  }
+  el.setAttribute("content", content);
 }
 
 function toEmbedUrl(url: string, provider: "youtube" | "vimeo"): string {
