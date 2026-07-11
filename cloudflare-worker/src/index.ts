@@ -75,7 +75,7 @@ app.use("/api/steadfast/*", async (c, next) => {
     timestampHeader: c.req.header("x-lovable-timestamp") ?? null,
     signatureHeader: c.req.header("x-lovable-signature") ?? null,
   });
-  if (!result.ok) return c.json({ error: "unauthorized", reason: result.reason }, 401);
+  if (result.ok === false) return c.json({ error: "unauthorized", reason: result.reason }, 401);
   await next();
 });
 
