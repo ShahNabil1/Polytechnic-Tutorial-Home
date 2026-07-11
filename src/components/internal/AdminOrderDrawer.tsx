@@ -550,7 +550,7 @@ export function AdminOrderDrawer({
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-semibold">{p.title}</p>
                           <p className="font-mono text-[10px] text-slate-500">
-                            {p.sku ?? "no-sku"} · {formatBDT(p.price)}
+                            {p.sku ?? "no-sku"} · {formatBDTEn(p.price)}
                           </p>
                         </div>
                       </button>
@@ -587,7 +587,7 @@ export function AdminOrderDrawer({
                       className="w-24 rounded border border-slate-200 px-2 py-1 text-right text-sm font-mono"
                     />
                     <p className="w-24 text-right font-mono text-sm font-bold">
-                      {formatBDT(Number(it.quantity) * Number(it.unit_price))}
+                      {formatBDTEn(Number(it.quantity) * Number(it.unit_price))}
                     </p>
                     <button onClick={() => removeItemDraft(idx)} className="text-slate-400 hover:text-rose-600">
                       <Trash2 className="size-4" />
@@ -596,9 +596,9 @@ export function AdminOrderDrawer({
                 ))}
               </div>
               <div className="mt-3 border-t border-dashed border-slate-200 pt-3 text-right text-sm">
-                <p>Subtotal: <span className="font-mono font-bold">{formatBDT(totals.subtotal)}</span></p>
-                <p>Shipping: <span className="font-mono font-bold">{formatBDT(totals.shipping)}</span></p>
-                <p className="mt-1 text-base">Total: <span className="font-mono font-extrabold">{formatBDT(totals.total)}</span></p>
+                <p>Subtotal: <span className="font-mono font-bold">{formatBDTEn(totals.subtotal)}</span></p>
+                <p>Shipping: <span className="font-mono font-bold">{formatBDTEn(totals.shipping)}</span></p>
+                <p className="mt-1 text-base">Total: <span className="font-mono font-extrabold">{formatBDTEn(totals.total)}</span></p>
               </div>
             </Section>
 
