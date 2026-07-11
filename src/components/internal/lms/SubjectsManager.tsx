@@ -40,6 +40,8 @@ export function SubjectsManager({ deptFilter = "", semFilter = "" }: Props) {
   const [q, setQ] = useState("");
   const [editSubject, setEditSubject] = useState<LmsSubject | null>(null);
   const [creating, setCreating] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   async function refetch() {
     setLoading(true);
