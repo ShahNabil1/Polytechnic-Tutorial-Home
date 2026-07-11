@@ -78,3 +78,39 @@ export type LmsCourse = {
   updated_at: string;
 };
 
+
+export type LmsEnrollment = {
+  id: string;
+  user_id: string;
+  course_id: string;
+  order_id: string | null;
+  granted_by: string | null;
+  granted_at: string;
+  expires_at: string | null;
+  note: string | null;
+  created_at: string;
+  updated_at: string;
+  // joined
+  user_email?: string | null;
+  user_full_name?: string | null;
+};
+
+export type LmsCourseCatalogItem = LmsCourse & {
+  department_name: string;
+  department_slug: string;
+  semester_name: string;
+  semester_slug: string;
+  has_access: boolean;
+};
+
+export type LmsCourseContent = {
+  course: LmsCourse;
+  department: AcademicCategory;
+  semester: AcademicCategory;
+  has_access: boolean;
+  subjects: Array<
+    LmsSubject & {
+      modules: Array<LmsModuleWithLessons>;
+    }
+  >;
+};
