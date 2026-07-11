@@ -1379,18 +1379,60 @@ function FulfillmentSection({
                 <p className="text-rose-600">Error: {order.digital_last_error}</p>
               )}
             </div>
-            {deliveries.length > 0 && (
-              <div className="mt-2 max-h-40 space-y-1 overflow-auto border-t border-slate-100 pt-2">
-                {deliveries.map((d) => (
-                  <div key={d.id} className="text-[10px] font-medium text-slate-500">
-                    <span className="font-mono font-bold text-slate-700">{d.status}</span>
-                    {" · "}
-                    {formatDhakaDateTime(d.created_at)}
-                    {d.error_message ? ` · ${d.error_message}` : ""}
+            {deliveries.length > 0 && (() => {
+              // Aggregate positive events across all attempts so Sent/Delivered/Opened/Clicked
+              // stay visible even if a later attempt failed.
+              const agg = {
+                status: deliveries[0]?.status ?? null,
+                sent_at: null as string | null,
+                delivered_at: null as string | null,
+                opened_at: null as string | null,
+                clicked_at: null as string | null,
+                bounced_at: null as string | null,
+                error_reason: null as string | null,
+                updated_at: deliveries[0]?.updated_at ?? null,
+              };
+              for (const d of [...deliveries].reverse()) {
+                agg.sent_at ||= d.sent_at ?? null;
+                agg.delivered_at ||= d.delivered_at ?? null;
+                agg.opened_at ||= d.opened_at ?? null;
+                agg.clicked_at ||= d.clicked_at ?? null;
+                agg.bounced_at ||= d.bounced_at ?? null;
+                agg.error_reason = d.error_reason ?? agg.error_reason;
+              }
+              return (
+                <div className="mt-3 border-t border-slate-100 pt-3">
+                  <div className="mb-2 flex items-center gap-1.5">
+                    <ResendLogo className="size-3.5 text-slate-900" />
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-600">
+                      Resend webhook events
+                    </span>
                   </div>
-                ))}
-              </div>
-            )}
+                  <ResendEventChips events={agg} />
+                  <div className="mt-3 max-h-48 space-y-1.5 overflow-auto">
+                    {deliveries.map((d) => (
+                      <div key={d.id} className="rounded-lg bg-slate-50 px-2 py-1.5 text-[10px] font-medium text-slate-600 ring-1 ring-slate-100">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="inline-flex items-center gap-1">
+                            <ResendLogo className="size-3 text-slate-900/80" />
+                            <span className="font-mono font-extrabold uppercase text-slate-800">
+                              {d.status}
+                            </span>
+                            <span className="text-slate-400">· attempt #{d.attempt_no ?? 1}</span>
+                          </span>
+                          <span className="tabular-nums text-slate-500">
+                            {formatDhakaDateTime(d.updated_at ?? d.created_at)}
+                          </span>
+                        </div>
+                        {d.error_reason && (
+                          <p className="mt-0.5 text-rose-600">Error: {d.error_reason}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
         {showPhysical && (
