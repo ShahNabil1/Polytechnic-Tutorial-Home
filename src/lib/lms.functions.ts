@@ -685,6 +685,7 @@ export const listCourseCatalog = createServerFn({ method: "GET" })
         const dep = depMap.get(r.department_id);
         const sem = semMap.get(r.semester_id);
         if (!dep || !sem) return null;
+        const media = Array.isArray(r.media_items) ? (r.media_items as any[]) : [];
         return {
           id: r.id,
           department_id: r.department_id,
@@ -693,6 +694,9 @@ export const listCourseCatalog = createServerFn({ method: "GET" })
           slug: r.slug,
           description: r.description,
           cover_image_url: r.cover_image_url,
+          meta_title: r.meta_title ?? null,
+          meta_description: r.meta_description ?? null,
+          media_items: media,
           price_bdt: Number(r.price_bdt ?? 0),
           compare_at_price_bdt:
             r.compare_at_price_bdt == null ? null : Number(r.compare_at_price_bdt),
