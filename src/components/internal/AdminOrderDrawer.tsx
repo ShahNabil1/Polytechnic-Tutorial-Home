@@ -1690,12 +1690,11 @@ function CustomerSmsSection({ orderId, order }: { orderId: string; order: Order 
 
   const vars = useMemo<Record<string, string>>(() => {
     if (!order) return {} as Record<string, string>;
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
     return {
       name: order.customer_name ?? "",
       order_no: order.order_no ?? "",
       amount: String(order.total_bdt ?? ""),
-      receipt_url: origin ? `${origin}/checkout/success?order=${order.order_no}` : "",
+      receipt_url: order.order_no ? receiptUrl(order.order_no) : "",
       phone: order.customer_phone ?? "",
     };
   }, [order]);
