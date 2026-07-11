@@ -380,6 +380,9 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean
+          media_items: Json
+          meta_description: string | null
+          meta_title: string | null
           price_bdt: number
           semester_id: string
           slug: string
@@ -396,6 +399,9 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          media_items?: Json
+          meta_description?: string | null
+          meta_title?: string | null
           price_bdt?: number
           semester_id: string
           slug: string
@@ -412,6 +418,9 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          media_items?: Json
+          meta_description?: string | null
+          meta_title?: string | null
           price_bdt?: number
           semester_id?: string
           slug?: string

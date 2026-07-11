@@ -424,6 +424,7 @@ export const deleteLesson = createServerFn({ method: "POST" })
 // ==================== Courses (Department × Semester) ====================
 
 function toCourseRow(row: any, subjectCount = 0): LmsCourse {
+  const media = Array.isArray(row.media_items) ? (row.media_items as any[]) : [];
   return {
     id: row.id,
     department_id: row.department_id,
@@ -432,6 +433,14 @@ function toCourseRow(row: any, subjectCount = 0): LmsCourse {
     slug: row.slug,
     description: row.description ?? null,
     cover_image_url: row.cover_image_url ?? null,
+    meta_title: row.meta_title ?? null,
+    meta_description: row.meta_description ?? null,
+    media_items: media.map((m: any) => ({
+      id: String(m.id ?? crypto.randomUUID?.() ?? Math.random().toString(36).slice(2)),
+      type: m.type === "video" ? "video" : "image",
+      url: String(m.url ?? ""),
+      alt: m.alt ?? null,
+    })),
     price_bdt: Number(row.price_bdt ?? 0),
     compare_at_price_bdt: row.compare_at_price_bdt != null ? Number(row.compare_at_price_bdt) : null,
     is_active: row.is_active,
@@ -488,6 +497,13 @@ export const getCourseByPair = createServerFn({ method: "GET" })
     return toCourseRow(row);
   });
 
+const MediaItemSchema = z.object({
+  id: z.string().min(1),
+  type: z.enum(["image", "video"]),
+  url: z.string().url().max(1000),
+  alt: z.string().max(300).optional().nullable(),
+});
+
 const CoursePatch = z.object({
   title: z.string().trim().min(1).max(200),
   slug: z
@@ -499,6 +515,20 @@ const CoursePatch = z.object({
     .optional(),
   description: z.string().max(10000).optional().nullable(),
   cover_image_url: z.string().url().max(1000).optional().nullable().or(z.literal("")),
+  meta_title: z.string().max(200).optional().nullable(),
+  meta_description: z.string().max(500).optional().nullable(),
+  media_items: z
+    .array(MediaItemSchema)
+    .max(6)
+    .default([])
+    .refine(
+      (arr) => arr.filter((m) => m.type === "image").length <= 5,
+      { message: "Maximum 5 images allowed" },
+    )
+    .refine(
+      (arr) => arr.filter((m) => m.type === "video").length <= 1,
+      { message: "Only 1 video allowed" },
+    ),
   price_bdt: z.number().min(0).max(1_000_000).default(0),
   compare_at_price_bdt: z.number().min(0).max(1_000_000).optional().nullable(),
   is_active: z.boolean().default(true),
@@ -519,6 +549,8 @@ export const upsertCourse = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await ensureCanManage(context);
+    const media = data.patch.media_items ?? [];
+    const firstImage = media.find((m) => m.type === "image");
     const payload: any = {
       department_id: data.department_id,
       semester_id: data.semester_id,
@@ -526,9 +558,13 @@ export const upsertCourse = createServerFn({ method: "POST" })
       slug: data.patch.slug?.trim() || slugify(data.patch.title),
       description: data.patch.description ?? null,
       cover_image_url:
-        data.patch.cover_image_url && data.patch.cover_image_url !== ""
+        firstImage?.url ||
+        (data.patch.cover_image_url && data.patch.cover_image_url !== ""
           ? data.patch.cover_image_url
-          : null,
+          : null),
+      meta_title: data.patch.meta_title?.trim() || null,
+      meta_description: data.patch.meta_description?.trim() || null,
+      media_items: media,
       price_bdt: data.patch.price_bdt,
       compare_at_price_bdt: data.patch.compare_at_price_bdt ?? null,
       is_active: data.patch.is_active,
@@ -649,6 +685,7 @@ export const listCourseCatalog = createServerFn({ method: "GET" })
         const dep = depMap.get(r.department_id);
         const sem = semMap.get(r.semester_id);
         if (!dep || !sem) return null;
+        const media = Array.isArray(r.media_items) ? (r.media_items as any[]) : [];
         return {
           id: r.id,
           department_id: r.department_id,
@@ -657,6 +694,9 @@ export const listCourseCatalog = createServerFn({ method: "GET" })
           slug: r.slug,
           description: r.description,
           cover_image_url: r.cover_image_url,
+          meta_title: r.meta_title ?? null,
+          meta_description: r.meta_description ?? null,
+          media_items: media,
           price_bdt: Number(r.price_bdt ?? 0),
           compare_at_price_bdt:
             r.compare_at_price_bdt == null ? null : Number(r.compare_at_price_bdt),
@@ -775,6 +815,9 @@ export const getCourseContentForUser = createServerFn({ method: "GET" })
       }
     }
 
+    const courseMedia = Array.isArray((courseRow as any).media_items)
+      ? ((courseRow as any).media_items as any[])
+      : [];
     return {
       course: {
         id: (courseRow as any).id,
@@ -784,6 +827,9 @@ export const getCourseContentForUser = createServerFn({ method: "GET" })
         slug: (courseRow as any).slug,
         description: (courseRow as any).description,
         cover_image_url: (courseRow as any).cover_image_url,
+        meta_title: (courseRow as any).meta_title ?? null,
+        meta_description: (courseRow as any).meta_description ?? null,
+        media_items: courseMedia,
         price_bdt: Number((courseRow as any).price_bdt ?? 0),
         compare_at_price_bdt:
           (courseRow as any).compare_at_price_bdt == null
@@ -936,3 +982,83 @@ export const enrollInCourseTest = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// ==================== Course curriculum snapshot (admin) ====================
+// Returns the subjects placed in a course's (dept, sem) pair with modules
+// and lesson (video) counts — reuses the same tables Subjects / Structure use.
+
+export const listCourseCurriculum = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z.object({ department_id: z.string().uuid(), semester_id: z.string().uuid() }).parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: placeRows, error: pErr } = await context.supabase
+      .from("lms_subject_placements")
+      .select("subject_id")
+      .eq("department_id", data.department_id)
+      .eq("semester_id", data.semester_id);
+    if (pErr) throw new Error(pErr.message);
+    const subjectIds = ((placeRows ?? []) as any[]).map((p) => p.subject_id);
+    if (subjectIds.length === 0) return [] as any[];
+
+    const { data: subjRows, error: sErr } = await context.supabase
+      .from("lms_subjects")
+      .select("id, name, code, slug, description, cover_image_url, is_active, sort_order")
+      .in("id", subjectIds)
+      .order("sort_order");
+    if (sErr) throw new Error(sErr.message);
+    const subjects = (subjRows ?? []) as any[];
+
+    const { data: modRows } = await context.supabase
+      .from("lms_modules")
+      .select("id, subject_id, title, sort_order")
+      .in("subject_id", subjectIds)
+      .order("sort_order");
+    const modules = (modRows ?? []) as any[];
+    const moduleIds = modules.map((m) => m.id);
+
+    const lessonCountByModule = new Map<string, number>();
+    let lessonsByModule = new Map<string, number>();
+    if (moduleIds.length > 0) {
+      const { data: lessonRows } = await context.supabase
+        .from("lms_lessons")
+        .select("id, module_id, video_url")
+        .in("module_id", moduleIds);
+      for (const l of (lessonRows ?? []) as any[]) {
+        lessonCountByModule.set(l.module_id, (lessonCountByModule.get(l.module_id) ?? 0) + 1);
+        if (l.video_url && l.video_url !== "") {
+          lessonsByModule.set(l.module_id, (lessonsByModule.get(l.module_id) ?? 0) + 1);
+        }
+      }
+    }
+
+    const modulesBySubject = new Map<string, any[]>();
+    for (const m of modules) {
+      const arr = modulesBySubject.get(m.subject_id) ?? [];
+      arr.push({
+        id: m.id,
+        title: m.title,
+        sort_order: m.sort_order,
+        lesson_count: lessonCountByModule.get(m.id) ?? 0,
+        video_count: lessonsByModule.get(m.id) ?? 0,
+      });
+      modulesBySubject.set(m.subject_id, arr);
+    }
+
+    return subjects.map((s) => {
+      const mods = modulesBySubject.get(s.id) ?? [];
+      return {
+        id: s.id,
+        name: s.name,
+        code: s.code,
+        slug: s.slug,
+        is_active: s.is_active,
+        module_count: mods.length,
+        lesson_count: mods.reduce((a, m) => a + m.lesson_count, 0),
+        video_count: mods.reduce((a, m) => a + m.video_count, 0),
+        modules: mods,
+      };
+    });
+  });
+

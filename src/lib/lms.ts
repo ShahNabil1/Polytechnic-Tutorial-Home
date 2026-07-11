@@ -61,6 +61,13 @@ export type LmsLesson = {
 
 export type LmsModuleWithLessons = LmsModule & { lessons: LmsLesson[] };
 
+export type CourseMediaItem = {
+  id: string;
+  type: "image" | "video";
+  url: string;
+  alt?: string | null;
+};
+
 export type LmsCourse = {
   id: string;
   department_id: string;
@@ -69,6 +76,9 @@ export type LmsCourse = {
   slug: string;
   description: string | null;
   cover_image_url: string | null;
+  meta_title: string | null;
+  meta_description: string | null;
+  media_items: CourseMediaItem[];
   price_bdt: number;
   compare_at_price_bdt: number | null;
   is_active: boolean;
