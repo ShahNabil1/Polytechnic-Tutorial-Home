@@ -302,6 +302,22 @@ export function SmsTemplatesManager() {
                 className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2 text-sm disabled:bg-slate-50 disabled:text-slate-600"
               />
 
+              <label className="mt-3 block text-xs font-bold uppercase tracking-wider text-slate-500">
+                Category
+              </label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                disabled={!isEditing}
+                className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2 text-sm disabled:bg-slate-50"
+              >
+                {TEMPLATE_CATEGORIES.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+
               <div className="mt-4">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
                   Available variables (click to copy)
