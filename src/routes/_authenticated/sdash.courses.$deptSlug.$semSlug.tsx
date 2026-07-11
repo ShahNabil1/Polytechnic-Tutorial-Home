@@ -25,10 +25,41 @@ function StudentCourseView() {
     semSlug: string;
   };
   const fn = useServerFn(getCourseContentForUser);
+  const enrollFn = useServerFn(enrollInCourseTest);
   const [data, setData] = useState<LmsCourseContent | null>(null);
   const [loading, setLoading] = useState(true);
+  const [enrolling, setEnrolling] = useState(false);
   const [activeLesson, setActiveLesson] = useState<any | null>(null);
   const [openSubjects, setOpenSubjects] = useState<Record<string, boolean>>({});
+
+  async function refetch() {
+    setLoading(true);
+    try {
+      const res = (await fn({
+        data: { dept_slug: deptSlug, sem_slug: semSlug },
+      } as never)) as LmsCourseContent;
+      setData(res);
+      if (res.subjects[0]) setOpenSubjects((p) => (Object.keys(p).length ? p : { [res.subjects[0].id]: true }));
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to load");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleEnroll() {
+    if (!data) return;
+    setEnrolling(true);
+    try {
+      await enrollFn({ data: { course_id: data.course.id } } as never);
+      toast.success("এনরোলমেন্ট সফল! কোর্সে এ্যাক্সেস পেয়েছেন।");
+      await refetch();
+    } catch (e: any) {
+      toast.error(e?.message ?? "এনরোল ব্যর্থ হয়েছে");
+    } finally {
+      setEnrolling(false);
+    }
+  }
 
   useEffect(() => {
     (async () => {
