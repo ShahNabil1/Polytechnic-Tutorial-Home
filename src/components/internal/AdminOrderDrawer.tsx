@@ -1689,7 +1689,7 @@ function CustomerSmsSection({ orderId, order }: { orderId: string; order: Order 
   const textRef = React.useRef<HTMLTextAreaElement | null>(null);
 
   const vars = useMemo<Record<string, string>>(() => {
-    if (!order) return {};
+    if (!order) return {} as Record<string, string>;
     const origin = typeof window !== "undefined" ? window.location.origin : "";
     return {
       name: order.customer_name ?? "",
