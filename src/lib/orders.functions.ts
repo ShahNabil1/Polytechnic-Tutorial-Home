@@ -417,7 +417,29 @@ export const getAdminOrder = createServerFn({ method: "GET" })
       profile = p;
     }
     const orderOut = order ? { ...order, ip: order.ip == null ? null : String(order.ip) } : null;
-    return { order: orderOut, items: items ?? [], notes: notes ?? [], history: history ?? [], profile, deliveries: deliveries ?? [] };
+
+    // Enrich notes with author display name
+    const authorIds = Array.from(
+      new Set((notes ?? []).map((n: any) => n.author_user_id).filter(Boolean)),
+    );
+    let authorMap: Record<string, string> = {};
+    if (authorIds.length) {
+      const { data: authors } = await context.supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", authorIds);
+      for (const a of authors ?? []) {
+        authorMap[a.id] =
+          (a.full_name && String(a.full_name).trim()) ||
+          (a.email && String(a.email).split("@")[0]) ||
+          "Staff";
+      }
+    }
+    const notesOut = (notes ?? []).map((n: any) => ({
+      ...n,
+      author_name: n.author_user_id ? authorMap[n.author_user_id] ?? "Staff" : "System",
+    }));
+    return { order: orderOut, items: items ?? [], notes: notesOut, history: history ?? [], profile, deliveries: deliveries ?? [] };
   });
 
 // -------- ADMIN: update customer / order fields --------
