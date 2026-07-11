@@ -236,6 +236,17 @@ export const createOrder = createServerFn({ method: "POST" })
     const { error: itemErr } = await sb.from("order_items").insert(itemsRows as any);
     if (itemErr) throw new Error(itemErr.message);
 
+    // Record coupon redemption (fires trigger to bump uses_count)
+    if (couponId && discountAmount > 0) {
+      await sb.from("coupon_redemptions").insert({
+        coupon_id: couponId,
+        order_id: order.id,
+        user_id: data.userId ?? null,
+        phone: data.customer.phone,
+        discount_amount: discountAmount,
+      } as any);
+    }
+
     // On successful order: remove any incomplete-checkout rows for this phone.
     await sb.from("incomplete_checkouts").delete().eq("customer_phone", data.customer.phone);
 
