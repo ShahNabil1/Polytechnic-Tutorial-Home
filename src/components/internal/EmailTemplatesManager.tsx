@@ -178,6 +178,7 @@ export function EmailTemplatesManager() {
       setName(selected.name);
       setSubject(selected.subject);
       setBodyHtml(selected.body_html);
+      setCategory(selected.category ?? "other");
     }
     setIsEditing(false);
     setTab("preview");
