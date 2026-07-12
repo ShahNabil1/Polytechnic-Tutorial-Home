@@ -132,11 +132,58 @@ export const createOrder = createServerFn({ method: "POST" })
       data.items.map((i) => ({ title: i.title, quantity: i.quantity })),
     );
 
+    // ---- Server-authoritative price recomputation ----
+    // Never trust client-submitted prices. Look up the current price for every
+    // line from products / product_bundles, and reject the order if a referenced
+    // item is missing, inactive, or not priced.
+    const bundleIdOf = (raw: string) => raw.startsWith("bundle:") ? raw.slice(7) : raw;
+    const productIds = data.items
+      .filter((i) => !i.isBundle)
+      .map((i) => i.productId)
+      .filter((p) => isUuid(p));
+    const bundleIds = data.items
+      .filter((i) => i.isBundle)
+      .map((i) => bundleIdOf(i.productId))
+      .filter((p) => isUuid(p));
+
+    const [productsRes, bundlesRes] = await Promise.all([
+      productIds.length
+        ? sb.from("products").select("id, price, is_active, title").in("id", productIds)
+        : Promise.resolve({ data: [] as any[], error: null as any }),
+      bundleIds.length
+        ? sb.from("product_bundles").select("id, price, is_active, title").in("id", bundleIds)
+        : Promise.resolve({ data: [] as any[], error: null as any }),
+    ]);
+    if (productsRes.error) throw new Error(productsRes.error.message);
+    if (bundlesRes.error) throw new Error(bundlesRes.error.message);
+    const productMap = new Map<string, { price: number; is_active: boolean; title: string }>(
+      (productsRes.data ?? []).map((r: any) => [r.id, { price: Number(r.price), is_active: !!r.is_active, title: r.title }]),
+    );
+    const bundleMap = new Map<string, { price: number; is_active: boolean; title: string }>(
+      (bundlesRes.data ?? []).map((r: any) => [r.id, { price: Number(r.price), is_active: !!r.is_active, title: r.title }]),
+    );
+
+    type PricedItem = (typeof data.items)[number] & { serverUnitPrice: number; serverLineTotal: number };
+    const pricedItems: PricedItem[] = data.items.map((i) => {
+      const rec = i.isBundle
+        ? bundleMap.get(bundleIdOf(i.productId))
+        : (isUuid(i.productId) ? productMap.get(i.productId) : undefined);
+      if (!rec) throw new Error(`Item not found or unavailable: ${i.title}`);
+      if (!rec.is_active) throw new Error(`Item is no longer available: ${rec.title}`);
+      if (!Number.isFinite(rec.price) || rec.price < 0) {
+        throw new Error(`Item is not priced: ${rec.title}`);
+      }
+      const unit = rec.price;
+      return { ...i, serverUnitPrice: unit, serverLineTotal: unit * i.quantity };
+    });
+    const serverSubtotal = pricedItems.reduce((s, i) => s + i.serverLineTotal, 0);
+
     // ---- Coupon revalidation (authoritative) ----
     let couponId: string | null = null;
     let discountAmount = 0;
     if (data.couponCode && data.couponCode.trim()) {
-      const productUuids = data.items
+      const productUuids = pricedItems
+        .filter((i) => !i.isBundle)
         .map((i) => i.productId)
         .filter((p) => isUuid(p));
       let categoryIds: string[] = [];
@@ -149,7 +196,7 @@ export const createOrder = createServerFn({ method: "POST" })
       }
       const { data: vres, error: vErr } = await sb.rpc("validate_coupon", {
         _code: data.couponCode.trim(),
-        _subtotal: data.totals.subtotal,
+        _subtotal: serverSubtotal,
         _product_ids: productUuids,
         _category_ids: categoryIds,
         _phone: data.customer.phone,
@@ -164,13 +211,11 @@ export const createOrder = createServerFn({ method: "POST" })
         }
       }
     }
-    // Trust server-computed discount over client-provided value
-    const finalDiscount = discountAmount || (data.totals.discount ?? 0);
-    const finalTotal = Math.max(
-      0,
-      data.totals.subtotal + data.totals.shipping - finalDiscount,
-    );
-
+    const finalDiscount = discountAmount;
+    // Trust client shipping only (non-financial risk for COD/flat shipping),
+    // but recompute subtotal + total server-side from DB prices.
+    const shipping = Math.max(0, Number(data.totals.shipping) || 0);
+    const finalTotal = Math.max(0, serverSubtotal + shipping - finalDiscount);
 
     const { data: order, error: insErr } = await sb
       .from("orders")
@@ -186,8 +231,8 @@ export const createOrder = createServerFn({ method: "POST" })
         thana: data.customer.upazila || null,
         address_line: data.customer.address || null,
         full_address: fullAddr || null,
-        subtotal_bdt: data.totals.subtotal,
-        shipping_bdt: data.totals.shipping,
+        subtotal_bdt: serverSubtotal,
+        shipping_bdt: shipping,
         discount_bdt: finalDiscount,
         total_bdt: finalTotal,
         cod_amount: 0,
@@ -223,20 +268,21 @@ export const createOrder = createServerFn({ method: "POST" })
       throw new Error(insErr.message);
     }
 
-    const itemsRows = data.items.map((i) => ({
+    const itemsRows = pricedItems.map((i) => ({
       order_id: order.id,
       product_id: i.isBundle ? null : (isUuid(i.productId) ? i.productId : null),
-      bundle_id: i.isBundle && isUuid(i.productId.replace(/^bundle:/, "")) ? i.productId.replace(/^bundle:/, "") : null,
+      bundle_id: i.isBundle && isUuid(bundleIdOf(i.productId)) ? bundleIdOf(i.productId) : null,
       is_bundle: !!i.isBundle,
       title: i.title,
-      unit_price: i.unitPrice,
+      unit_price: i.serverUnitPrice,
       quantity: i.quantity,
-      line_total: i.unitPrice * i.quantity,
+      line_total: i.serverLineTotal,
       image_url: i.image || null,
       item_type: i.isOnlineBook || i.type === "ebook" ? "ebook" : "physical",
     }));
     const { error: itemErr } = await sb.from("order_items").insert(itemsRows as any);
     if (itemErr) throw new Error(itemErr.message);
+
 
     // Record coupon redemption (fires trigger to bump uses_count)
     if (couponId && discountAmount > 0) {
