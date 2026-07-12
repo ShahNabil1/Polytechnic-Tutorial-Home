@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
   // Bulksmsbd needs type=unicode for non-ASCII (Bengali); "text" is accepted
   // but silently dropped by carriers.
   const isUnicode = /[^\x00-\x7F]/.test(message);
-  const url = new URL("http://bulksmsbd.net/api/smsapi");
+  const url = new URL("https://bulksmsbd.net/api/smsapi");
   url.searchParams.set("api_key", BULKSMSBD_API_KEY);
   url.searchParams.set("type", isUnicode ? "unicode" : "text");
   url.searchParams.set("number", phone);

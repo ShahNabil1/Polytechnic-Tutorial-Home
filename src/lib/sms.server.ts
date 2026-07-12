@@ -3,7 +3,7 @@
  * Server-only — never import from client bundles.
  */
 
-const BULKSMSBD_ENDPOINT = "http://bulksmsbd.net/api/smsapi";
+const BULKSMSBD_ENDPOINT = "https://bulksmsbd.net/api/smsapi";
 
 export function renderTemplate(body: string, vars: Record<string, string | number | null | undefined>): string {
   let out = body ?? "";
