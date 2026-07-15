@@ -46,7 +46,7 @@ import { RoleProfileFieldsEN } from "@/components/internal/RoleProfileFieldsEN";
 import { beginImpersonation } from "@/lib/impersonation";
 import { ExternalLink, AlertTriangle } from "lucide-react";
 
-type Props = { userId: string; role: "employee" | "instructor" };
+type Props = { userId: string; role: "employee" | "instructor" | "customer" };
 
 export function InternalUserDetailPage({ userId, role }: Props) {
   const router = useRouter();
@@ -280,7 +280,7 @@ export function InternalUserDetailPage({ userId, role }: Props) {
     try {
       await revokeRole({ data: { user_id: userId, role } });
       toast.success("Role revoked");
-      router.navigate({ to: role === "employee" ? "/workspace/employees" : "/workspace/instructors" });
+      router.navigate({ to: role === "employee" ? "/workspace/employees" : role === "instructor" ? "/workspace/instructors" : "/workspace/crm" });
     } catch (e) {
       toast.error("Failed: " + (e instanceof Error ? e.message : String(e)));
     } finally {
@@ -320,7 +320,7 @@ export function InternalUserDetailPage({ userId, role }: Props) {
     try {
       await deleteUser({ data: { user_id: userId, confirm_email: detail.email } });
       toast.success("Account permanently deleted");
-      router.navigate({ to: role === "employee" ? "/workspace/employees" : "/workspace/instructors" });
+      router.navigate({ to: role === "employee" ? "/workspace/employees" : role === "instructor" ? "/workspace/instructors" : "/workspace/crm" });
     } catch (e) {
       toast.error("Delete failed: " + (e instanceof Error ? e.message : String(e)));
     } finally {
@@ -392,8 +392,10 @@ export function InternalUserDetailPage({ userId, role }: Props) {
     );
   }
 
-  const backTo = role === "employee" ? "/workspace/employees" : "/workspace/instructors";
-  const label = role === "employee" ? "Employee" : "Instructor";
+  const isCustomer = role === "customer";
+  const backTo = role === "employee" ? "/workspace/employees" : role === "instructor" ? "/workspace/instructors" : "/workspace/crm";
+  const label = role === "employee" ? "Employee" : role === "instructor" ? "Instructor" : "Customer";
+  const backLabel = isCustomer ? "Back to CRM" : `Back to ${label.toLowerCase()}s`;
 
   return (
     <div className="space-y-6">
@@ -403,7 +405,7 @@ export function InternalUserDetailPage({ userId, role }: Props) {
           to={backTo}
           className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-slate-900"
         >
-          <ArrowLeft className="size-4" /> Back to {label.toLowerCase()}s
+          <ArrowLeft className="size-4" /> {backLabel}
         </Link>
         <div className="flex items-center gap-2">
           <button
@@ -576,11 +578,13 @@ export function InternalUserDetailPage({ userId, role }: Props) {
         </dl>
       </section>
 
-      {/* Editable role-specific fields (address, NID, CV, workplace, job_role, subjects, departments, bank) */}
-      <RoleProfileFieldsEN role={role} targetUserId={userId} />
+      {/* Editable role-specific fields (staff only) */}
+      {!isCustomer && (
+        <RoleProfileFieldsEN role={role as any} targetUserId={userId} />
+      )}
 
-
-      {/* NID photos */}
+      {/* NID photos (staff only) */}
+      {!isCustomer && (
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-base font-bold tracking-tight">
@@ -678,6 +682,7 @@ export function InternalUserDetailPage({ userId, role }: Props) {
           })}
         </div>
       </section>
+      )}
 
 
 
@@ -801,6 +806,7 @@ export function InternalUserDetailPage({ userId, role }: Props) {
             {detail.is_active ? <ShieldOff className="size-3.5" /> : <ShieldCheck className="size-3.5" />}
             {detail.is_active ? "Deactivate" : "Activate"}
           </button>
+          {!isCustomer && (
           <button
             type="button"
             onClick={handleRevokeRole}
@@ -809,6 +815,7 @@ export function InternalUserDetailPage({ userId, role }: Props) {
           >
             <UserMinus className="size-3.5" /> Revoke {label} role
           </button>
+          )}
           <button
             type="button"
             onClick={handleDelete}

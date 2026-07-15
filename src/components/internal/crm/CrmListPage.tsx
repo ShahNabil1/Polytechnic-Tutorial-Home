@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Search, User as UserIcon, Phone as PhoneIcon, Mail as MailIcon, ShoppingBag, GraduationCap, AlertCircle, MessageSquare, Mail as MailIcon2 } from "lucide-react";
+import { Loader2, Search, User as UserIcon, Phone as PhoneIcon, Mail as MailIcon, ShoppingBag, GraduationCap, AlertCircle, MessageSquare, Mail as MailIcon2, ExternalLink } from "lucide-react";
 import {
   listCrmCustomers,
   listCrmGuestPurchased,
@@ -247,6 +247,7 @@ function SignedTable({
             <th className="px-4 py-3 text-right">Courses</th>
             <th className="px-4 py-3 text-left">Signed up</th>
             <th className="px-4 py-3 text-left">Last order</th>
+            <th className="px-4 py-3 text-right">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
@@ -276,6 +277,16 @@ function SignedTable({
               </td>
               <td className="px-4 py-3 text-xs text-muted-foreground">{fmtDate(r.signed_up_at)}</td>
               <td className="px-4 py-3 text-xs text-muted-foreground">{fmtDate(r.last_order_at)}</td>
+              <td className="px-4 py-3 text-right">
+                <Link
+                  to="/workspace/crm/$id"
+                  params={{ id: r.user_id }}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-3 py-1.5 text-xs font-bold text-white hover:bg-slate-800"
+                  title="Open full account"
+                >
+                  <ExternalLink className="size-3.5" /> View
+                </Link>
+              </td>
             </tr>
           ))}
         </tbody>
