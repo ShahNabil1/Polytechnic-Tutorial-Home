@@ -392,8 +392,10 @@ export function InternalUserDetailPage({ userId, role }: Props) {
     );
   }
 
-  const backTo = role === "employee" ? "/workspace/employees" : "/workspace/instructors";
-  const label = role === "employee" ? "Employee" : "Instructor";
+  const isCustomer = role === "customer";
+  const backTo = role === "employee" ? "/workspace/employees" : role === "instructor" ? "/workspace/instructors" : "/workspace/crm";
+  const label = role === "employee" ? "Employee" : role === "instructor" ? "Instructor" : "Customer";
+  const backLabel = isCustomer ? "Back to CRM" : `Back to ${label.toLowerCase()}s`;
 
   return (
     <div className="space-y-6">
