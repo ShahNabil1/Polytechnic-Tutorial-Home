@@ -156,11 +156,12 @@ export function RoleProfileFieldsEN({
         onProgress: setPct,
       });
       u("cv_r2_key", key);
-      toast.success("CV uploaded");
+      toast.success("CV uploaded", { description: file.name });
     } catch (err) {
-      toast.error("Upload failed: " + (err as Error).message);
+      toast.error("Upload failed", { description: (err as Error).message });
     } finally {
       setUploading(false);
+      setPct(0);
       if (fileRef.current) fileRef.current.value = "";
     }
   }
@@ -217,9 +218,11 @@ export function RoleProfileFieldsEN({
       setForm(nextForm);
       setSaved(nextForm);
       setEditMode(false);
-      toast.success("Saved");
+      toast.success("Profile saved", {
+        description: isAdminMode ? "Changes are reflected in the user's profile." : "Your changes have been saved.",
+      });
     } catch (err) {
-      toast.error("Save failed: " + (err as Error).message);
+      toast.error("Save failed", { description: (err as Error).message });
     } finally {
       setSaving(false);
     }
@@ -351,6 +354,14 @@ export function RoleProfileFieldsEN({
                   </button>
                 )}
               </div>
+              {uploading && (
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    className="h-full rounded-full bg-indigo-600 transition-all"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              )}
             </Field>
 
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 sm:col-span-2">

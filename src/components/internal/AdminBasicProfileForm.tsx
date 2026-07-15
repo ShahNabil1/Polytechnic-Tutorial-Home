@@ -63,11 +63,14 @@ export function AdminBasicProfileForm({
         onProgress: (p) => setPct(p),
       });
       setAvatarUrl(url);
-      toast.success("Photo uploaded");
+      toast.success("Photo uploaded", { description: "Click Save Changes to apply." });
     } catch (err) {
-      toast.error("Upload failed: " + (err instanceof Error ? err.message : "unknown"));
+      toast.error("Upload failed", {
+        description: err instanceof Error ? err.message : "unknown",
+      });
     } finally {
       setUploading(false);
+      setPct(0);
     }
   }
 
@@ -85,10 +88,14 @@ export function AdminBasicProfileForm({
       setFullName(nextName);
       setAvatarUrl(nextAvatar);
       setEditMode(false);
-      toast.success("Profile updated");
+      toast.success("Profile updated", {
+        description: "Changes are reflected in the user's profile.",
+      });
       onSaved?.({ full_name: nextName || null, avatar_url: nextAvatar || null });
     } catch (err) {
-      toast.error("Save failed: " + (err instanceof Error ? err.message : String(err)));
+      toast.error("Save failed", {
+        description: err instanceof Error ? err.message : String(err),
+      });
     } finally {
       setSaving(false);
     }
@@ -178,6 +185,14 @@ export function AdminBasicProfileForm({
                   Remove
                 </button>
               )}
+            </div>
+          )}
+          {!locked && uploading && (
+            <div className="mt-2 h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-slate-100">
+              <div
+                className="h-full rounded-full bg-indigo-600 transition-all"
+                style={{ width: `${pct}%` }}
+              />
             </div>
           )}
         </div>
