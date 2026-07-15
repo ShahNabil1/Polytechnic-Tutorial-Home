@@ -532,7 +532,7 @@ export function InternalUserDetailPage({ userId, role }: Props) {
                 ) : (
                   <Mail className="size-3.5" />
                 )}
-                Reset & email password
+                Reset Password
               </button>
             </div>
           </div>
