@@ -51,6 +51,7 @@ export function InternalEmailLogsDialog({
   const list = useServerFn(listInternalEmailDeliveries);
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
+  useScrollLock(true);
 
   async function refresh() {
     try {
