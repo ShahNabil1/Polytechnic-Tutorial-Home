@@ -907,3 +907,162 @@ export const adminUpdateTargetInternalProfile = createServerFn({ method: "POST" 
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// ============================================================================
+// Admin: Change target's primary email and/or phone.
+// - Updates auth.users (email/phone) with confirm flags so they're usable now.
+// - Unlinks any OAuth identity (e.g. Google) tied to the OLD email so the
+//   previous Google account can no longer sign in as this user.
+// - Syncs profiles.email / profiles.phone (phone stored raw as 01XXXXXXXXX).
+// - Revokes all existing sessions so the user must sign in again.
+// ============================================================================
+
+export const adminChangeTargetContact = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        user_id: z.string().uuid(),
+        email: z
+          .string()
+          .trim()
+          .toLowerCase()
+          .email()
+          .max(254)
+          .optional()
+          .nullable(),
+        phone: z
+          .string()
+          .trim()
+          .transform((v) => {
+            let s = v.replace(/\D/g, "");
+            if (s.startsWith("88") && s.length > 11) s = s.slice(2);
+            return s;
+          })
+          .pipe(z.string().regex(/^01[3-9][0-9]{8}$/u, "Enter a valid BD phone (01XXXXXXXXX)"))
+          .optional()
+          .nullable(),
+      })
+      .refine((v) => !!v.email || !!v.phone, {
+        message: "Provide email or phone to change",
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureManageableTarget(context, data.user_id);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: authUser, error: userErr } = await supabaseAdmin.auth.admin.getUserById(
+      data.user_id,
+    );
+    if (userErr) throw new Error(userErr.message);
+
+    const oldEmail = String(authUser.user?.email ?? "").trim().toLowerCase();
+    const oldPhone = String(authUser.user?.phone ?? "").trim();
+    const newEmail = data.email || null;
+    const newPhoneRaw = data.phone || null;
+    const newAuthPhone = newPhoneRaw ? `88${newPhoneRaw}` : null;
+
+    // Uniqueness checks against profiles
+    if (newEmail) {
+      if (newEmail === oldEmail) {
+        // no-op for email
+      } else {
+        const { data: dupe } = await supabaseAdmin
+          .from("profiles")
+          .select("id")
+          .eq("email", newEmail)
+          .limit(1)
+          .maybeSingle();
+        if (dupe && (dupe as any).id !== data.user_id) {
+          throw new Error("This email is already in use by another account");
+        }
+      }
+    }
+    if (newPhoneRaw) {
+      const { data: dupe } = await supabaseAdmin
+        .from("profiles")
+        .select("id")
+        .eq("phone", newPhoneRaw)
+        .limit(1)
+        .maybeSingle();
+      if (dupe && (dupe as any).id !== data.user_id) {
+        throw new Error("This phone is already in use by another account");
+      }
+    }
+
+    // Build auth update payload
+    const authPayload: Record<string, unknown> = {};
+    if (newEmail && newEmail !== oldEmail) {
+      authPayload.email = newEmail;
+      authPayload.email_confirm = true;
+    }
+    if (newAuthPhone && newAuthPhone !== oldPhone) {
+      authPayload.phone = newAuthPhone;
+      authPayload.phone_confirm = true;
+    }
+    if (Object.keys(authPayload).length > 0) {
+      const { error: updErr } = await supabaseAdmin.auth.admin.updateUserById(
+        data.user_id,
+        authPayload as never,
+      );
+      if (updErr) throw new Error(updErr.message);
+    }
+
+    // Unlink any OAuth identity (Google etc.) tied to the OLD email address.
+    const unlinked: string[] = [];
+    if (newEmail && newEmail !== oldEmail && oldEmail) {
+      const identities = (authUser.user?.identities ?? []) as Array<{
+        identity_id?: string;
+        id?: string;
+        provider?: string;
+        identity_data?: { email?: string };
+      }>;
+      const SUPABASE_URL = process.env.SUPABASE_URL!;
+      const SERVICE_KEY =
+        process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SB_SERVICE_ROLE_KEY ?? "";
+      if (SERVICE_KEY) {
+        for (const idn of identities) {
+          const idEmail = String(idn?.identity_data?.email ?? "").trim().toLowerCase();
+          const idnId = idn.identity_id ?? idn.id;
+          if (!idnId) continue;
+          if (
+            idn.provider &&
+            idn.provider !== "email" &&
+            idn.provider !== "phone" &&
+            idEmail === oldEmail
+          ) {
+            const res = await fetch(
+              `${SUPABASE_URL}/auth/v1/admin/users/${data.user_id}/identities/${idnId}`,
+              {
+                method: "DELETE",
+                headers: {
+                  apikey: SERVICE_KEY,
+                  Authorization: `Bearer ${SERVICE_KEY}`,
+                },
+              },
+            );
+            if (res.ok) unlinked.push(idn.provider);
+          }
+        }
+      }
+    }
+
+    // Sync profiles row
+    const profilePayload: Record<string, unknown> = {};
+    if (newEmail) profilePayload.email = newEmail;
+    if (newPhoneRaw) profilePayload.phone = newPhoneRaw;
+    if (Object.keys(profilePayload).length > 0) {
+      await supabaseAdmin
+        .from("profiles")
+        .update(profilePayload as never)
+        .eq("id", data.user_id);
+    }
+
+    // Kill all sessions so the change takes effect immediately.
+    if (Object.keys(authPayload).length > 0) {
+      await revokeAllTargetSessions(context, data.user_id);
+    }
+
+    return { ok: true, email: newEmail, phone: newPhoneRaw, unlinked };
+  });

@@ -19,7 +19,7 @@ import { ReauthDialogHost } from "@/components/account/ReauthDialog";
 import { ImageCropperDialog } from "@/components/account/ImageCropperDialog";
 import { RoleProfileFieldsEN } from "@/components/internal/RoleProfileFieldsEN";
 import { MfaCardEN } from "@/components/internal/MfaCardEN";
-import { EmailChangeCard } from "@/components/internal/EmailChangeCard";
+
 import { uploadFileToR2 } from "@/lib/upload-client";
 import { toEnglishText } from "@/lib/input-filter";
 import type { ProfileRow } from "@/lib/profile";
@@ -306,7 +306,6 @@ export function InternalProfilePage({ role }: { role: AppRole }) {
 
       <RoleProfileFieldsEN role={role} />
 
-      <EmailChangeCard />
       <LinkedAccountsCard />
       <PasswordCard />
       <PasskeysCard />
