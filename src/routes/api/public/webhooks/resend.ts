@@ -71,7 +71,61 @@ export const Route = createFileRoute("/api/public/webhooks/resend")({
           .maybeSingle();
 
         if (!delivery) {
-          // Unknown email (older or unrelated); acknowledge without acting.
+          // Not an order email — check internal (welcome / staff) deliveries.
+          const { data: internal } = await supabaseAdmin
+            .from("internal_email_deliveries")
+            .select("id")
+            .eq("resend_email_id", emailId)
+            .limit(1)
+            .maybeSingle();
+
+          if (!internal) {
+            return new Response("ok"); // unknown email; ack silently
+          }
+
+          const nowIsoI = new Date().toISOString();
+          const patchI: Record<string, unknown> = { provider_payload: payload };
+          switch (payload.type) {
+            case "email.sent":
+              patchI.status = "sent";
+              patchI.sent_at = payload.created_at ?? nowIsoI;
+              break;
+            case "email.delivered":
+              patchI.status = "delivered";
+              patchI.delivered_at = payload.created_at ?? nowIsoI;
+              break;
+            case "email.opened":
+              patchI.status = "opened";
+              patchI.opened_at = payload.created_at ?? nowIsoI;
+              break;
+            case "email.clicked":
+              patchI.status = "clicked";
+              patchI.clicked_at = payload.created_at ?? nowIsoI;
+              break;
+            case "email.bounced":
+              patchI.status = "bounced";
+              patchI.bounced_at = payload.created_at ?? nowIsoI;
+              patchI.bounce_type = payload.data.bounce?.type ?? null;
+              patchI.error_reason =
+                payload.data.bounce?.message ?? payload.data.bounce?.type ?? "bounced";
+              break;
+            case "email.delivery_delayed":
+              patchI.status = "delayed";
+              patchI.error_reason = payload.data.reason ?? "delivery delayed";
+              break;
+            case "email.failed":
+              patchI.status = "failed";
+              patchI.error_reason =
+                payload.data.failed?.reason ?? payload.data.reason ?? "failed";
+              break;
+            case "email.scheduled":
+              patchI.status = "scheduled";
+              break;
+          }
+          await supabaseAdmin
+            .from("internal_email_deliveries")
+            .update(patchI as never)
+            .eq("id", internal.id);
           return new Response("ok");
         }
 
