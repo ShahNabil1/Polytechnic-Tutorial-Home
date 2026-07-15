@@ -359,6 +359,7 @@ export function InternalUserDetailPage({ userId, role }: Props) {
     }
   }
 
+  if (loading || !detail) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
         <Loader2 className="size-6 animate-spin text-slate-400" />
