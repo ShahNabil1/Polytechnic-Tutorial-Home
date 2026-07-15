@@ -42,15 +42,12 @@ function generatePassword(len = 14) {
 export function AdminUsersManagerEN({ role }: { role: "employee" | "instructor" }) {
   const list = useServerFn(listInternalUsers);
   const createUser = useServerFn(createInternalUser);
-  const revoke = useServerFn(revokeInternalRole);
-  const setActive = useServerFn(setInternalUserActive);
 
   const [rows, setRows] = useState<AdminUserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [showPw, setShowPw] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [busyId, setBusyId] = useState<string | null>(null);
   const [logsFor, setLogsFor] = useState<AdminUserRow | null>(null);
 
   async function refresh() {
