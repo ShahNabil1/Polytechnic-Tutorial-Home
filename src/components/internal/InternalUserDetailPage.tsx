@@ -270,17 +270,31 @@ export function InternalUserDetailPage({ userId, role }: Props) {
       {/* Header card */}
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
-          {detail.avatar_url ? (
-            <img
-              src={detail.avatar_url}
-              alt=""
-              className="size-24 rounded-full object-cover ring-2 ring-indigo-500/30"
-            />
-          ) : (
-            <div className="grid size-24 place-items-center rounded-full bg-slate-100">
-              <UserIcon className="size-9 text-slate-400" />
-            </div>
-          )}
+          <div className="group relative">
+            {detail.avatar_url ? (
+              <img
+                src={detail.avatar_url}
+                alt=""
+                className="size-24 rounded-full object-cover ring-2 ring-indigo-500/30"
+              />
+            ) : (
+              <div className="grid size-24 place-items-center rounded-full bg-slate-100">
+                <UserIcon className="size-9 text-slate-400" />
+              </div>
+            )}
+            {detail.avatar_url && (
+              <a
+                href={detail.avatar_url}
+                download={`${(detail.full_name || "avatar").replace(/[^a-z0-9-_]+/gi, "_")}.jpg`}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Download profile picture"
+                className="absolute -bottom-1 -right-1 grid size-8 place-items-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
+              >
+                <FileDown className="size-3.5" />
+              </a>
+            )}
+          </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="font-display text-2xl font-bold tracking-tight text-slate-900">
