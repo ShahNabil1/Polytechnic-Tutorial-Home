@@ -119,17 +119,23 @@ export function MfaCardEN() {
   }
 
   async function disableMfa(factorId: string) {
-    if (!(await confirmDialog({ variant: "danger", description: "Disable 2FA? Your account will be less secure." }))) return;
+    if (!(await confirmDialog({
+      variant: "danger",
+      description: "Disable 2FA? Internal roles require 2FA — you'll be signed out from every device and must re-enroll on next sign-in.",
+    }))) return;
     setBusy(true);
     try {
       const { error } = await supabase.auth.mfa.unenroll({ factorId });
       if (error) throw error;
       await updateProfile({ data: { mfa_enrolled: false } as never }).catch(() => null);
-      toast.success("Two-factor authentication disabled");
-      await loadFactors();
+      // Kill every other tracked session server-side so no device stays signed in without 2FA.
+      await revokeOtherTrackedSessions().catch(() => undefined);
+      toast.success("Two-factor authentication disabled. Signing you out…");
+      // Sign out this device too — internal roles must re-authenticate + re-enroll.
+      await signOutSafely();
+      window.location.replace("/auth");
     } catch (e) {
       toast.error("Failed to disable: " + (e instanceof Error ? e.message : String(e)));
-    } finally {
       setBusy(false);
     }
   }
