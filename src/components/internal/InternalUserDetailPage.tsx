@@ -466,6 +466,107 @@ export function InternalUserDetailPage({ userId, role }: Props) {
         {detail.bank_details && <PaymentDetailsCard bank={detail.bank_details as Record<string, unknown>} />}
       </section>
 
+      {/* NID photos */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-display text-base font-bold tracking-tight">
+            NID Photos
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {detail.nid_resubmit_requested_at ? (
+              <button
+                type="button"
+                onClick={handleCancelResubmit}
+                disabled={busy === "nid-cancel"}
+                className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+              >
+                {busy === "nid-cancel" ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="size-3.5" />
+                )}
+                Cancel resubmit request
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleRequestResubmit}
+                disabled={busy === "nid-resubmit"}
+                className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100 disabled:opacity-60"
+              >
+                {busy === "nid-resubmit" ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <AlertTriangle className="size-3.5" />
+                )}
+                Request resubmit
+              </button>
+            )}
+          </div>
+        </div>
+
+        {detail.nid_resubmit_requested_at && (
+          <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs font-semibold text-amber-900">
+            <div className="mb-0.5">
+              Resubmit requested{" "}
+              {new Date(detail.nid_resubmit_requested_at).toLocaleString()}
+            </div>
+            {detail.nid_resubmit_reason && (
+              <div className="font-medium">Reason: {detail.nid_resubmit_reason}</div>
+            )}
+          </div>
+        )}
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          {(["front", "back"] as const).map((side) => {
+            const has =
+              side === "front" ? !!detail.nid_front_r2_key : !!detail.nid_back_r2_key;
+            return (
+              <div key={side} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                  {side === "front" ? "Front side" : "Back side"}
+                </div>
+                <div className="mb-3 grid aspect-[1.586] place-items-center overflow-hidden rounded-md border border-dashed border-slate-300 bg-white">
+                  {has ? (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenNid(side, false)}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:underline"
+                    >
+                      <ExternalLink className="size-3.5" /> View {side}
+                    </button>
+                  ) : (
+                    <div className="text-xs font-semibold text-slate-400">
+                      Not uploaded
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenNid(side, false)}
+                    disabled={!has || busy === `nid-${side}-view`}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold hover:bg-slate-50 disabled:opacity-40"
+                  >
+                    <ExternalLink className="size-3.5" /> Open
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenNid(side, true)}
+                    disabled={!has || busy === `nid-${side}-dl`}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold hover:bg-slate-50 disabled:opacity-40"
+                  >
+                    <FileDown className="size-3.5" /> Download
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+
+
       {/* Sessions */}
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
