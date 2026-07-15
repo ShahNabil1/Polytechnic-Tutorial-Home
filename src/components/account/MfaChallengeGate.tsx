@@ -8,12 +8,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { retrySupabaseAuth, signOutSafely } from "@/lib/auth-reliability";
 import { AuthDrawer } from "@/components/auth-drawer";
+import { getImpersonationState } from "@/lib/impersonation";
+import { verifyImpersonationBypass } from "@/lib/admin-users.functions";
 
 export function MfaChallengeGate({ children }: { children: ReactNode }) {
   const [need, setNeed] = useState<null | { factorId: string }>(null);
   const [checking, setChecking] = useState(true);
   const [checkError, setCheckError] = useState<string | null>(null);
   const checkingRef = useRef(false);
+  const verifyBypass = verifyImpersonationBypass;
 
   async function check() {
     if (checkingRef.current) return;
@@ -25,6 +28,21 @@ export function MfaChallengeGate({ children }: { children: ReactNode }) {
         setNeed(null);
         setChecking(false);
         return;
+      }
+      const impersonation = getImpersonationState();
+      if (
+        impersonation?.target_user_id === sess.session.user.id &&
+        impersonation.bypass_token &&
+        Date.parse(impersonation.bypass_expires_at) > Date.now()
+      ) {
+        const verified = await verifyBypass({
+          data: { target_user_id: impersonation.target_user_id, token: impersonation.bypass_token },
+        }).catch(() => ({ ok: false }));
+        if (verified?.ok === true) {
+          setNeed(null);
+          setChecking(false);
+          return;
+        }
       }
       const { data: aal } = await retrySupabaseAuth(() => supabase.auth.mfa.getAuthenticatorAssuranceLevel());
       if (aal?.currentLevel === "aal2" || aal?.nextLevel !== "aal2") {
