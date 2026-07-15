@@ -27,6 +27,7 @@ import { AlertCircle, CheckCircle2, Copy, Check, Eye, EyeOff, KeyRound, ShieldCh
 import { checkPhoneAvailability } from "@/lib/auth.functions";
 import { toEnglishText, toEnglishPassword, friendlyPasswordError } from "@/lib/input-filter";
 import { authErrorMessage, retrySupabaseAuth, signOutSafely, waitForUsableSession } from "@/lib/auth-reliability";
+import { getMyAccountStatus } from "@/lib/account-status.functions";
 import { getMyRoleInfo, type AppRole } from "@/lib/roles.functions";
 import { syncMyPrimaryAuthEmail, updateMyInternalProfile } from "@/lib/internal-profile.functions";
 import { useCartDrawer } from "@/lib/cart-drawer-store";
@@ -176,6 +177,7 @@ export function AuthDrawer({
   onSessionMfaCancel?: () => void;
 }) {
   const navigate = useNavigate();
+  const fetchAccountStatus = useServerFn(getMyAccountStatus);
   const fetchRoleInfo = useServerFn(getMyRoleInfo);
   const syncInternalEmail = useServerFn(syncMyPrimaryAuthEmail);
   const updateInternal = useServerFn(updateMyInternalProfile);
@@ -320,6 +322,12 @@ export function AuthDrawer({
     try {
       const session = await waitForUsableSession();
       if (!session) throw new Error("No active auth session");
+
+      const accountStatus = (await fetchAccountStatus(undefined as never)) as { active: boolean };
+      if (accountStatus.active === false) {
+        await signOutSafely();
+        throw new Error("আপনার একাউন্টটি ডিএ্যাক্টিভ করা হয়েছে। এ্যাক্টিভ না করা পর্যন্ত লগইন করা যাবে না।");
+      }
 
       const roleInfo = (await fetchRoleInfo(undefined as never)) as { primaryRole: AppRole };
       const target = targetForRole(roleInfo.primaryRole);

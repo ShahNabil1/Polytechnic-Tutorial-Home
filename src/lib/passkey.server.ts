@@ -701,6 +701,16 @@ async function issueSupabaseSession(userId: string) {
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   if (!supabaseUrl) throw new Error("SUPABASE_URL not configured");
 
+  const { data: internalProfile, error: internalProfileError } = await admin()
+    .from("internal_profiles")
+    .select("is_active")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (internalProfileError) throw new Error(`Account status lookup failed: ${internalProfileError.message}`);
+  if (internalProfile && (internalProfile as { is_active?: boolean }).is_active === false) {
+    throw new Error("আপনার একাউন্টটি ডিএ্যাক্টিভ করা হয়েছে। এ্যাক্টিভ না করা পর্যন্ত লগইন করা যাবে না।");
+  }
+
   const { data: userRes, error: userErr } = await admin().auth.admin.getUserById(userId);
   if (userErr || !userRes?.user) throw new Error("User lookup failed");
   const user = userRes.user;
