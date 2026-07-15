@@ -303,7 +303,62 @@ export function InternalUserDetailPage({ userId, role }: Props) {
     }
   }
 
-  if (loading || !detail) {
+  async function handleDeletePasskey(id: string, name: string | null) {
+    if (
+      !(await confirmDialog({
+        variant: "danger",
+        title: "Remove passkey?",
+        description: `"${name || "Unnamed passkey"}" এই ব্যবহারকারীর একাউন্ট থেকে রিমুভ করবেন?`,
+      }))
+    )
+      return;
+    setBusy("pk-" + id);
+    try {
+      await deletePasskey({ data: { user_id: userId, id } });
+      toast.success("Passkey removed");
+      setPasskeys((prev) => prev.filter((p) => p.id !== id));
+    } catch (e) {
+      toast.error("Remove failed: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleResetPassword() {
+    if (!detail?.email) {
+      toast.error("No primary email on file — cannot email a new password");
+      return;
+    }
+    if (
+      !(await confirmDialog({
+        variant: "danger",
+        title: "Reset password & email new one?",
+        description: `একটি নতুন র‌্যান্ডম পাসওয়ার্ড তৈরি হবে ও ${detail.email}-এ পাঠানো হবে। সব ডিভাইস থেকে ইউজার সাইন আউট হয়ে যাবে।`,
+      }))
+    )
+      return;
+    setBusy("pwreset");
+    try {
+      const res = (await resetPassword({ data: { user_id: userId } })) as {
+        ok: boolean;
+        emailed?: boolean;
+        error?: string;
+      };
+      if (res?.emailed) {
+        toast.success("নতুন পাসওয়ার্ড ইমেইলে পাঠানো হয়েছে");
+      } else {
+        toast.warning(
+          "পাসওয়ার্ড রিসেট হয়েছে, কিন্তু ইমেইল পাঠাতে সমস্যা: " + (res?.error ?? "unknown"),
+        );
+      }
+      await refresh();
+    } catch (e) {
+      toast.error("Reset failed: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setBusy(null);
+    }
+  }
+
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
         <Loader2 className="size-6 animate-spin text-slate-400" />
