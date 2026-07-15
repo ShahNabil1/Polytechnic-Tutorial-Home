@@ -59,11 +59,20 @@ const ROLE_ID_LABEL: Record<AppRole, string> = {
   super_admin: "Admin ID",
 };
 
-export function RoleProfileFieldsEN({ role }: { role: AppRole }) {
+export function RoleProfileFieldsEN({
+  role,
+  targetUserId,
+}: {
+  role: AppRole;
+  targetUserId?: string;
+}) {
+  const isAdminMode = !!targetUserId;
   const isInstructor = role === "instructor";
   const isSuperAdmin = role === "super_admin";
-  const load = useServerFn(getMyInternalProfile);
-  const save = useServerFn(updateMyInternalProfile);
+  const loadSelf = useServerFn(getMyInternalProfile);
+  const saveSelf = useServerFn(updateMyInternalProfile);
+  const loadAdmin = useServerFn(adminGetTargetInternalProfile);
+  const saveAdmin = useServerFn(adminUpdateTargetInternalProfile);
   const signUrl = useServerFn(getInternalDocSignedUrl);
 
   const [profile, setProfile] = useState<InternalProfile | null>(null);
@@ -79,7 +88,10 @@ export function RoleProfileFieldsEN({ role }: { role: AppRole }) {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    load(undefined as never)
+    const loader = isAdminMode
+      ? loadAdmin({ data: { user_id: targetUserId! } }).then((p) => p as InternalProfile | null)
+      : loadSelf(undefined as never);
+    loader
       .then((p) => {
         if (cancelled) return;
         setProfile(p);
@@ -95,7 +107,7 @@ export function RoleProfileFieldsEN({ role }: { role: AppRole }) {
         };
         setForm(f);
         setSaved(f);
-        setEditMode(!p?.address);
+        setEditMode(!isAdminMode && !p?.address);
       })
       .catch((err) => toast.error("Failed to load: " + (err as Error).message))
       .finally(() => {
@@ -104,7 +116,7 @@ export function RoleProfileFieldsEN({ role }: { role: AppRole }) {
     return () => {
       cancelled = true;
     };
-  }, [load]);
+  }, [loadSelf, loadAdmin, isAdminMode, targetUserId]);
 
   function u<K extends keyof FormState>(k: K, v: FormState[K]) {
     setForm((prev) => ({ ...prev, [k]: v }));
