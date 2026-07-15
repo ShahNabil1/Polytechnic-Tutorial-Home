@@ -399,16 +399,7 @@ export function InternalUserDetailPage({ userId, role }: Props) {
             <Info label="Departments" value={detail.departments.join(", ")} />
           )}
         </dl>
-        {detail.bank_details && (
-          <div className="mt-6">
-            <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">
-              Payment details
-            </div>
-            <pre className="overflow-x-auto rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
-              {JSON.stringify(detail.bank_details, null, 2)}
-            </pre>
-          </div>
-        )}
+        {detail.bank_details && <PaymentDetailsCard bank={detail.bank_details as Record<string, unknown>} />}
       </section>
 
       {/* Sessions */}
