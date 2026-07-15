@@ -156,11 +156,12 @@ export function RoleProfileFieldsEN({
         onProgress: setPct,
       });
       u("cv_r2_key", key);
-      toast.success("CV uploaded");
+      toast.success("CV uploaded", { description: file.name });
     } catch (err) {
-      toast.error("Upload failed: " + (err as Error).message);
+      toast.error("Upload failed", { description: (err as Error).message });
     } finally {
       setUploading(false);
+      setPct(0);
       if (fileRef.current) fileRef.current.value = "";
     }
   }
