@@ -349,15 +349,15 @@ export function InternalUserDetailPage({ userId, role }: Props) {
   }
 
   async function handleResetPassword() {
-    if (!detail?.phone) {
-      toast.error("No phone number on file — cannot SMS a new password");
+    if (!detail?.email) {
+      toast.error("No primary email on file — cannot email a new password");
       return;
     }
     if (
       !(await confirmDialog({
         variant: "danger",
-        title: "Reset password & SMS new one?",
-        description: `একটি নতুন র‌্যান্ডম পাসওয়ার্ড তৈরি হবে ও ${detail.phone} নাম্বারে SMS-এ পাঠানো হবে। সব ডিভাইস থেকে ইউজার সাইন আউট হয়ে যাবে।`,
+        title: "Reset password & email new one?",
+        description: `একটি নতুন র‌্যান্ডম পাসওয়ার্ড তৈরি হবে ও ${detail.email}-এ পাঠানো হবে। সব ডিভাইস থেকে ইউজার সাইন আউট হয়ে যাবে।`,
       }))
     )
       return;
@@ -369,10 +369,10 @@ export function InternalUserDetailPage({ userId, role }: Props) {
         error?: string;
       };
       if (res?.emailed) {
-        toast.success("নতুন পাসওয়ার্ড SMS-এ পাঠানো হয়েছে");
+        toast.success("নতুন পাসওয়ার্ড ইমেইলে পাঠানো হয়েছে");
       } else {
         toast.warning(
-          "পাসওয়ার্ড রিসেট হয়েছে, কিন্তু SMS পাঠাতে সমস্যা: " + (res?.error ?? "unknown"),
+          "পাসওয়ার্ড রিসেট হয়েছে, কিন্তু ইমেইল পাঠাতে সমস্যা: " + (res?.error ?? "unknown"),
         );
       }
       await refresh();
@@ -382,7 +382,6 @@ export function InternalUserDetailPage({ userId, role }: Props) {
       setBusy(null);
     }
   }
-
 
   if (loading || !detail) {
     return (
@@ -526,14 +525,14 @@ export function InternalUserDetailPage({ userId, role }: Props) {
                 onClick={handleResetPassword}
                 disabled={busy === "pwreset"}
                 className="inline-flex items-center gap-1.5 rounded-md border border-orange-300 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-800 hover:bg-orange-100 disabled:opacity-60"
-                title="Generate a new random password and SMS it to the user's phone"
+                title="Generate a new random password and email it to the primary email"
               >
                 {busy === "pwreset" ? (
                   <Loader2 className="size-3.5 animate-spin" />
                 ) : (
                   <Mail className="size-3.5" />
                 )}
-                Reset & SMS password
+                Reset & email password
               </button>
             </div>
           </div>

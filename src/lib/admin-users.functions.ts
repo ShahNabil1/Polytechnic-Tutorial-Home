@@ -733,18 +733,15 @@ export const adminResetUserPassword = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(data.user_id);
+    const email = String(authUser?.user?.email ?? "").trim().toLowerCase();
+    if (!email) throw new Error("Target has no primary email on file");
+
     const { data: prof } = await supabaseAdmin
       .from("profiles")
-      .select("full_name, phone")
+      .select("full_name")
       .eq("id", data.user_id)
       .maybeSingle();
-
-    const rawPhone = String(
-      (prof as any)?.phone || (authUser?.user as any)?.phone || "",
-    ).trim();
-    if (!rawPhone) throw new Error("Target has no phone number on file");
-    const fullName =
-      (prof as any)?.full_name || (authUser?.user as any)?.user_metadata?.full_name || "Team member";
+    const fullName = (prof as any)?.full_name || (authUser?.user as any)?.user_metadata?.full_name || "Team member";
 
     const newPassword = generateStrongPassword();
 
@@ -756,22 +753,67 @@ export const adminResetUserPassword = createServerFn({ method: "POST" })
     // Kill all existing sessions so old devices must sign in with the new password.
     await revokeAllTargetSessions(context, data.user_id);
 
-    // Deliver the new password via SMS — internal users sign in with phone number.
+    // Send email using the same helper/log path as internal_welcome.
     try {
-      const { sendBulksmsbd } = await import("@/lib/sms.server");
+      const { renderEmailTemplate } = await import("@/lib/email-templates.server");
+      const { sendEbookEmail } = await import("@/lib/ebook-delivery.server");
       const { SITE_URL } = await import("@/lib/site-url");
-      const message =
-        `Polytechnic Tutorial — password reset for ${fullName}.\n` +
-        `New password: ${newPassword}\n` +
-        `Login: ${SITE_URL}/auth\n` +
-        `Please change it right after signing in.`;
-      const res = await sendBulksmsbd({ to: rawPhone, message });
+
+      const { data: tpl } = await supabaseAdmin
+        .from("email_templates")
+        .select("subject, body_html, enabled")
+        .eq("key", "internal_password_reset")
+        .maybeSingle();
+
+      const vars = {
+        full_name: fullName,
+        email,
+        password: newPassword,
+        login_url: `${SITE_URL}/auth`,
+      };
+
+      const subject = tpl?.subject
+        ? renderEmailTemplate(tpl.subject as string, vars)
+        : `আপনার পাসওয়ার্ড রিসেট করা হয়েছে`;
+      const body = tpl?.body_html
+        ? renderEmailTemplate(tpl.body_html as string, vars)
+        : `<p>নমস্কার ${fullName},</p><p>আপনার একাউন্টের পাসওয়ার্ড এ্যাডমিন কর্তৃক রিসেট করা হয়েছে।</p>
+           <p><b>নতুন পাসওয়ার্ড:</b> <code style="font-family:monospace;background:#f1f5f9;padding:4px 8px;border-radius:4px;">${newPassword}</code></p>
+           <p>লগইন: <a href="${SITE_URL}/auth">${SITE_URL}/auth</a></p>
+           <p>নিরাপত্তার জন্য লগইন করে সাথে সাথে পাসওয়ার্ড পরিবর্তন করুন।</p>`;
+      const html = `<!doctype html><html><body style="margin:0;padding:32px 12px;background:#f6f8fa;">${body}</body></html>`;
+
+      const { data: row } = await supabaseAdmin
+        .from("internal_email_deliveries")
+        .insert({
+          user_id: data.user_id,
+          kind: "internal_password_reset",
+          to_email: email,
+          subject,
+          status: "queued",
+        } as never)
+        .select("id")
+        .single();
+
+      const res = await sendEbookEmail({ to: email, subject, html });
+
+      if ((row as any)?.id) {
+        await supabaseAdmin
+          .from("internal_email_deliveries")
+          .update({
+            status: res.ok ? "sent" : "failed",
+            resend_email_id: res.ok ? (res as any).id : null,
+            sent_at: res.ok ? new Date().toISOString() : null,
+            error_reason: res.ok ? null : ((res as any).error?.slice?.(0, 500) ?? null),
+          } as never)
+          .eq("id", (row as any).id);
+      }
+
       if (!res.ok) {
-        console.error(`[adminResetUserPassword] SMS failed resp=${res.response}`);
-        return { ok: true, emailed: false, error: `SMS failed: ${res.response?.slice?.(0, 200)}` };
+        return { ok: true, emailed: false, error: (res as any).error ?? "email failed" };
       }
     } catch (err) {
-      console.error("[adminResetUserPassword] SMS dispatch failed", err);
+      console.error("[adminResetUserPassword] email dispatch failed", err);
       return { ok: true, emailed: false, error: err instanceof Error ? err.message : String(err) };
     }
 
