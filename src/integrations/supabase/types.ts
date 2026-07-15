@@ -1813,6 +1813,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_stuck_sessions: { Args: never; Returns: Json }
       create_passkey_auth_session: {
         Args: {
           _ip: string
@@ -1878,6 +1879,11 @@ export type Database = {
         }
         Returns: string
       }
+      revoke_other_user_sessions: {
+        Args: { _current_token_hash: string }
+        Returns: number
+      }
+      revoke_user_session: { Args: { _tracked_id: string }; Returns: boolean }
       validate_coupon: {
         Args: {
           _category_ids: string[]
