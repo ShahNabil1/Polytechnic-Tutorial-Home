@@ -59,7 +59,7 @@ async function ensureManageableTarget(
 }
 
 async function revokeAllTargetSessions(context: { supabase: any }, targetUserId: string) {
-  const { error } = await context.supabase.rpc("admin_revoke_all_user_sessions", {
+  const { error } = await context.supabase.rpc("admin_revoke_all_user_sessions" as any, {
     _target_user_id: targetUserId,
   });
   if (error) throw new Error(error.message);
@@ -517,7 +517,7 @@ export const revokeUserSessionAsAdmin = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await ensureManageableTarget(context, data.user_id);
-    const { data: ok, error } = await context.supabase.rpc("admin_revoke_user_session", {
+    const { data: ok, error } = await context.supabase.rpc("admin_revoke_user_session" as any, {
       _target_user_id: data.user_id,
       _tracked_id: data.session_id,
     } as never);
@@ -531,7 +531,7 @@ export const revokeAllUserSessionsAsAdmin = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ user_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     await ensureManageableTarget(context, data.user_id);
-    const { data: revoked, error } = await context.supabase.rpc("admin_revoke_all_user_sessions", {
+    const { data: revoked, error } = await context.supabase.rpc("admin_revoke_all_user_sessions" as any, {
       _target_user_id: data.user_id,
     } as never);
     if (error) throw new Error(error.message);
@@ -597,7 +597,7 @@ export const verifyImpersonationBypass = createServerFn({ method: "POST" })
     if (context.userId !== data.target_user_id) return { ok: false };
     const tokenHash = await sha256Hex(data.token);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: row, error } = await supabaseAdmin
+    const { data: row, error } = await (supabaseAdmin as any)
       .from("impersonation_sessions")
       .select("id, expires_at")
       .eq("target_user_id", data.target_user_id)
@@ -605,7 +605,7 @@ export const verifyImpersonationBypass = createServerFn({ method: "POST" })
       .gt("expires_at", new Date().toISOString())
       .maybeSingle();
     if (error || !row) return { ok: false };
-    await supabaseAdmin
+    await (supabaseAdmin as any)
       .from("impersonation_sessions")
       .update({ used_at: new Date().toISOString() } as never)
       .eq("id", (row as any).id);
@@ -641,7 +641,7 @@ export const startImpersonation = createServerFn({ method: "POST" })
     const primary = roleList.slice().sort((a, b) => (priority[a] ?? 9) - (priority[b] ?? 9))[0] ?? "student";
     const bypassToken = `${globalThis.crypto.randomUUID()}.${globalThis.crypto.randomUUID()}`;
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
-    const { error: insertError } = await supabaseAdmin.from("impersonation_sessions").insert({
+    const { error: insertError } = await (supabaseAdmin as any).from("impersonation_sessions").insert({
       admin_user_id: context.userId,
       target_user_id: data.user_id,
       token_hash: await sha256Hex(bypassToken),
