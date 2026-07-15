@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { AlertCircle, CheckCircle2, Eye, EyeOff, KeyRound, ShieldCheck } from "lucide-react";
+import { AlertCircle, CheckCircle2, Copy, Check, Eye, EyeOff, KeyRound, ShieldCheck } from "lucide-react";
 import { checkPhoneAvailability } from "@/lib/auth.functions";
 import { toEnglishText, toEnglishPassword, friendlyPasswordError } from "@/lib/input-filter";
 import { authErrorMessage, retrySupabaseAuth, signOutSafely } from "@/lib/auth-reliability";
@@ -179,6 +179,7 @@ export function AuthDrawer({
   const [mfaChallengeId, setMfaChallengeId] = useState<string | null>(null);
   const [mfaPurpose, setMfaPurpose] = useState<MfaPurpose | null>(null);
   const [mfaEnrollment, setMfaEnrollment] = useState<MfaEnrollment | null>(null);
+  const [secretCopied, setSecretCopied] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
@@ -790,7 +791,7 @@ export function AuthDrawer({
     stage === "reset"
       ? "নতুন পাসওয়ার্ড সেট করুন"
       : stage === "mfa-enroll"
-      ? "টু-ফ্যাক্টর সেটআপ"
+      ? "Two-Factor Setup"
       : stage === "mfa"
         ? "টু-ফ্যাক্টর কোড দিন"
         : stage === "otp"
@@ -1105,9 +1106,6 @@ export function AuthDrawer({
                 {/* MFA enrollment — first-time internal setup */}
                 {stage === "mfa-enroll" && (
                   <form className="space-y-4" onSubmit={handleVerifyMfaEnrollment}>
-                    <div className="rounded-lg bg-muted/60 p-3 text-sm">
-                      Authenticator অ্যাপে QR স্ক্যান করুন, তারপর ৬-ডিজিট কোড দিন।
-                    </div>
                     {InfoBox}
                     {!mfaEnrollment ? (
                       <div className="rounded-lg border border-border bg-background px-3 py-8 text-center text-sm text-muted-foreground">
@@ -1129,6 +1127,37 @@ export function AuthDrawer({
                               <code className="block break-all rounded-md border border-border bg-background px-2 py-1.5 font-mono text-xs">
                                 {mfaEnrollment.secret}
                               </code>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={async () => {
+                                  try {
+                                    await navigator.clipboard.writeText(mfaEnrollment.secret);
+                                    setSecretCopied(true);
+                                    setTimeout(() => setSecretCopied(false), 2000);
+                                  } catch {
+                                    toast.error("কপি করা যায়নি");
+                                  }
+                                }}
+                                className={cn(
+                                  "h-7 gap-1.5 px-2.5 text-xs transition-colors",
+                                  secretCopied &&
+                                    "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/15 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-400"
+                                )}
+                              >
+                                {secretCopied ? (
+                                  <>
+                                    <Check className="size-3.5" />
+                                    Copied
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="size-3.5" />
+                                    Copy Secret
+                                  </>
+                                )}
+                              </Button>
                             </div>
                           </div>
                         </div>
