@@ -68,12 +68,7 @@ async function revokeAllTargetSessions(context: { supabase: any }, targetUserId:
 export const listInternalUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: isSuperAdmin, error: roleError } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "super_admin",
-    });
-    if (roleError) throw new Error(roleError.message);
-    if (isSuperAdmin !== true) throw new Error("Forbidden: super_admin only");
+    await ensureCanManageUsers(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error } = await supabaseAdmin
       .from("user_roles")
@@ -148,12 +143,7 @@ export const findUserByPhoneOrEmail = createServerFn({ method: "POST" })
     z.object({ query: z.string().min(3).max(120) }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { data: isSuperAdmin, error: roleError } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "super_admin",
-    });
-    if (roleError) throw new Error(roleError.message);
-    if (isSuperAdmin !== true) throw new Error("Forbidden: super_admin only");
+    await ensureCanManageUsers(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const q = data.query.trim();
     const { data: rows, error } = await supabaseAdmin
@@ -174,12 +164,7 @@ export const assignInternalRole = createServerFn({ method: "POST" })
     }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { data: isSuperAdmin, error: roleError } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "super_admin",
-    });
-    if (roleError) throw new Error(roleError.message);
-    if (isSuperAdmin !== true) throw new Error("Forbidden: super_admin only");
+    await ensureCanManageUsers(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(data.user_id);
     const user = authUser.user as any;
@@ -218,12 +203,7 @@ export const revokeInternalRole = createServerFn({ method: "POST" })
     }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { data: isSuperAdmin, error: roleError } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "super_admin",
-    });
-    if (roleError) throw new Error(roleError.message);
-    if (isSuperAdmin !== true) throw new Error("Forbidden: super_admin only");
+    await ensureManageableTarget(context, data.user_id);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("user_roles")
@@ -231,6 +211,7 @@ export const revokeInternalRole = createServerFn({ method: "POST" })
       .eq("user_id", data.user_id)
       .eq("role", data.role);
     if (error) throw new Error(error.message);
+    await revokeAllTargetSessions(context, data.user_id);
     return { ok: true };
   });
 
@@ -240,18 +221,18 @@ export const setInternalUserActive = createServerFn({ method: "POST" })
     z.object({ user_id: z.string().uuid(), is_active: z.boolean() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { data: isSuperAdmin, error: roleError } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "super_admin",
-    });
-    if (roleError) throw new Error(roleError.message);
-    if (isSuperAdmin !== true) throw new Error("Forbidden: super_admin only");
+    await ensureManageableTarget(context, data.user_id);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("internal_profiles")
       .update({ is_active: data.is_active } as never)
       .eq("user_id", data.user_id);
     if (error) throw new Error(error.message);
+    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(data.user_id, {
+      ban_duration: data.is_active ? "none" : "876000h",
+    } as never);
+    if (authError) throw new Error(authError.message);
+    if (!data.is_active) await revokeAllTargetSessions(context, data.user_id);
     return { ok: true };
   });
 
@@ -272,12 +253,7 @@ export const createInternalUser = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { data: isSuperAdmin, error: roleError } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "super_admin",
-    });
-    if (roleError) throw new Error(roleError.message);
-    if (isSuperAdmin !== true) throw new Error("Forbidden: super_admin only");
+    await ensureCanManageUsers(context);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const phone = data.phone.startsWith("+") ? data.phone.slice(1) : data.phone;
@@ -335,11 +311,7 @@ export const listInternalEmailDeliveries = createServerFn({ method: "POST" })
     z.object({ user_id: z.string().uuid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { data: isSuperAdmin } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "super_admin",
-    });
-    if (isSuperAdmin !== true) throw new Error("Forbidden: super_admin only");
+    await ensureCanManageUsers(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error } = await supabaseAdmin
       .from("internal_email_deliveries")
