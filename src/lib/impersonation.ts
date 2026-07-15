@@ -10,6 +10,8 @@ type Saved = {
   target_user_id: string;
   target_email: string;
   target_label: string;
+  bypass_token: string;
+  bypass_expires_at: string;
   started_at: string;
 };
 
@@ -48,6 +50,8 @@ export async function beginImpersonation(opts: {
     target_user_id: opts.user_id,
     target_email: res.email,
     target_label: opts.targetLabel,
+    bypass_token: res.bypass_token,
+    bypass_expires_at: res.bypass_expires_at,
     started_at: new Date().toISOString(),
   });
 

@@ -7,9 +7,9 @@ export const Route = createFileRoute("/_authenticated/_internal/workspace/instru
 });
 
 function InstructorsPage() {
-  const { info, loading } = useRole();
+  const { loading, has } = useRole();
   if (loading) return null;
-  if (info?.primaryRole !== "super_admin") {
+  if (!has("manage_users")) {
     throw redirect({ to: "/workspace" });
   }
   return <AdminUsersManagerEN role="instructor" />;

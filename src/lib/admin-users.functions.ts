@@ -14,15 +14,61 @@ export type AdminUserRow = {
   mfa_enrolled: boolean;
 };
 
+async function sha256Hex(value: string) {
+  const encoded = new TextEncoder().encode(value);
+  const digest = await globalThis.crypto.subtle.digest("SHA-256", encoded);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function ensureCanManageUsers(context: { supabase: any; userId: string }) {
+  const [{ data: canManage, error: permissionError }, { data: isSuperAdmin, error: roleError }] = await Promise.all([
+    context.supabase.rpc("has_permission", {
+      _user_id: context.userId,
+      _permission: "manage_users",
+    }),
+    context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "super_admin",
+    }),
+  ]);
+  if (permissionError) throw new Error(permissionError.message);
+  if (roleError) throw new Error(roleError.message);
+  if (canManage !== true) throw new Error("Forbidden: manage_users only");
+  return { isSuperAdmin: isSuperAdmin === true };
+}
+
+async function ensureManageableTarget(
+  context: { supabase: any; userId: string },
+  targetUserId: string,
+) {
+  const caller = await ensureCanManageUsers(context);
+  if (targetUserId === context.userId) {
+    throw new Error("You cannot perform this action on your own account");
+  }
+  const { data: targetIsSuperAdmin, error } = await context.supabase.rpc("has_role", {
+    _user_id: targetUserId,
+    _role: "super_admin",
+  });
+  if (error) throw new Error(error.message);
+  if (targetIsSuperAdmin === true && !caller.isSuperAdmin) {
+    throw new Error("Forbidden: only super_admin can manage a super_admin account");
+  }
+  return caller;
+}
+
+async function revokeAllTargetSessions(context: { supabase: any }, targetUserId: string) {
+  const { error } = await context.supabase.rpc("admin_revoke_all_user_sessions" as any, {
+    _target_user_id: targetUserId,
+  });
+  if (error) throw new Error(error.message);
+}
+
 export const listInternalUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: isSuperAdmin, error: roleError } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "super_admin",
-    });
-    if (roleError) throw new Error(roleError.message);
-    if (isSuperAdmin !== true) throw new Error("Forbidden: super_admin only");
+    await ensureCanManageUsers(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error } = await supabaseAdmin
       .from("user_roles")
@@ -97,12 +143,7 @@ export const findUserByPhoneOrEmail = createServerFn({ method: "POST" })
     z.object({ query: z.string().min(3).max(120) }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { data: isSuperAdmin, error: roleError } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "super_admin",
-    });
-    if (roleError) throw new Error(roleError.message);
-    if (isSuperAdmin !== true) throw new Error("Forbidden: super_admin only");
+    await ensureCanManageUsers(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const q = data.query.trim();
     const { data: rows, error } = await supabaseAdmin
@@ -123,12 +164,7 @@ export const assignInternalRole = createServerFn({ method: "POST" })
     }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { data: isSuperAdmin, error: roleError } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "super_admin",
-    });
-    if (roleError) throw new Error(roleError.message);
-    if (isSuperAdmin !== true) throw new Error("Forbidden: super_admin only");
+    await ensureCanManageUsers(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(data.user_id);
     const user = authUser.user as any;
@@ -167,12 +203,7 @@ export const revokeInternalRole = createServerFn({ method: "POST" })
     }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { data: isSuperAdmin, error: roleError } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "super_admin",
-    });
-    if (roleError) throw new Error(roleError.message);
-    if (isSuperAdmin !== true) throw new Error("Forbidden: super_admin only");
+    await ensureManageableTarget(context, data.user_id);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("user_roles")
@@ -180,6 +211,7 @@ export const revokeInternalRole = createServerFn({ method: "POST" })
       .eq("user_id", data.user_id)
       .eq("role", data.role);
     if (error) throw new Error(error.message);
+    await revokeAllTargetSessions(context, data.user_id);
     return { ok: true };
   });
 
@@ -189,18 +221,18 @@ export const setInternalUserActive = createServerFn({ method: "POST" })
     z.object({ user_id: z.string().uuid(), is_active: z.boolean() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { data: isSuperAdmin, error: roleError } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "super_admin",
-    });
-    if (roleError) throw new Error(roleError.message);
-    if (isSuperAdmin !== true) throw new Error("Forbidden: super_admin only");
+    await ensureManageableTarget(context, data.user_id);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("internal_profiles")
       .update({ is_active: data.is_active } as never)
       .eq("user_id", data.user_id);
     if (error) throw new Error(error.message);
+    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(data.user_id, {
+      ban_duration: data.is_active ? "none" : "876000h",
+    } as never);
+    if (authError) throw new Error(authError.message);
+    if (!data.is_active) await revokeAllTargetSessions(context, data.user_id);
     return { ok: true };
   });
 
@@ -221,12 +253,7 @@ export const createInternalUser = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { data: isSuperAdmin, error: roleError } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "super_admin",
-    });
-    if (roleError) throw new Error(roleError.message);
-    if (isSuperAdmin !== true) throw new Error("Forbidden: super_admin only");
+    await ensureCanManageUsers(context);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const phone = data.phone.startsWith("+") ? data.phone.slice(1) : data.phone;
@@ -284,11 +311,7 @@ export const listInternalEmailDeliveries = createServerFn({ method: "POST" })
     z.object({ user_id: z.string().uuid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { data: isSuperAdmin } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "super_admin",
-    });
-    if (isSuperAdmin !== true) throw new Error("Forbidden: super_admin only");
+    await ensureCanManageUsers(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error } = await supabaseAdmin
       .from("internal_email_deliveries")
@@ -301,15 +324,6 @@ export const listInternalEmailDeliveries = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
-
-async function ensureSuperAdmin(context: { supabase: any; userId: string }) {
-  const { data, error } = await context.supabase.rpc("has_role", {
-    _user_id: context.userId,
-    _role: "super_admin",
-  });
-  if (error) throw new Error(error.message);
-  if (data !== true) throw new Error("Forbidden: super_admin only");
-}
 
 export type InternalUserDetail = {
   user_id: string;
@@ -348,7 +362,7 @@ export const getInternalUserDetail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ user_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }): Promise<InternalUserDetail> => {
-    await ensureSuperAdmin(context);
+    await ensureCanManageUsers(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const [{ data: prof }, { data: internal }, { data: roles }, { data: authUser }, { data: factors }] =
       await Promise.all([
@@ -405,7 +419,7 @@ export const getUserCvSignedUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ user_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureCanManageUsers(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row } = await supabaseAdmin
       .from("internal_profiles")
@@ -424,7 +438,7 @@ export const getUserNidSignedUrl = createServerFn({ method: "POST" })
     z.object({ user_id: z.string().uuid(), side: z.enum(["front", "back"]) }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureCanManageUsers(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const col = data.side === "front" ? "nid_front_r2_key" : "nid_back_r2_key";
     const { data: row } = await supabaseAdmin
@@ -446,7 +460,7 @@ export const requestNidResubmit = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureCanManageUsers(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("internal_profiles")
@@ -464,7 +478,7 @@ export const cancelNidResubmit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ user_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureCanManageUsers(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("internal_profiles")
@@ -483,7 +497,7 @@ export const listUserSessionsAsAdmin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ user_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureCanManageUsers(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error } = await supabaseAdmin
       .from("user_sessions")
@@ -502,20 +516,13 @@ export const revokeUserSessionAsAdmin = createServerFn({ method: "POST" })
     z.object({ user_id: z.string().uuid(), session_id: z.string().uuid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: row } = await supabaseAdmin
-      .from("user_sessions")
-      .select("session_token_hash")
-      .eq("id", data.session_id)
-      .eq("user_id", data.user_id)
-      .maybeSingle();
-    if (row?.session_token_hash) {
-      try {
-        await supabaseAdmin.auth.admin.signOut(row.session_token_hash as string).catch(() => {});
-      } catch {}
-    }
-    await supabaseAdmin.from("user_sessions").delete().eq("id", data.session_id).eq("user_id", data.user_id);
+    await ensureManageableTarget(context, data.user_id);
+    const { data: ok, error } = await context.supabase.rpc("admin_revoke_user_session" as any, {
+      _target_user_id: data.user_id,
+      _tracked_id: data.session_id,
+    } as never);
+    if (error) throw new Error(error.message);
+    if (ok !== true) throw new Error("Session not found or already signed out");
     return { ok: true };
   });
 
@@ -523,22 +530,19 @@ export const revokeAllUserSessionsAsAdmin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ user_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // Sign out all auth sessions for the user (global scope)
-    try {
-      await (supabaseAdmin.auth.admin as any).signOut(data.user_id, "global").catch(() => {});
-    } catch {}
-    // Nuke tracked rows
-    await supabaseAdmin.from("user_sessions").delete().eq("user_id", data.user_id);
-    return { ok: true };
+    await ensureManageableTarget(context, data.user_id);
+    const { data: revoked, error } = await context.supabase.rpc("admin_revoke_all_user_sessions" as any, {
+      _target_user_id: data.user_id,
+    } as never);
+    if (error) throw new Error(error.message);
+    return { ok: true, revoked: revoked ?? 0 };
   });
 
 export const resetUserMfa = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ user_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureManageableTarget(context, data.user_id);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: list } = await (supabaseAdmin.auth.admin.mfa as any)
       .listFactors({ userId: data.user_id })
@@ -564,20 +568,47 @@ export const deleteInternalUser = createServerFn({ method: "POST" })
     z.object({ user_id: z.string().uuid(), confirm_email: z.string().email() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
-    if (data.user_id === context.userId) throw new Error("You cannot delete your own account");
+    await ensureManageableTarget(context, data.user_id);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(data.user_id);
     const actualEmail = String(authUser?.user?.email ?? "").trim().toLowerCase();
     if (!actualEmail || actualEmail !== data.confirm_email.trim().toLowerCase()) {
       throw new Error("Confirmation email does not match");
     }
-    // Best-effort clean-up of dependent rows (FK cascades may already handle these)
-    await supabaseAdmin.from("user_sessions").delete().eq("user_id", data.user_id);
-    await supabaseAdmin.from("user_roles").delete().eq("user_id", data.user_id);
-    await supabaseAdmin.from("internal_profiles").delete().eq("user_id", data.user_id);
+    await revokeAllTargetSessions(context, data.user_id);
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.user_id);
     if (error) throw new Error(error.message);
+    await Promise.allSettled([
+      supabaseAdmin.from("user_sessions").delete().eq("user_id", data.user_id),
+      supabaseAdmin.from("user_roles").delete().eq("user_id", data.user_id),
+      supabaseAdmin.from("user_permissions").delete().eq("user_id", data.user_id),
+      supabaseAdmin.from("internal_profiles").delete().eq("user_id", data.user_id),
+      supabaseAdmin.from("profiles").delete().eq("id", data.user_id),
+    ]);
+    return { ok: true };
+  });
+
+export const verifyImpersonationBypass = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ target_user_id: z.string().uuid(), token: z.string().min(20).max(200) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    if (context.userId !== data.target_user_id) return { ok: false };
+    const tokenHash = await sha256Hex(data.token);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row, error } = await (supabaseAdmin as any)
+      .from("impersonation_sessions")
+      .select("id, expires_at")
+      .eq("target_user_id", data.target_user_id)
+      .eq("token_hash", tokenHash)
+      .gt("expires_at", new Date().toISOString())
+      .maybeSingle();
+    if (error || !row) return { ok: false };
+    await (supabaseAdmin as any)
+      .from("impersonation_sessions")
+      .update({ used_at: new Date().toISOString() } as never)
+      .eq("id", (row as any).id);
     return { ok: true };
   });
 
@@ -585,12 +616,17 @@ export const startImpersonation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ user_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
-    if (data.user_id === context.userId) throw new Error("Cannot impersonate yourself");
+    await ensureManageableTarget(context, data.user_id);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(data.user_id);
     const email = String(authUser?.user?.email ?? "").trim().toLowerCase();
     if (!email) throw new Error("Target user has no email");
+    const { data: internal } = await supabaseAdmin
+      .from("internal_profiles")
+      .select("is_active")
+      .eq("user_id", data.user_id)
+      .maybeSingle();
+    if ((internal as any)?.is_active === false) throw new Error("Target account is deactivated");
     const { data: link, error } = await (supabaseAdmin.auth.admin as any).generateLink({
       type: "magiclink",
       email,
@@ -603,6 +639,15 @@ export const startImpersonation = createServerFn({ method: "POST" })
     const roleList = (roles ?? []).map((r: any) => r.role as string);
     const priority: Record<string, number> = { super_admin: 1, instructor: 2, employee: 3, student: 4 };
     const primary = roleList.slice().sort((a, b) => (priority[a] ?? 9) - (priority[b] ?? 9))[0] ?? "student";
+    const bypassToken = `${globalThis.crypto.randomUUID()}.${globalThis.crypto.randomUUID()}`;
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    const { error: insertError } = await (supabaseAdmin as any).from("impersonation_sessions").insert({
+      admin_user_id: context.userId,
+      target_user_id: data.user_id,
+      token_hash: await sha256Hex(bypassToken),
+      expires_at: expiresAt,
+    } as never);
+    if (insertError) throw new Error(insertError.message);
     console.log("[impersonate] issued token for", data.user_id, "by admin", context.userId);
-    return { email, hashed_token, primary_role: primary };
+    return { email, hashed_token, primary_role: primary, bypass_token: bypassToken, bypass_expires_at: expiresAt };
   });
