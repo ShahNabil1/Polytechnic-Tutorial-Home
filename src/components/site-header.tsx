@@ -6,7 +6,6 @@ import { useCart } from "@/lib/cart-store";
 import { toBanglaNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AuthDrawer } from "@/components/auth-drawer";
 import { CartDrawer } from "@/components/cart-drawer";
