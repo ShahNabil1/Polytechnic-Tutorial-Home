@@ -805,3 +805,91 @@ export const adminResetUserPassword = createServerFn({ method: "POST" })
 
     return { ok: true, emailed: true };
   });
+
+// ============================================================================
+// Admin editable profile — mirrors what a user can edit on their own profile.
+// ============================================================================
+
+const AdminInternalProfileUpdateSchema = z.object({
+  user_id: z.string().uuid(),
+  address: z.string().max(500).optional().nullable(),
+  nid_number: z.string().max(50).optional().nullable(),
+  cv_r2_key: z.string().max(300).optional().nullable(),
+  bank_details: z
+    .object({
+      method: z.enum(["bank", "bkash", "nagad", "rocket", "upay"]).optional(),
+      account_name: z.string().max(120).optional(),
+      account_number: z.string().max(60).optional(),
+      bank_name: z.string().max(120).optional(),
+      branch: z.string().max(120).optional(),
+      routing: z.string().max(60).optional(),
+      mfs_number: z.string().max(20).optional(),
+    })
+    .optional()
+    .nullable(),
+  workplace: z.string().max(200).optional().nullable(),
+  job_role: z.string().max(120).optional().nullable(),
+  subjects: z.array(z.string().max(120)).max(50).optional(),
+  departments: z.array(z.string().max(120)).max(50).optional(),
+});
+
+export const adminGetTargetInternalProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ user_id: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureCanManageUsers(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row, error } = await supabaseAdmin
+      .from("internal_profiles")
+      .select("*")
+      .eq("user_id", data.user_id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return row as Record<string, unknown> | null;
+  });
+
+export const adminUpdateTargetBasicProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        user_id: z.string().uuid(),
+        full_name: z.string().max(200).nullable().optional(),
+        avatar_url: z.string().max(1000).nullable().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureManageableTarget(context, data.user_id);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const payload: Record<string, unknown> = {};
+    if (Object.prototype.hasOwnProperty.call(data, "full_name")) {
+      payload.full_name = data.full_name?.trim() || null;
+    }
+    if (Object.prototype.hasOwnProperty.call(data, "avatar_url")) {
+      payload.avatar_url = data.avatar_url?.trim() || null;
+    }
+    const { error } = await supabaseAdmin
+      .from("profiles")
+      .update(payload as never)
+      .eq("id", data.user_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const adminUpdateTargetInternalProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => AdminInternalProfileUpdateSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureManageableTarget(context, data.user_id);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { user_id, ...rest } = data;
+    const { error } = await supabaseAdmin
+      .from("internal_profiles")
+      .update(rest as never)
+      .eq("user_id", user_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
