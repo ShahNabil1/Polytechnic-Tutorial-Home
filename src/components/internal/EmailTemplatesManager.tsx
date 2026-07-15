@@ -32,6 +32,11 @@ const SAMPLE_VARS: Record<string, string> = {
   amount: "1,250",
   receipt_url: "https://polytechnictutorial.com/checkout/success?order=PTH123",
   phone: "01700000000",
+  full_name: "Jane Doe",
+  email: "jane@example.com",
+  password: "TempPass!234",
+  role: "employee",
+  login_url: "https://polytechnictutorial.com/auth",
   ebook_list: `<div>
     <div style="padding:14px 0;border-bottom:1px solid #eef1f4;">
       <div style="font-weight:600;margin-bottom:6px;color:#0f172a;">Sample E-book Title</div>
@@ -43,9 +48,10 @@ const SAMPLE_VARS: Record<string, string> = {
 const SYSTEM_VARS: Record<string, string[]> = {
   ebook_delivery: ["order_no", "customer_name", "ebook_list"],
   order_confirmation: ["order_no", "customer_name", "amount", "receipt_url"],
+  internal_welcome: ["full_name", "email", "phone", "password", "role", "login_url"],
 };
 
-const AUTO_KEYS = new Set(["order_confirmation", "ebook_delivery"]);
+const AUTO_KEYS = new Set(["order_confirmation", "ebook_delivery", "internal_welcome"]);
 const DEFAULT_VARS = ["order_no", "customer_name", "amount", "receipt_url", "phone"];
 
 function renderPreview(html: string, subject: string) {
