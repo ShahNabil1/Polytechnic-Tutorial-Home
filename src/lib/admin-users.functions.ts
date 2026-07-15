@@ -246,7 +246,12 @@ export const createInternalUser = createServerFn({ method: "POST" })
         phone: z
           .string()
           .trim()
-          .regex(/^\+?[0-9]{10,15}$/u, "Invalid phone number"),
+          .transform((v) => {
+            let s = v.replace(/\D/g, "");
+            if (s.startsWith("88") && s.length > 11) s = s.slice(2);
+            return s;
+          })
+          .pipe(z.string().regex(/^01[3-9][0-9]{8}$/u, "Enter a valid BD phone (01XXXXXXXXX)")),
         password: z.string().min(8).max(128),
         role: z.enum(["employee", "instructor"]),
       })
@@ -256,11 +261,13 @@ export const createInternalUser = createServerFn({ method: "POST" })
     await ensureCanManageUsers(context);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const phone = data.phone.startsWith("+") ? data.phone.slice(1) : data.phone;
+    // Raw BD phone (e.g. 01XXXXXXXXX) — stored in profiles as-is; auth needs the 88 prefix (E.164 without '+').
+    const rawPhone = data.phone;
+    const authPhone = `88${rawPhone}`;
 
     const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
       email: data.email,
-      phone,
+      phone: authPhone,
       password: data.password,
       email_confirm: true,
       phone_confirm: true,
@@ -274,7 +281,7 @@ export const createInternalUser = createServerFn({ method: "POST" })
     // Ensure profile row reflects provided details (trigger inserts a base row).
     await supabaseAdmin
       .from("profiles")
-      .update({ full_name: data.full_name, email: data.email, phone } as never)
+      .update({ full_name: data.full_name, email: data.email, phone: rawPhone } as never)
       .eq("id", newUserId);
 
     // Remove default 'student' role assigned by trigger for internal accounts.
@@ -294,7 +301,7 @@ export const createInternalUser = createServerFn({ method: "POST" })
         userId: newUserId,
         fullName: data.full_name,
         email: data.email,
-        phone,
+        phone: rawPhone,
         password: data.password,
         role: data.role,
       });
