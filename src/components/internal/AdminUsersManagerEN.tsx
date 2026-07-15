@@ -318,6 +318,14 @@ export function AdminUsersManagerEN({ role }: { role: "employee" | "instructor" 
           </ul>
         )}
       </section>
+
+      {logsFor && (
+        <InternalEmailLogsDialog
+          userId={logsFor.user_id}
+          userLabel={`${logsFor.full_name || "(no name)"} · ${logsFor.email || logsFor.phone || ""}`}
+          onClose={() => setLogsFor(null)}
+        />
+      )}
     </div>
   );
 }
