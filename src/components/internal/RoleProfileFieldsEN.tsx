@@ -20,6 +20,10 @@ import {
   type InternalProfile,
   type BankDetails,
 } from "@/lib/internal-profile.functions";
+import {
+  adminGetTargetInternalProfile,
+  adminUpdateTargetInternalProfile,
+} from "@/lib/admin-users.functions";
 import type { AppRole } from "@/lib/roles.functions";
 import { uploadFileToR2 } from "@/lib/upload-client";
 import { toEnglishText } from "@/lib/input-filter";
@@ -55,11 +59,20 @@ const ROLE_ID_LABEL: Record<AppRole, string> = {
   super_admin: "Admin ID",
 };
 
-export function RoleProfileFieldsEN({ role }: { role: AppRole }) {
+export function RoleProfileFieldsEN({
+  role,
+  targetUserId,
+}: {
+  role: AppRole;
+  targetUserId?: string;
+}) {
+  const isAdminMode = !!targetUserId;
   const isInstructor = role === "instructor";
   const isSuperAdmin = role === "super_admin";
-  const load = useServerFn(getMyInternalProfile);
-  const save = useServerFn(updateMyInternalProfile);
+  const loadSelf = useServerFn(getMyInternalProfile);
+  const saveSelf = useServerFn(updateMyInternalProfile);
+  const loadAdmin = useServerFn(adminGetTargetInternalProfile);
+  const saveAdmin = useServerFn(adminUpdateTargetInternalProfile);
   const signUrl = useServerFn(getInternalDocSignedUrl);
 
   const [profile, setProfile] = useState<InternalProfile | null>(null);
@@ -75,7 +88,10 @@ export function RoleProfileFieldsEN({ role }: { role: AppRole }) {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    load(undefined as never)
+    const loader = isAdminMode
+      ? loadAdmin({ data: { user_id: targetUserId! } }).then((p) => p as InternalProfile | null)
+      : loadSelf(undefined as never);
+    loader
       .then((p) => {
         if (cancelled) return;
         setProfile(p);
@@ -91,7 +107,7 @@ export function RoleProfileFieldsEN({ role }: { role: AppRole }) {
         };
         setForm(f);
         setSaved(f);
-        setEditMode(!p?.address);
+        setEditMode(!isAdminMode && !p?.address);
       })
       .catch((err) => toast.error("Failed to load: " + (err as Error).message))
       .finally(() => {
@@ -100,7 +116,7 @@ export function RoleProfileFieldsEN({ role }: { role: AppRole }) {
     return () => {
       cancelled = true;
     };
-  }, [load]);
+  }, [loadSelf, loadAdmin, isAdminMode, targetUserId]);
 
   function u<K extends keyof FormState>(k: K, v: FormState[K]) {
     setForm((prev) => ({ ...prev, [k]: v }));
@@ -192,7 +208,11 @@ export function RoleProfileFieldsEN({ role }: { role: AppRole }) {
           ? form.departments.split(",").map((s) => s.trim()).filter(Boolean)
           : [],
       };
-      await save({ data: payload });
+      if (isAdminMode) {
+        await saveAdmin({ data: { user_id: targetUserId!, ...payload } });
+      } else {
+        await saveSelf({ data: payload });
+      }
       const nextForm = { ...form, bank: cleanBank };
       setForm(nextForm);
       setSaved(nextForm);
@@ -217,31 +237,33 @@ export function RoleProfileFieldsEN({ role }: { role: AppRole }) {
 
   return (
     <>
-      {/* Role ID card */}
-      <section className="flex items-center gap-3 rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-4 shadow-sm">
-        <div className="grid size-11 place-items-center rounded-xl bg-gradient-to-br from-indigo-600 to-fuchsia-500 text-white shadow-md shadow-indigo-500/30">
-          <IdCard className="size-5" />
-        </div>
-        <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-            {ROLE_ID_LABEL[role]}
+      {/* Role ID card — hidden in admin mode (already shown in detail page header) */}
+      {!isAdminMode && (
+        <section className="flex items-center gap-3 rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-4 shadow-sm">
+          <div className="grid size-11 place-items-center rounded-xl bg-gradient-to-br from-indigo-600 to-fuchsia-500 text-white shadow-md shadow-indigo-500/30">
+            <IdCard className="size-5" />
           </div>
-          <div className="font-display text-xl font-bold tracking-wider text-slate-900">
-            #{profile?.display_id ?? "—"}
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+              {ROLE_ID_LABEL[role]}
+            </div>
+            <div className="font-display text-xl font-bold tracking-wider text-slate-900">
+              #{profile?.display_id ?? "—"}
+            </div>
           </div>
-        </div>
-        <div className="ml-auto flex items-center gap-2">
-          {profile?.mfa_enrolled ? (
-            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
-              <ShieldCheck className="size-3" /> 2FA ON
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700">
-              2FA Required
-            </span>
-          )}
-        </div>
-      </section>
+          <div className="ml-auto flex items-center gap-2">
+            {profile?.mfa_enrolled ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
+                <ShieldCheck className="size-3" /> 2FA ON
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700">
+                2FA Required
+              </span>
+            )}
+          </div>
+        </section>
+      )}
 
       {isSuperAdmin ? null : (
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -475,7 +497,7 @@ export function RoleProfileFieldsEN({ role }: { role: AppRole }) {
           </form>
         </section>
       )}
-      {!isSuperAdmin && <NidUploadCard />}
+      {!isSuperAdmin && !isAdminMode && <NidUploadCard />}
     </>
   );
 }

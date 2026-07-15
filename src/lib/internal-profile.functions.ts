@@ -137,14 +137,23 @@ export const getInternalDocSignedUrl = createServerFn({ method: "POST" })
     z.object({ key: z.string().min(1).max(400) }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    // Owner can read their own key; super_admin can read any (starting with internal-docs/)
+    // Super_admin can read any internal-docs key; others can only read a key
+    // referenced by their own internal_profiles row (works even when the key
+    // was uploaded on their behalf by an admin — the file path in R2 uses
+    // the uploader's id, so a startsWith check is not sufficient).
     const { data: role } = await context.supabase.rpc("has_role", {
       _user_id: context.userId,
       _role: "super_admin",
     });
     const isSuperAdmin = role === true;
-    if (!isSuperAdmin && !data.key.startsWith(`internal-docs/${context.userId}/`)) {
-      throw new Error("Forbidden");
+    if (!isSuperAdmin) {
+      const { data: own } = await context.supabase
+        .from("internal_profiles")
+        .select("cv_r2_key, nid_front_r2_key, nid_back_r2_key")
+        .eq("user_id", context.userId)
+        .maybeSingle();
+      const keys = [own?.cv_r2_key, own?.nid_front_r2_key, own?.nid_back_r2_key].filter(Boolean);
+      if (!keys.includes(data.key)) throw new Error("Forbidden");
     }
     const { createPresignedGetUrl } = await import("@/lib/r2.server");
     return createPresignedGetUrl({ key: data.key, expiresInSeconds: 300 });
