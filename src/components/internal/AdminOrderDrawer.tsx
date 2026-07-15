@@ -2064,7 +2064,7 @@ function SmsLogRow({ row }: { row: any }) {
         {row.provider_status != null && (
           <>
             <span>·</span>
-            <span className="font-mono">HTTP {row.provider_status}</span>
+            <span className="font-mono">code #{row.provider_status}</span>
           </>
         )}
       </p>
