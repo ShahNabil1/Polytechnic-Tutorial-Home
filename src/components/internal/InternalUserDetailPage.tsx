@@ -290,10 +290,24 @@ export function InternalUserDetailPage({ userId, role }: Props) {
       toast.error("Target has no email on file — cannot confirm delete");
       return;
     }
-    const typed = window.prompt(
-      `PERMANENT DELETE. Type the user's email to confirm:\n${detail.email}`,
-      "",
-    );
+    const typed = await promptText({
+      variant: "danger",
+      title: "Permanently delete this account?",
+      description: (
+        <>
+          This cannot be undone. All data associated with this account will be permanently removed. To confirm, type the user's email exactly:
+          <br />
+          <span className="mt-2 inline-block rounded-md bg-rose-50 px-2 py-1 font-mono text-xs font-bold text-rose-700">
+            {detail.email}
+          </span>
+        </>
+      ),
+      inputLabel: "Type email to confirm",
+      placeholder: detail.email,
+      minLength: detail.email.length,
+      maxLength: 320,
+      confirmLabel: "Permanently delete",
+    });
     if (!typed) return;
     if (typed.trim().toLowerCase() !== detail.email.toLowerCase()) {
       toast.error("Email did not match");
