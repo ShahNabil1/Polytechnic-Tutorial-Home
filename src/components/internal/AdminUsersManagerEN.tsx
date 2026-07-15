@@ -12,6 +12,7 @@ import {
   Eye,
   EyeOff,
   RefreshCw,
+  ScrollText,
 } from "lucide-react";
 import {
   listInternalUsers,
@@ -20,6 +21,7 @@ import {
   setInternalUserActive,
   type AdminUserRow,
 } from "@/lib/admin-users.functions";
+import { InternalEmailLogsDialog } from "@/components/internal/InternalEmailLogsDialog";
 
 type FormState = {
   full_name: string;
@@ -52,6 +54,7 @@ export function AdminUsersManagerEN({ role }: { role: "employee" | "instructor" 
   const [showPw, setShowPw] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [logsFor, setLogsFor] = useState<AdminUserRow | null>(null);
 
   async function refresh() {
     setLoading(true);
@@ -282,6 +285,14 @@ export function AdminUsersManagerEN({ role }: { role: "employee" | "instructor" 
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
+                    onClick={() => setLogsFor(r)}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                    title="View welcome-email delivery logs"
+                  >
+                    <ScrollText className="size-3.5" /> Logs
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => toggleActive(r)}
                     disabled={busyId === r.user_id}
                     className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold hover:bg-slate-50 disabled:opacity-60"
@@ -307,6 +318,14 @@ export function AdminUsersManagerEN({ role }: { role: "employee" | "instructor" 
           </ul>
         )}
       </section>
+
+      {logsFor && (
+        <InternalEmailLogsDialog
+          userId={logsFor.user_id}
+          userLabel={`${logsFor.full_name || "(no name)"} · ${logsFor.email || logsFor.phone || ""}`}
+          onClose={() => setLogsFor(null)}
+        />
+      )}
     </div>
   );
 }

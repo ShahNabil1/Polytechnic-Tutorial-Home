@@ -260,5 +260,44 @@ export const createInternalUser = createServerFn({ method: "POST" })
       throw new Error(assignErr.message);
     }
 
+    // Fire-and-forget welcome email (logged into internal_email_deliveries).
+    try {
+      const { sendInternalWelcomeEmail } = await import("@/lib/internal-welcome.server");
+      await sendInternalWelcomeEmail(supabaseAdmin, {
+        userId: newUserId,
+        fullName: data.full_name,
+        email: data.email,
+        phone,
+        password: data.password,
+        role: data.role,
+      });
+    } catch (err) {
+      console.error("[createInternalUser] welcome email dispatch failed", err);
+    }
+
     return { ok: true, user_id: newUserId };
+  });
+
+export const listInternalEmailDeliveries = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ user_id: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: isSuperAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "super_admin",
+    });
+    if (isSuperAdmin !== true) throw new Error("Forbidden: super_admin only");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
+      .from("internal_email_deliveries")
+      .select(
+        "id, kind, to_email, subject, status, resend_email_id, error_reason, sent_at, delivered_at, opened_at, clicked_at, bounced_at, created_at, updated_at",
+      )
+      .eq("user_id", data.user_id)
+      .order("created_at", { ascending: false })
+      .limit(30);
+    if (error) throw new Error(error.message);
+    return rows ?? [];
   });
