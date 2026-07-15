@@ -205,6 +205,15 @@ export function CrmCustomerDetailPage({ userId }: { userId: string }) {
       )}
 
       {tab === "cart" && <CrmCartCard userId={detail.user_id} />}
+
+      {tab === "coupons" && (
+        <CrmCouponPanel
+          userId={detail.user_id}
+          name={detail.full_name}
+          phone={detail.phone}
+          email={detail.email}
+        />
+      )}
     </div>
   );
 }
