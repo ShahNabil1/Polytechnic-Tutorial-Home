@@ -93,32 +93,6 @@ export function AdminUsersManagerEN({ role }: { role: "employee" | "instructor" 
     }
   }
 
-  async function revokeUser(userId: string) {
-    if (!(await confirmDialog({ variant: "danger", description: "Revoke this role?" }))) return;
-    setBusyId(userId);
-    try {
-      await revoke({ data: { user_id: userId, role } });
-      toast.success("Role revoked");
-      await refresh();
-    } catch (e) {
-      toast.error("Revoke failed: " + (e instanceof Error ? e.message : String(e)));
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  async function toggleActive(row: AdminUserRow) {
-    setBusyId(row.user_id);
-    try {
-      await setActive({ data: { user_id: row.user_id, is_active: !row.is_active } });
-      toast.success(row.is_active ? "Deactivated" : "Activated");
-      await refresh();
-    } catch (e) {
-      toast.error("Update failed: " + (e instanceof Error ? e.message : String(e)));
-    } finally {
-      setBusyId(null);
-    }
-  }
 
   const label = role === "employee" ? "Employee" : "Instructor";
   const labelPlural = role === "employee" ? "Employees" : "Instructors";
