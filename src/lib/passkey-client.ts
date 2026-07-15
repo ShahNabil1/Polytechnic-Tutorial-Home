@@ -3,6 +3,7 @@
  */
 import { startRegistration, startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
 import { supabase } from "@/integrations/supabase/client";
+import { retrySupabaseAuth, waitForUsableSession } from "@/lib/auth-reliability";
 import {
   getPasskeyRegistrationOptions,
   verifyPasskeyRegistration,
@@ -45,6 +46,8 @@ function defaultDeviceName(): string {
 /** Register a new passkey for the currently signed-in user. */
 export async function registerPasskey(deviceName?: string) {
   if (!isPasskeySupported()) throw new Error("এই ব্রাউজারে Passkey সাপোর্ট নেই");
+  const session = await waitForUsableSession();
+  if (!session) throw new Error("সেশন প্রস্তুত নয়। পেজ রিফ্রেশ না করে আবার চেষ্টা করুন।");
   const options = await withTimeout(
     getPasskeyRegistrationOptions(),
     "Passkey সেটআপ শুরু হতে বেশি সময় লাগছে। আবার চেষ্টা করুন।",
@@ -82,10 +85,10 @@ export async function signInWithPasskey(phone?: string) {
     "Passkey যাচাই হতে বেশি সময় লাগছে। আবার চেষ্টা করুন।",
   );
   const { error } = await withTimeout(
-    supabase.auth.setSession({
+    retrySupabaseAuth(() => supabase.auth.setSession({
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token,
-    }),
+    })),
     "সেশন চালু হতে বেশি সময় লাগছে। আবার চেষ্টা করুন।",
   );
   if (error) throw new Error(error.message);

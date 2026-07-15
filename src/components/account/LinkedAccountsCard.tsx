@@ -5,6 +5,7 @@ import { Loader2, Mail, Phone, Link2, Unlink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { UserIdentity } from "@supabase/supabase-js";
 import { ensureReauth } from "@/lib/reauth";
+import { retrySupabaseAuth } from "@/lib/auth-reliability";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 const MAX_RESENDS = 3;
@@ -75,8 +76,8 @@ export function LinkedAccountsCard() {
 
   async function refresh() {
     const [{ data: identityData }, { data: userData }] = await Promise.all([
-      supabase.auth.getUserIdentities(),
-      supabase.auth.getUser(),
+      retrySupabaseAuth(() => supabase.auth.getUserIdentities()),
+      retrySupabaseAuth(() => supabase.auth.getUser()),
     ]);
     setIdentities(identityData?.identities ?? []);
     setCurrentPhone(userData.user?.phone ?? null);
@@ -95,10 +96,10 @@ export function LinkedAccountsCard() {
     if (!(await ensureReauth())) return;
     setLinkingGoogle(true);
     try {
-      const { data, error } = await supabase.auth.linkIdentity({
+      const { data, error } = await retrySupabaseAuth(() => supabase.auth.linkIdentity({
         provider: "google",
         options: { redirectTo: `${window.location.origin}/sdash/profile` },
-      });
+      }));
       if (error) throw error;
       // Some Supabase versions don't auto-redirect; do it manually.
       if (data?.url) window.location.href = data.url;
@@ -125,7 +126,7 @@ export function LinkedAccountsCard() {
     }
     if (!(await confirmDialog({ variant: "danger", description: "Google একাউন্ট আনলিংক করবেন?" }))) return;
     if (!(await ensureReauth())) return;
-    const { error } = await supabase.auth.unlinkIdentity(googleIdentity);
+    const { error } = await retrySupabaseAuth(() => supabase.auth.unlinkIdentity(googleIdentity));
     if (error) toast.error(error.message);
     else {
       toast.success("Google আনলিংক হয়েছে");
@@ -141,7 +142,7 @@ export function LinkedAccountsCard() {
     if (!(await ensureReauth())) return;
     setPhoneLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({ phone: normalizePhone(phoneRaw) });
+      const { error } = await retrySupabaseAuth(() => supabase.auth.updateUser({ phone: normalizePhone(phoneRaw) }));
       if (error) throw error;
       setPhoneStage("otp");
       toast.success("OTP পাঠানো হয়েছে");
@@ -166,10 +167,10 @@ export function LinkedAccountsCard() {
     setPhoneLoading(true);
     try {
       // For phone-change flow the correct resend type is "phone_change".
-      const { error } = await supabase.auth.resend({
+      const { error } = await retrySupabaseAuth(() => supabase.auth.resend({
         type: "phone_change",
         phone: normalizePhone(phoneRaw),
-      });
+      }));
       if (error) throw error;
       setResendCount((n) => n + 1);
       startCooldown();
@@ -188,11 +189,11 @@ export function LinkedAccountsCard() {
     }
     setPhoneLoading(true);
     try {
-      const { error } = await supabase.auth.verifyOtp({
+      const { error } = await retrySupabaseAuth(() => supabase.auth.verifyOtp({
         phone: normalizePhone(phoneRaw),
         token: otp,
         type: "phone_change",
-      });
+      }));
       if (error) throw error;
       toast.success("ফোন নাম্বার লিংক হয়েছে");
       setPhoneStage("idle");

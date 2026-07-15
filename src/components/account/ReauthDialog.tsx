@@ -7,6 +7,7 @@ import { verifyPasswordReauth } from "@/lib/reauth.functions";
 import { getPasskeyAuthOptions, verifyPasskeyAuthentication, listMyPasskeys } from "@/lib/passkey.functions";
 import { markReauthed, registerReauthDialog, setReauthMethodsAvailable } from "@/lib/reauth";
 import { toEnglishPassword } from "@/lib/input-filter";
+import { retrySupabaseAuth } from "@/lib/auth-reliability";
 
 /**
  * Modal host for step-up reauth. Mount once inside the profile page.
@@ -27,7 +28,7 @@ export function ReauthDialogHost() {
   useEffect(() => {
     (async () => {
       try {
-        const { data } = await supabase.auth.getUser();
+        const { data } = await retrySupabaseAuth(() => supabase.auth.getUser());
         const providers = (data.user?.app_metadata?.providers as string[] | undefined) ?? [];
         const pw = providers.includes("email") || providers.includes("phone");
         setHasPassword(pw);
