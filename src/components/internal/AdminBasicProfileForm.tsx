@@ -187,6 +187,14 @@ export function AdminBasicProfileForm({
               )}
             </div>
           )}
+          {!locked && uploading && (
+            <div className="mt-2 h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-slate-100">
+              <div
+                className="h-full rounded-full bg-indigo-600 transition-all"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          )}
         </div>
       </div>
 
