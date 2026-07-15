@@ -38,6 +38,7 @@ import { Route as ApiPublicSessionsActionRouteImport } from './routes/api/public
 import { Route as ApiPublicHooksDeliverEbookBatchRouteImport } from './routes/api/public/hooks/deliver-ebook-batch'
 import { Route as AuthenticatedInternalWorkspaceProfileRouteImport } from './routes/_authenticated/_internal.workspace.profile'
 import { Route as AuthenticatedInternalWorkspaceLmsAndCoursesRouteImport } from './routes/_authenticated/_internal.workspace.lms-and-courses'
+import { Route as AuthenticatedInternalWorkspaceCrmRouteImport } from './routes/_authenticated/_internal.workspace.crm'
 import { Route as AuthenticatedInternalInstructorProfileRouteImport } from './routes/_authenticated/_internal.instructor.profile'
 import { Route as AuthenticatedInternalWorkspaceInstructorsIndexRouteImport } from './routes/_authenticated/_internal.workspace.instructors.index'
 import { Route as AuthenticatedInternalWorkspaceEmployeesIndexRouteImport } from './routes/_authenticated/_internal.workspace.employees.index'
@@ -210,6 +211,12 @@ const AuthenticatedInternalWorkspaceLmsAndCoursesRoute =
     path: '/lms-and-courses',
     getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
   } as any)
+const AuthenticatedInternalWorkspaceCrmRoute =
+  AuthenticatedInternalWorkspaceCrmRouteImport.update({
+    id: '/crm',
+    path: '/crm',
+    getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
+  } as any)
 const AuthenticatedInternalInstructorProfileRoute =
   AuthenticatedInternalInstructorProfileRouteImport.update({
     id: '/profile',
@@ -352,6 +359,7 @@ export interface FileRoutesByFullPath {
   '/courses/$deptSlug/$semSlug': typeof CoursesDeptSlugSemSlugRoute
   '/sdash/': typeof AuthenticatedSdashIndexRoute
   '/instructor/profile': typeof AuthenticatedInternalInstructorProfileRoute
+  '/workspace/crm': typeof AuthenticatedInternalWorkspaceCrmRoute
   '/workspace/lms-and-courses': typeof AuthenticatedInternalWorkspaceLmsAndCoursesRouteWithChildren
   '/workspace/profile': typeof AuthenticatedInternalWorkspaceProfileRoute
   '/api/public/hooks/deliver-ebook-batch': typeof ApiPublicHooksDeliverEbookBatchRoute
@@ -397,6 +405,7 @@ export interface FileRoutesByTo {
   '/courses/$deptSlug/$semSlug': typeof CoursesDeptSlugSemSlugRoute
   '/sdash': typeof AuthenticatedSdashIndexRoute
   '/instructor/profile': typeof AuthenticatedInternalInstructorProfileRoute
+  '/workspace/crm': typeof AuthenticatedInternalWorkspaceCrmRoute
   '/workspace/lms-and-courses': typeof AuthenticatedInternalWorkspaceLmsAndCoursesRouteWithChildren
   '/workspace/profile': typeof AuthenticatedInternalWorkspaceProfileRoute
   '/api/public/hooks/deliver-ebook-batch': typeof ApiPublicHooksDeliverEbookBatchRoute
@@ -448,6 +457,7 @@ export interface FileRoutesById {
   '/courses/$deptSlug/$semSlug': typeof CoursesDeptSlugSemSlugRoute
   '/_authenticated/sdash/': typeof AuthenticatedSdashIndexRoute
   '/_authenticated/_internal/instructor/profile': typeof AuthenticatedInternalInstructorProfileRoute
+  '/_authenticated/_internal/workspace/crm': typeof AuthenticatedInternalWorkspaceCrmRoute
   '/_authenticated/_internal/workspace/lms-and-courses': typeof AuthenticatedInternalWorkspaceLmsAndCoursesRouteWithChildren
   '/_authenticated/_internal/workspace/profile': typeof AuthenticatedInternalWorkspaceProfileRoute
   '/api/public/hooks/deliver-ebook-batch': typeof ApiPublicHooksDeliverEbookBatchRoute
@@ -498,6 +508,7 @@ export interface FileRouteTypes {
     | '/courses/$deptSlug/$semSlug'
     | '/sdash/'
     | '/instructor/profile'
+    | '/workspace/crm'
     | '/workspace/lms-and-courses'
     | '/workspace/profile'
     | '/api/public/hooks/deliver-ebook-batch'
@@ -543,6 +554,7 @@ export interface FileRouteTypes {
     | '/courses/$deptSlug/$semSlug'
     | '/sdash'
     | '/instructor/profile'
+    | '/workspace/crm'
     | '/workspace/lms-and-courses'
     | '/workspace/profile'
     | '/api/public/hooks/deliver-ebook-batch'
@@ -593,6 +605,7 @@ export interface FileRouteTypes {
     | '/courses/$deptSlug/$semSlug'
     | '/_authenticated/sdash/'
     | '/_authenticated/_internal/instructor/profile'
+    | '/_authenticated/_internal/workspace/crm'
     | '/_authenticated/_internal/workspace/lms-and-courses'
     | '/_authenticated/_internal/workspace/profile'
     | '/api/public/hooks/deliver-ebook-batch'
@@ -846,6 +859,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInternalWorkspaceLmsAndCoursesRouteImport
       parentRoute: typeof AuthenticatedInternalWorkspaceRoute
     }
+    '/_authenticated/_internal/workspace/crm': {
+      id: '/_authenticated/_internal/workspace/crm'
+      path: '/crm'
+      fullPath: '/workspace/crm'
+      preLoaderRoute: typeof AuthenticatedInternalWorkspaceCrmRouteImport
+      parentRoute: typeof AuthenticatedInternalWorkspaceRoute
+    }
     '/_authenticated/_internal/instructor/profile': {
       id: '/_authenticated/_internal/instructor/profile'
       path: '/profile'
@@ -1040,6 +1060,7 @@ const AuthenticatedInternalWorkspaceLmsAndCoursesRouteWithChildren =
   )
 
 interface AuthenticatedInternalWorkspaceRouteChildren {
+  AuthenticatedInternalWorkspaceCrmRoute: typeof AuthenticatedInternalWorkspaceCrmRoute
   AuthenticatedInternalWorkspaceLmsAndCoursesRoute: typeof AuthenticatedInternalWorkspaceLmsAndCoursesRouteWithChildren
   AuthenticatedInternalWorkspaceProfileRoute: typeof AuthenticatedInternalWorkspaceProfileRoute
   AuthenticatedInternalWorkspaceIndexRoute: typeof AuthenticatedInternalWorkspaceIndexRoute
@@ -1058,6 +1079,8 @@ interface AuthenticatedInternalWorkspaceRouteChildren {
 
 const AuthenticatedInternalWorkspaceRouteChildren: AuthenticatedInternalWorkspaceRouteChildren =
   {
+    AuthenticatedInternalWorkspaceCrmRoute:
+      AuthenticatedInternalWorkspaceCrmRoute,
     AuthenticatedInternalWorkspaceLmsAndCoursesRoute:
       AuthenticatedInternalWorkspaceLmsAndCoursesRouteWithChildren,
     AuthenticatedInternalWorkspaceProfileRoute:
