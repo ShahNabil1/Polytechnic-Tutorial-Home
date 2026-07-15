@@ -44,6 +44,9 @@ export function InternalUserDetailPage({ userId, role }: Props) {
   const router = useRouter();
   const getDetail = useServerFn(getInternalUserDetail);
   const getCv = useServerFn(getUserCvSignedUrl);
+  const getNid = useServerFn(getUserNidSignedUrl);
+  const requestResubmit = useServerFn(requestNidResubmit);
+  const cancelResubmit = useServerFn(cancelNidResubmit);
   const listSessions = useServerFn(listUserSessionsAsAdmin);
   const revokeSession = useServerFn(revokeUserSessionAsAdmin);
   const revokeAllSessions = useServerFn(revokeAllUserSessionsAsAdmin);
