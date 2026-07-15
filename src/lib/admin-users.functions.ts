@@ -633,21 +633,48 @@ export const startImpersonation = createServerFn({ method: "POST" })
     await ensureManageableTarget(context, data.user_id);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(data.user_id);
-    const email = String(authUser?.user?.email ?? "").trim().toLowerCase();
-    if (!email) throw new Error("Target user has no email");
+    let email = String(authUser?.user?.email ?? "").trim().toLowerCase();
+    const phone = String(authUser?.user?.phone ?? "").trim();
+    if (!email && !phone) throw new Error("Target user has neither email nor phone — cannot sign in as them");
     const { data: internal } = await supabaseAdmin
       .from("internal_profiles")
       .select("is_active")
       .eq("user_id", data.user_id)
       .maybeSingle();
     if ((internal as any)?.is_active === false) throw new Error("Target account is deactivated");
+
+    // Phone-only auth users have no email → magiclink can't be issued. Attach a synthetic,
+    // routable-looking placeholder email so generateLink works, then leave it in place
+    // (harmless — user still signs in via phone OTP). Revert on failure.
+    let attachedEmail = false;
+    if (!email) {
+      const synth = `phone-${data.user_id}@users.polytechnictutorial.local`;
+      const { error: updErr } = await supabaseAdmin.auth.admin.updateUserById(data.user_id, {
+        email: synth,
+        email_confirm: true,
+      } as any);
+      if (updErr) throw new Error(`Cannot prepare sign-in for phone-only user: ${updErr.message}`);
+      email = synth;
+      attachedEmail = true;
+    }
+
     const { data: link, error } = await (supabaseAdmin.auth.admin as any).generateLink({
       type: "magiclink",
       email,
     });
-    if (error) throw new Error(error.message);
+    if (error) {
+      if (attachedEmail) {
+        await supabaseAdmin.auth.admin.updateUserById(data.user_id, { email: null } as any).catch(() => {});
+      }
+      throw new Error(error.message);
+    }
     const hashed_token = (link as any)?.properties?.hashed_token as string | undefined;
-    if (!hashed_token) throw new Error("Failed to create sign-in token");
+    if (!hashed_token) {
+      if (attachedEmail) {
+        await supabaseAdmin.auth.admin.updateUserById(data.user_id, { email: null } as any).catch(() => {});
+      }
+      throw new Error("Failed to create sign-in token");
+    }
     // Also return target role for correct redirect
     const { data: roles } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", data.user_id);
     const roleList = (roles ?? []).map((r: any) => r.role as string);
