@@ -405,7 +405,7 @@ export function InternalUserDetailPage({ userId, role }: Props) {
           to={backTo}
           className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-slate-900"
         >
-          <ArrowLeft className="size-4" /> Back to {label.toLowerCase()}s
+          <ArrowLeft className="size-4" /> {backLabel}
         </Link>
         <div className="flex items-center gap-2">
           <button
