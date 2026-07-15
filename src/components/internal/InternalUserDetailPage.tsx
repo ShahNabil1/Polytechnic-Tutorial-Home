@@ -41,6 +41,7 @@ import {
 } from "@/lib/admin-users.functions";
 import { InternalEmailLogsDialog } from "@/components/internal/InternalEmailLogsDialog";
 import { AdminBasicProfileForm } from "@/components/internal/AdminBasicProfileForm";
+import { AdminContactChangeCard } from "@/components/internal/AdminContactChangeCard";
 import { RoleProfileFieldsEN } from "@/components/internal/RoleProfileFieldsEN";
 import { beginImpersonation } from "@/lib/impersonation";
 import { ExternalLink, AlertTriangle } from "lucide-react";
@@ -544,6 +545,14 @@ export function InternalUserDetailPage({ userId, role }: Props) {
         userId={userId}
         initialFullName={detail.full_name}
         initialAvatarUrl={detail.avatar_url}
+        onSaved={() => refresh()}
+      />
+
+      {/* Admin: change primary sign-in email + phone */}
+      <AdminContactChangeCard
+        userId={userId}
+        currentEmail={detail.email}
+        currentPhone={detail.phone}
         onSaved={() => refresh()}
       />
 
