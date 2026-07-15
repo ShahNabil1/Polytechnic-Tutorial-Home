@@ -1,0 +1,62 @@
+import { createFileRoute, Link, Outlet, redirect, useRouterState } from "@tanstack/react-router";
+import { useRole } from "@/hooks/use-role";
+import { Users, UserPlus, ShoppingBag, AlertCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+export const Route = createFileRoute("/_authenticated/_internal/workspace/crm")({
+  head: () => ({
+    meta: [{ title: "CRM — Workspace" }, { name: "robots", content: "noindex" }],
+  }),
+  component: CrmLayout,
+});
+
+const TABS = [
+  { to: "/workspace/crm/customers", label: "Customers", icon: Users },
+  { to: "/workspace/crm/signed", label: "Signed · No purchase", icon: UserPlus },
+  { to: "/workspace/crm/guests", label: "Guest purchases", icon: ShoppingBag },
+  { to: "/workspace/crm/incomplete", label: "Incomplete leads", icon: AlertCircle },
+] as const;
+
+function CrmLayout() {
+  const { loading, has } = useRole();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (loading) return null;
+  if (!has("manage_users")) {
+    throw redirect({ to: "/workspace" });
+  }
+
+  const isDetail = /\/workspace\/crm\/[0-9a-f-]{36}$/i.test(pathname);
+
+  return (
+    <div className="min-h-screen bg-background">
+      {!isDetail && (
+        <div className="border-b border-border bg-card">
+          <div className="mx-auto max-w-7xl overflow-x-auto px-4 sm:px-6">
+            <nav className="flex gap-1 py-2">
+              {TABS.map((t) => {
+                const active = pathname.startsWith(t.to);
+                const Icon = t.icon;
+                return (
+                  <Link
+                    key={t.to}
+                    to={t.to}
+                    className={cn(
+                      "flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                      active
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    )}
+                  >
+                    <Icon className="size-4" />
+                    {t.label}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+        </div>
+      )}
+      <Outlet />
+    </div>
+  );
+}

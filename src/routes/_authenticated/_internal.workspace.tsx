@@ -13,7 +13,8 @@ import {
   BookOpen,
   MessageSquareText,
   Mail,
-
+  UserPlus,
+  AlertCircle,
 } from "lucide-react";
 import { useRole } from "@/hooks/use-role";
 import { InternalShell, type NavGroup } from "@/components/internal/InternalShell";
@@ -66,7 +67,14 @@ function WorkspaceLayout() {
       id: "crm",
       label: "CRM",
       icon: UserCog,
-      items: [],
+      items: canManageUsers
+        ? [
+            { to: "/workspace/crm/customers", label: "Customers", icon: Users },
+            { to: "/workspace/crm/signed", label: "Signed · No purchase", icon: UserPlus },
+            { to: "/workspace/crm/guests", label: "Guest purchases", icon: ShoppingBag },
+            { to: "/workspace/crm/incomplete", label: "Incomplete leads", icon: AlertCircle },
+          ]
+        : [],
     },
     {
       id: "settings",
