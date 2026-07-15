@@ -59,9 +59,13 @@ export function InternalUserDetailPage({ userId, role }: Props) {
   const deleteUser = useServerFn(deleteInternalUser);
   const toggleActive = useServerFn(setInternalUserActive);
   const revokeRole = useServerFn(revokeInternalRole);
+  const listPasskeys = useServerFn(adminListUserPasskeys);
+  const deletePasskey = useServerFn(adminDeleteUserPasskey);
+  const resetPassword = useServerFn(adminResetUserPassword);
 
   const [detail, setDetail] = useState<InternalUserDetail | null>(null);
   const [sessions, setSessions] = useState<any[]>([]);
+  const [passkeys, setPasskeys] = useState<Array<{ id: string; device_name: string | null; created_at: string; last_used_at: string | null }>>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [showLogs, setShowLogs] = useState(false);
