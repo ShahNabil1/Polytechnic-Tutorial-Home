@@ -18,7 +18,7 @@ function fmtDate(iso: string | null | undefined) {
   return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-type Tab = "overview" | "messages" | "cart";
+type Tab = "overview" | "messages" | "cart" | "coupons";
 
 export function CrmCustomerDetailPage({ userId }: { userId: string }) {
   const router = useRouter();
