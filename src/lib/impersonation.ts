@@ -51,9 +51,10 @@ export async function beginImpersonation(opts: {
     started_at: new Date().toISOString(),
   });
 
-  // Consume the magic link → creates a fresh session as the target user
+  // Consume the magic link → creates a fresh session as the target user.
+  // When using token_hash, Supabase requires ONLY { token_hash, type } — passing email throws
+  // "Only the token_hash and type should be provided".
   const { error } = await supabase.auth.verifyOtp({
-    email: res.email,
     token_hash: res.hashed_token,
     type: "magiclink",
   });
