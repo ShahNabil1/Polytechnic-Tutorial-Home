@@ -1133,7 +1133,7 @@ export function AuthDrawer({
                           </div>
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="auth-mfa-enroll">২FA কোড</Label>
+                          <Label htmlFor="auth-mfa-enroll">2FA Code:</Label>
                           <Input
                             id="auth-mfa-enroll"
                             inputMode="numeric"
