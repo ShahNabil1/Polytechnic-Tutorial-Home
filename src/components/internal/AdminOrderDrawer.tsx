@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { BD_LOCATIONS } from "@/lib/bd-locations";
+import { useScrollLock } from "@/hooks/use-scroll-lock";
 
 import {
   X,
