@@ -27,6 +27,7 @@ export function ImageCropperDialog({
   const [rotation, setRotation] = useState(0);
   const [cropped, setCropped] = useState<Area | null>(null);
   const [busy, setBusy] = useState(false);
+  useScrollLock(true);
 
   const onCropComplete = useCallback((_area: Area, pixels: Area) => {
     setCropped(pixels);
