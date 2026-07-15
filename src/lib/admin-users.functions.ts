@@ -325,15 +325,6 @@ export const listInternalEmailDeliveries = createServerFn({ method: "POST" })
     return rows ?? [];
   });
 
-async function ensureSuperAdmin(context: { supabase: any; userId: string }) {
-  const { data, error } = await context.supabase.rpc("has_role", {
-    _user_id: context.userId,
-    _role: "super_admin",
-  });
-  if (error) throw new Error(error.message);
-  if (data !== true) throw new Error("Forbidden: super_admin only");
-}
-
 export type InternalUserDetail = {
   user_id: string;
   full_name: string | null;
@@ -371,7 +362,7 @@ export const getInternalUserDetail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ user_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }): Promise<InternalUserDetail> => {
-    await ensureSuperAdmin(context);
+    await ensureCanManageUsers(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const [{ data: prof }, { data: internal }, { data: roles }, { data: authUser }, { data: factors }] =
       await Promise.all([
@@ -428,7 +419,7 @@ export const getUserCvSignedUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ user_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureCanManageUsers(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: row } = await supabaseAdmin
       .from("internal_profiles")
@@ -447,7 +438,7 @@ export const getUserNidSignedUrl = createServerFn({ method: "POST" })
     z.object({ user_id: z.string().uuid(), side: z.enum(["front", "back"]) }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureCanManageUsers(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const col = data.side === "front" ? "nid_front_r2_key" : "nid_back_r2_key";
     const { data: row } = await supabaseAdmin
@@ -469,7 +460,7 @@ export const requestNidResubmit = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureCanManageUsers(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("internal_profiles")
@@ -487,7 +478,7 @@ export const cancelNidResubmit = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ user_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureCanManageUsers(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("internal_profiles")
@@ -506,7 +497,7 @@ export const listUserSessionsAsAdmin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ user_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureCanManageUsers(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error } = await supabaseAdmin
       .from("user_sessions")
