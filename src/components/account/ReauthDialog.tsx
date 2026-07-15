@@ -8,6 +8,7 @@ import { getPasskeyAuthOptions, verifyPasskeyAuthentication, listMyPasskeys } fr
 import { markReauthed, registerReauthDialog, setReauthMethodsAvailable } from "@/lib/reauth";
 import { toEnglishPassword } from "@/lib/input-filter";
 import { retrySupabaseAuth } from "@/lib/auth-reliability";
+import { useScrollLock } from "@/hooks/use-scroll-lock";
 
 /**
  * Modal host for step-up reauth. Mount once inside the profile page.
