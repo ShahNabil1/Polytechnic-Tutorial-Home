@@ -247,6 +247,7 @@ function SignedTable({
             <th className="px-4 py-3 text-right">Courses</th>
             <th className="px-4 py-3 text-left">Signed up</th>
             <th className="px-4 py-3 text-left">Last order</th>
+            <th className="px-4 py-3 text-right">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
