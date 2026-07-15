@@ -176,6 +176,7 @@ function RootComponent() {
     return (
       <QueryClientProvider client={queryClient}>
         <BlocklistGate>
+          <ImpersonationBanner />
           <Outlet />
         </BlocklistGate>
         <Toaster richColors position="top-center" />
