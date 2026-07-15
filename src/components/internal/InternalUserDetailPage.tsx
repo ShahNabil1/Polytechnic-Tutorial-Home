@@ -36,7 +36,7 @@ import {
 } from "@/lib/admin-users.functions";
 import { InternalEmailLogsDialog } from "@/components/internal/InternalEmailLogsDialog";
 import { beginImpersonation } from "@/lib/impersonation";
-import { IdCard, ExternalLink, AlertTriangle } from "lucide-react";
+import { ExternalLink, AlertTriangle } from "lucide-react";
 
 type Props = { userId: string; role: "employee" | "instructor" };
 
