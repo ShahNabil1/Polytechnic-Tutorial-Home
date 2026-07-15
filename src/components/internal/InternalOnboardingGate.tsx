@@ -57,6 +57,7 @@ export function InternalOnboardingGate({ role, children }: Props) {
   const [checkError, setCheckError] = useState<string | null>(null);
 
   const requiresMfa = role === "employee" || role === "super_admin";
+  useScrollLock(required && step !== "done" && step !== "loading");
 
   useEffect(() => {
     if (!user) return;
