@@ -316,6 +316,66 @@ export type Database = {
         }
         Relationships: []
       }
+      internal_email_deliveries: {
+        Row: {
+          bounce_type: string | null
+          bounced_at: string | null
+          clicked_at: string | null
+          created_at: string
+          delivered_at: string | null
+          error_reason: string | null
+          id: string
+          kind: string
+          opened_at: string | null
+          provider_payload: Json | null
+          resend_email_id: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["email_delivery_status"]
+          subject: string | null
+          to_email: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bounce_type?: string | null
+          bounced_at?: string | null
+          clicked_at?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          error_reason?: string | null
+          id?: string
+          kind?: string
+          opened_at?: string | null
+          provider_payload?: Json | null
+          resend_email_id?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["email_delivery_status"]
+          subject?: string | null
+          to_email: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bounce_type?: string | null
+          bounced_at?: string | null
+          clicked_at?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          error_reason?: string | null
+          id?: string
+          kind?: string
+          opened_at?: string | null
+          provider_payload?: Json | null
+          resend_email_id?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["email_delivery_status"]
+          subject?: string | null
+          to_email?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       internal_profiles: {
         Row: {
           address: string | null
