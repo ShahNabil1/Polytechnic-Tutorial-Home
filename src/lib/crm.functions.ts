@@ -196,13 +196,13 @@ export const getCrmCustomer = createServerFn({ method: "GET" })
     const orderCount = summary.order_count ?? 0;
     const totalSpent = Number(summary.total_spent ?? 0);
     const detail: CrmCustomerDetail = {
-      user_id: summary.user_id,
+      user_id: summary.user_id as string,
       full_name: summary.full_name,
       email: summary.email,
       phone: summary.phone,
       avatar_url: summary.avatar_url,
-      signed_up_at: summary.signed_up_at,
-      segment: summary.segment,
+      signed_up_at: (summary.signed_up_at ?? new Date().toISOString()) as string,
+      segment: (summary.segment ?? "signed_no_purchase") as "active" | "signed_no_purchase",
       ltv: {
         order_count: orderCount,
         total_spent: totalSpent,
