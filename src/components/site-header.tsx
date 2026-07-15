@@ -6,6 +6,7 @@ import { useCart } from "@/lib/cart-store";
 import { toBanglaNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import { useRole, primaryHome } from "@/hooks/use-role";
 import { toast } from "sonner";
 import { AuthDrawer } from "@/components/auth-drawer";
 import { CartDrawer } from "@/components/cart-drawer";
@@ -60,6 +61,7 @@ function NavAnchor({
 
 function AuthButton() {
   const { user, loading } = useAuth();
+  const { info, loading: roleLoading } = useRole();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -82,35 +84,50 @@ function AuthButton() {
           <UserIcon className="size-4" />
           সাইন ইন
         </button>
-        <AuthDrawer open={drawerOpen} onOpenChange={setDrawerOpen} />
+        {drawerOpen && <AuthDrawer open={drawerOpen} onOpenChange={setDrawerOpen} />}
       </>
     );
   }
+  const dashboardTo = info ? primaryHome(info.primaryRole) : null;
   return (
-    <div className="flex items-center gap-2">
-      <Link
-        to="/sdash"
-        className="inline-flex items-center gap-1.5 rounded-md bg-brand px-2.5 py-1.5 text-xs font-medium text-brand-foreground transition-colors hover:bg-brand/90 sm:px-3 sm:text-sm"
-      >
-        <UserIcon className="size-4" />
-        <span className="hidden xs:inline sm:inline">ড্যাশবোর্ড</span>
-      </Link>
-      <button
-        type="button"
-        onClick={async () => {
-          await queryClient.cancelQueries();
-          queryClient.clear();
-          await signOutSafely();
-          toast.success("সাইন আউট হয়েছে");
-          navigate({ to: "/", replace: true });
-        }}
-        className="hidden items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-secondary sm:inline-flex"
-        title={user.email ?? user.phone ?? ""}
-      >
-        <LogOut className="size-4" />
-        সাইন আউট
-      </button>
-    </div>
+    <>
+      <div className="flex items-center gap-2">
+        {dashboardTo && !roleLoading ? (
+          <Link
+            to={dashboardTo}
+            className="inline-flex items-center gap-1.5 rounded-md bg-brand px-2.5 py-1.5 text-xs font-medium text-brand-foreground transition-colors hover:bg-brand/90 sm:px-3 sm:text-sm"
+          >
+            <UserIcon className="size-4" />
+            <span className="hidden xs:inline sm:inline">ড্যাশবোর্ড</span>
+          </Link>
+        ) : (
+          <button
+            type="button"
+            disabled
+            className="inline-flex items-center gap-1.5 rounded-md bg-brand/70 px-2.5 py-1.5 text-xs font-medium text-brand-foreground sm:px-3 sm:text-sm"
+          >
+            <UserIcon className="size-4" />
+            <span className="hidden xs:inline sm:inline">ড্যাশবোর্ড</span>
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={async () => {
+            await queryClient.cancelQueries();
+            queryClient.clear();
+            await signOutSafely();
+            toast.success("সাইন আউট হয়েছে");
+            navigate({ to: "/", replace: true });
+          }}
+          className="hidden items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-secondary sm:inline-flex"
+          title={user.email ?? user.phone ?? ""}
+        >
+          <LogOut className="size-4" />
+          সাইন আউট
+        </button>
+      </div>
+      {drawerOpen && <AuthDrawer open={drawerOpen} onOpenChange={setDrawerOpen} />}
+    </>
   );
 }
 

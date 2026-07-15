@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,18 +26,28 @@ import { cn } from "@/lib/utils";
 import { AlertCircle, CheckCircle2, Copy, Check, Eye, EyeOff, KeyRound, ShieldCheck } from "lucide-react";
 import { checkPhoneAvailability } from "@/lib/auth.functions";
 import { toEnglishText, toEnglishPassword, friendlyPasswordError } from "@/lib/input-filter";
-import { authErrorMessage, retrySupabaseAuth, signOutSafely } from "@/lib/auth-reliability";
+import { authErrorMessage, retrySupabaseAuth, signOutSafely, waitForUsableSession } from "@/lib/auth-reliability";
+import { getMyRoleInfo, type AppRole } from "@/lib/roles.functions";
+import { syncMyPrimaryAuthEmail, updateMyInternalProfile } from "@/lib/internal-profile.functions";
+import { useCartDrawer } from "@/lib/cart-drawer-store";
 
 type Tab = "login" | "signup";
 type Stage = "form" | "otp" | "mfa" | "mfa-enroll" | "reset";
 type OtpFlow = "signup" | "forgot";
 type MfaPurpose = "password-reset" | "session";
 type MfaEnrollment = { factorId: string; qr: string; secret: string };
+type AuthTarget = "/sdash" | "/instructor" | "/workspace";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 const MAX_RESENDS = 3;
 const LOCKOUT_MINUTES = 5;
 const AUTH_TIMEOUT_MS = 20_000;
+
+function targetForRole(role: AppRole): AuthTarget {
+  if (role === "instructor") return "/instructor";
+  if (role === "employee" || role === "super_admin") return "/workspace";
+  return "/sdash";
+}
 
 function withTimeout<T>(promise: PromiseLike<T>, message: string): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -163,6 +175,11 @@ export function AuthDrawer({
   onSessionMfaComplete?: () => void;
   onSessionMfaCancel?: () => void;
 }) {
+  const navigate = useNavigate();
+  const fetchRoleInfo = useServerFn(getMyRoleInfo);
+  const syncInternalEmail = useServerFn(syncMyPrimaryAuthEmail);
+  const updateInternal = useServerFn(updateMyInternalProfile);
+  const closeCartDrawer = useCartDrawer((s) => s.closeDrawer);
   const [tab, setTab] = useState<Tab>("login");
   const [stage, setStage] = useState<Stage>("form");
   const [otpFlow, setOtpFlow] = useState<OtpFlow>("signup");
@@ -180,6 +197,8 @@ export function AuthDrawer({
   const [mfaPurpose, setMfaPurpose] = useState<MfaPurpose | null>(null);
   const [mfaEnrollment, setMfaEnrollment] = useState<MfaEnrollment | null>(null);
   const [secretCopied, setSecretCopied] = useState(false);
+  const [localMfaEnrollmentOpen, setLocalMfaEnrollmentOpen] = useState(false);
+  const [postAuthRedirectTo, setPostAuthRedirectTo] = useState<AuthTarget | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
@@ -232,6 +251,8 @@ export function AuthDrawer({
     setMfaChallengeId(null);
     setMfaPurpose(null);
     setMfaEnrollment(null);
+    setLocalMfaEnrollmentOpen(false);
+    setPostAuthRedirectTo(null);
     sessionMfaInitRef.current = null;
     mfaEnrollmentStartedRef.current = false;
     setStage("form");
@@ -276,14 +297,62 @@ export function AuthDrawer({
     );
   }
 
-  async function beginSessionMfaIfNeeded(): Promise<boolean> {
+  function finishPostAuthRedirect(target: AuthTarget) {
+    closeCartDrawer();
+    resetAll();
+    onOpenChange(false);
+    navigate({ to: target, replace: true });
+  }
+
+  async function beginSessionMfaIfNeeded(redirectTo?: AuthTarget): Promise<boolean> {
     const { data: aal } = await retrySupabaseAuth(() => supabase.auth.mfa.getAuthenticatorAssuranceLevel());
     if (aal?.currentLevel === "aal2" || aal?.nextLevel !== "aal2") return false;
     const { data: factors } = await retrySupabaseAuth(() => supabase.auth.mfa.listFactors());
     const totp = (factors?.totp ?? []).find((f) => f.status === "verified");
     if (!totp) return false;
+    setPostAuthRedirectTo(redirectTo ?? null);
     await startMfaChallenge(totp.id, "session");
     return true;
+  }
+
+  async function completeSignedInFlow(successMessage: string) {
+    setLoading(true);
+    try {
+      const session = await waitForUsableSession();
+      if (!session) throw new Error("No active auth session");
+
+      const roleInfo = (await fetchRoleInfo(undefined as never)) as { primaryRole: AppRole };
+      const target = targetForRole(roleInfo.primaryRole);
+      closeCartDrawer();
+      setPostAuthRedirectTo(target);
+
+      const { data: factors, error: factorsError } = await retrySupabaseAuth(() => supabase.auth.mfa.listFactors());
+      if (factorsError) throw factorsError;
+      const verifiedTotp = (factors?.totp ?? []).find((factor) => factor.status === "verified");
+      if (verifiedTotp) {
+        const needsMfa = await beginSessionMfaIfNeeded(target);
+        setLoading(false);
+        if (needsMfa) return;
+        toast.success(successMessage);
+        finishPostAuthRedirect(target);
+        return;
+      }
+
+      if (target === "/workspace") {
+        await syncInternalEmail({ data: undefined as never }).catch(() => undefined);
+        setLocalMfaEnrollmentOpen(true);
+        setStage("mfa-enroll");
+        setLoading(false);
+        return;
+      }
+
+      setLoading(false);
+      toast.success(successMessage);
+      finishPostAuthRedirect(target);
+    } catch (error) {
+      setLoading(false);
+      setFormError(errMsg(error));
+    }
   }
 
   useEffect(() => {
@@ -299,7 +368,8 @@ export function AuthDrawer({
   }, [open, sessionMfaFactorId, stage]);
 
   useEffect(() => {
-    if (!open || !mfaEnrollmentOpen) return;
+    const enrollmentOpen = mfaEnrollmentOpen || localMfaEnrollmentOpen;
+    if (!open || !enrollmentOpen) return;
     if (mfaEnrollmentStartedRef.current) return;
     mfaEnrollmentStartedRef.current = true;
     setStage("mfa-enroll");
@@ -314,6 +384,12 @@ export function AuthDrawer({
         if (listError) throw listError;
         const verified = (list?.totp ?? []).find((factor) => factor.status === "verified");
         if (verified) {
+          if (localMfaEnrollmentOpen) {
+            await updateInternal({ data: { mfa_enrolled: true } as never }).catch(() => null);
+            toast.success("2FA চালু আছে");
+            finishPostAuthRedirect(postAuthRedirectTo ?? "/workspace");
+            return;
+          }
           await onMfaEnrollmentComplete?.();
           resetAll();
           onOpenChange(false);
@@ -338,7 +414,7 @@ export function AuthDrawer({
         setLoading(false);
       }
     })();
-  }, [open, mfaEnrollmentOpen, onBeforeMfaEnrollment, onMfaEnrollmentComplete, onOpenChange]);
+  }, [open, mfaEnrollmentOpen, localMfaEnrollmentOpen, onBeforeMfaEnrollment, onMfaEnrollmentComplete, onOpenChange]);
 
   function confirmDiscard() {
     setConfirmClose(false);
@@ -401,14 +477,7 @@ export function AuthDrawer({
         }
         return;
       }
-      const needsMfa = await beginSessionMfaIfNeeded();
-      if (needsMfa) {
-        setLoading(false);
-        return;
-      }
-      toast.success("সাইন ইন সফল");
-      resetAll();
-      onOpenChange(false);
+      await completeSignedInFlow("সাইন ইন সফল");
     } catch (err) {
       setLoading(false);
       setFormError(errMsg(err));
@@ -535,10 +604,7 @@ export function AuthDrawer({
             })
             .eq("id", userData.user.id);
         }
-        setLoading(false);
-        toast.success("একাউন্ট তৈরি হয়েছে");
-        resetAll();
-        onOpenChange(false);
+        await completeSignedInFlow("একাউন্ট তৈরি হয়েছে");
       } else {
         // forgot flow: phone OTP verified.
         // If this account has a verified TOTP factor (staff / super admin),
@@ -591,11 +657,16 @@ export function AuthDrawer({
         return;
       }
       if (mfaPurpose === "session") {
+        const target = postAuthRedirectTo;
         setLoading(false);
         toast.success("2FA সফল");
         resetAll();
         onSessionMfaComplete?.();
         onOpenChange(false);
+        if (target) {
+          closeCartDrawer();
+          navigate({ to: target, replace: true });
+        }
         return;
       }
       setLoading(false);
@@ -633,6 +704,14 @@ export function AuthDrawer({
       if (vErr) {
         setLoading(false);
         setFormError("2FA কোড ভুল বা মেয়াদ শেষ");
+        return;
+      }
+      if (localMfaEnrollmentOpen) {
+        await updateInternal({ data: { mfa_enrolled: true } as never }).catch(() => null);
+        const target = postAuthRedirectTo ?? "/workspace";
+        setLoading(false);
+        toast.success("2FA চালু হয়েছে");
+        finishPostAuthRedirect(target);
         return;
       }
       await onMfaEnrollmentComplete?.();
@@ -713,15 +792,7 @@ export function AuthDrawer({
       // hint so allowCredentials can be scoped for older authenticators.
       const phoneHint = isValidBdMobile(phoneRaw) ? phone : undefined;
       await passkeyClient.signInWithPasskey(phoneHint);
-      const needsMfa = await beginSessionMfaIfNeeded();
-      if (needsMfa) {
-        setLoading(false);
-        return;
-      }
-      setLoading(false);
-      toast.success("Passkey দিয়ে সাইন ইন সফল");
-      resetAll();
-      onOpenChange(false);
+      await completeSignedInFlow("Passkey দিয়ে সাইন ইন সফল");
     } catch (e) {
       setLoading(false);
       const msg = errMsg(e);
