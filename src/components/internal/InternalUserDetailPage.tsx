@@ -18,6 +18,8 @@ import {
   LogOut,
   UserCog,
   RefreshCw,
+  Fingerprint,
+  Mail,
 } from "lucide-react";
 import {
   getInternalUserDetail,
@@ -32,6 +34,9 @@ import {
   deleteInternalUser,
   setInternalUserActive,
   revokeInternalRole,
+  adminListUserPasskeys,
+  adminDeleteUserPasskey,
+  adminResetUserPassword,
   type InternalUserDetail,
 } from "@/lib/admin-users.functions";
 import { InternalEmailLogsDialog } from "@/components/internal/InternalEmailLogsDialog";
