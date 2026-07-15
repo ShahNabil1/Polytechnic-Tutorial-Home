@@ -69,9 +69,9 @@ export const sendCrmSms = createServerFn({ method: "POST" })
       status: res.ok ? "sent" : "failed",
       sms_count: smsCount,
       is_unicode: isUnicode,
-      provider_status: res.status,
+      provider_status: res.response_code,
       provider_response: res.response?.slice(0, 500) ?? null,
-      error_reason: res.ok ? null : res.response?.slice(0, 500) ?? null,
+      error_reason: res.ok ? null : res.code_label ?? res.response?.slice(0, 500) ?? null,
     } as never);
 
     if (!res.ok) throw new Error(`SMS provider failed: ${res.response}`);
