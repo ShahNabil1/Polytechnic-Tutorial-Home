@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Monitor, LogOut } from "lucide-react";
 import { pingTrackedSession, registerTrackedSession, revokeTrackedSession } from "@/lib/session-api";
+import { getFreshSession, signOutSafely } from "@/lib/auth-reliability";
 
 type ChoiceSession = {
   id: string;
@@ -47,8 +48,7 @@ export function SessionEnforcer() {
     let cancelled = false;
 
     async function ensureRegistered() {
-      const { data } = await supabase.auth.getSession();
-      const sess = data.session;
+      const sess = await getFreshSession().catch(() => null);
       if (!sess) return;
       if (registeredForSessionRef.current === sess.access_token) return;
       const result = await tryRegister();
@@ -74,8 +74,8 @@ export function SessionEnforcer() {
 
     // Heartbeat every 60s
     const heartbeat = setInterval(async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) return;
+      const sess = await getFreshSession().catch(() => null);
+      if (!sess) return;
       try {
         const res = await pingTrackedSession();
         if (!res.alive) {
@@ -84,7 +84,7 @@ export function SessionEnforcer() {
             return;
           }
           toast.error("অন্য ডিভাইস থেকে সাইন আউট করা হয়েছে");
-          await supabase.auth.signOut();
+          await signOutSafely();
         }
       } catch {
         /* transient network — ignore */
@@ -114,7 +114,7 @@ export function SessionEnforcer() {
 
   async function handleCancel() {
     setChoice(null);
-    await supabase.auth.signOut();
+    await signOutSafely();
   }
 
   useEffect(() => {

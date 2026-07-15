@@ -25,6 +25,7 @@ type ParsedUA = {
 };
 
 const MAX_DEVICES = 2;
+const ACTIVE_SESSION_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 function json(data: unknown, status = 200) {
   return Response.json(data, { status });
@@ -170,6 +171,12 @@ async function register(request: Request, ctx: AuthedContext) {
     if (error) throw new Error(error.message);
     return { ok: true as const };
   }
+
+  await ctx.supabase
+    .from("user_sessions")
+    .delete()
+    .eq("user_id", ctx.userId)
+    .lt("last_seen_at", new Date(Date.now() - ACTIVE_SESSION_WINDOW_MS).toISOString());
 
   const { data: others, error: othersError } = await ctx.supabase
     .from("user_sessions")

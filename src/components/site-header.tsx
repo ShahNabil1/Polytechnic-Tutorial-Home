@@ -6,11 +6,12 @@ import { useCart } from "@/lib/cart-store";
 import { toBanglaNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AuthDrawer } from "@/components/auth-drawer";
 import { CartDrawer } from "@/components/cart-drawer";
 import { useCartDrawer } from "@/lib/cart-drawer-store";
+import { signOutSafely } from "@/lib/auth-reliability";
+import { useQueryClient } from "@tanstack/react-query";
 
 type NavItem = { to: string; label: string; hash?: boolean };
 
@@ -60,6 +61,7 @@ function NavAnchor({
 function AuthButton() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [drawerOpen, setDrawerOpen] = useState(false);
   // Global "please open sign-in" event so public pages (e.g. course enroll)
   // can request the shared auth drawer without prop drilling.
@@ -96,9 +98,11 @@ function AuthButton() {
       <button
         type="button"
         onClick={async () => {
-          await supabase.auth.signOut();
+          await queryClient.cancelQueries();
+          queryClient.clear();
+          await signOutSafely();
           toast.success("সাইন আউট হয়েছে");
-          navigate({ to: "/" });
+          navigate({ to: "/", replace: true });
         }}
         className="hidden items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-secondary sm:inline-flex"
         title={user.email ?? user.phone ?? ""}
@@ -119,6 +123,7 @@ export function SiteHeader() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const openCart = useCartDrawer((s) => s.openDrawer);
+  const queryClient = useQueryClient();
 
 
 
@@ -196,9 +201,11 @@ export function SiteHeader() {
                 type="button"
                 onClick={async () => {
                   setOpen(false);
-                  await supabase.auth.signOut();
+                  await queryClient.cancelQueries();
+                  queryClient.clear();
+                  await signOutSafely();
                   toast.success("সাইন আউট হয়েছে");
-                  navigate({ to: "/" });
+                  navigate({ to: "/", replace: true });
                 }}
                 className="flex items-center gap-2 border-t border-border/60 py-3 text-left text-sm text-destructive"
               >

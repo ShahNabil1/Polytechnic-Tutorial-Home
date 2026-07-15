@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { AlertCircle, CheckCircle2, Eye, EyeOff, KeyRound } from "lucide-react";
 import { checkPhoneAvailability } from "@/lib/auth.functions";
 import { toEnglishText, toEnglishPassword, friendlyPasswordError } from "@/lib/input-filter";
+import { isTransientAuthError, retrySupabaseAuth, signOutSafely } from "@/lib/auth-reliability";
 
 type Tab = "login" | "signup";
 type Stage = "form" | "otp" | "mfa" | "reset";
@@ -73,6 +74,7 @@ function isValidBdMobile(raw: string): boolean {
 }
 
 function errMsg(e: unknown, fallback = "কিছু ভুল হয়েছে, আবার চেষ্টা করুন"): string {
+  if (isTransientAuthError(e)) return "নেটওয়ার্ক/সেশন কানেকশন সাময়িকভাবে ব্যর্থ হয়েছে। আবার চেষ্টা করুন।";
   if (!e) return fallback;
   if (typeof e === "string") return e;
   if (typeof e === "object") {
@@ -251,10 +253,10 @@ export function AuthDrawer({
   async function handleGoogle() {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { error } = await retrySupabaseAuth(() => supabase.auth.signInWithOAuth({
         provider: "google",
         options: { redirectTo: `${window.location.origin}/` },
-      });
+      }));
       if (error) {
         setLoading(false);
         toast.error(errMsg(error));
@@ -280,7 +282,7 @@ export function AuthDrawer({
     setLoading(true);
     try {
       const { error } = await withTimeout(
-        supabase.auth.signInWithPassword({ phone, password }),
+        retrySupabaseAuth(() => supabase.auth.signInWithPassword({ phone, password })),
         "লগইন হতে বেশি সময় লাগছে। ইন্টারনেট চেক করে আবার চেষ্টা করুন।",
       );
       setLoading(false);
@@ -325,11 +327,11 @@ export function AuthDrawer({
       }
 
       const { error } = await withTimeout(
-        supabase.auth.signUp({
+        retrySupabaseAuth(() => supabase.auth.signUp({
           phone,
           password,
           options: { data: { full_name: fullName } },
-        }),
+        })),
         "সাইন আপ শুরু হতে বেশি সময় লাগছে। আবার চেষ্টা করুন।",
       );
       setLoading(false);
@@ -362,10 +364,10 @@ export function AuthDrawer({
     setLoading(true);
     try {
       // shouldCreateUser: false → only send if account exists
-      const { error } = await supabase.auth.signInWithOtp({
+      const { error } = await withTimeout(retrySupabaseAuth(() => supabase.auth.signInWithOtp({
         phone,
         options: { shouldCreateUser: false },
-      });
+      })), "OTP পাঠাতে বেশি সময় লাগছে। আবার চেষ্টা করুন।");
       setLoading(false);
       if (error) {
         const msg = (errMsg(error) || "").toLowerCase();
@@ -396,7 +398,7 @@ export function AuthDrawer({
     setLoading(true);
     try {
       const { error } = await withTimeout(
-        supabase.auth.verifyOtp({ phone, token: otp, type: "sms" }),
+        retrySupabaseAuth(() => supabase.auth.verifyOtp({ phone, token: otp, type: "sms" })),
         "OTP যাচাই হতে বেশি সময় লাগছে। আবার চেষ্টা করুন।",
       );
       if (error) {
@@ -411,7 +413,7 @@ export function AuthDrawer({
       }
 
       if (otpFlow === "signup") {
-        const { data: userData } = await supabase.auth.getUser();
+        const { data: userData } = await retrySupabaseAuth(() => supabase.auth.getUser());
         if (userData.user) {
           await supabase
             .from("profiles")
@@ -431,12 +433,12 @@ export function AuthDrawer({
         // If this account has a verified TOTP factor (staff / super admin),
         // require the 2FA code before allowing password reset.
         try {
-          const { data: factors } = await supabase.auth.mfa.listFactors();
+          const { data: factors } = await retrySupabaseAuth(() => supabase.auth.mfa.listFactors());
           const totp = (factors?.totp ?? []).find((f) => f.status === "verified");
           if (totp) {
-            const { data: chal, error: cErr } = await supabase.auth.mfa.challenge({
+            const { data: chal, error: cErr } = await retrySupabaseAuth(() => supabase.auth.mfa.challenge({
               factorId: totp.id,
-            });
+            }));
             if (cErr) throw cErr;
             setMfaFactorId(totp.id);
             setMfaChallengeId(chal.id);
@@ -475,11 +477,11 @@ export function AuthDrawer({
     if (mfaCode.length !== 6) return setFormError("৬ ডিজিটের 2FA কোড দিন");
     setLoading(true);
     try {
-      const { error } = await supabase.auth.mfa.verify({
+      const { error } = await retrySupabaseAuth(() => supabase.auth.mfa.verify({
         factorId: mfaFactorId,
         challengeId: mfaChallengeId,
         code: mfaCode,
-      });
+      }));
       if (error) {
         setLoading(false);
         setFormError("2FA কোড ভুল বা মেয়াদ শেষ");
@@ -508,13 +510,13 @@ export function AuthDrawer({
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password });
+      const { error } = await retrySupabaseAuth(() => supabase.auth.updateUser({ password }));
       if (error) {
         setLoading(false);
         setFormError(friendlyPasswordError(error));
         return;
       }
-      await supabase.auth.signOut();
+      await signOutSafely();
       setLoading(false);
       toast.success("পাসওয়ার্ড আপডেট হয়েছে। এবার নতুন পাসওয়ার্ড দিয়ে লগইন করুন।");
       resetAll();
@@ -538,7 +540,7 @@ export function AuthDrawer({
     setFormError(null);
     setInfoMsg(null);
     try {
-      const { error } = await supabase.auth.resend({ type: "sms", phone });
+      const { error } = await retrySupabaseAuth(() => supabase.auth.resend({ type: "sms", phone }));
       if (error) {
         setFormError(errMsg(error));
         return;
