@@ -8,9 +8,9 @@ export const Route = createFileRoute("/_authenticated/_internal/workspace/employ
 
 function EmployeeDetail() {
   const { userId } = Route.useParams();
-  const { info, loading } = useRole();
+  const { loading, has } = useRole();
   if (loading) return null;
-  if (info?.primaryRole !== "super_admin") {
+  if (!has("manage_users")) {
     throw redirect({ to: "/workspace" });
   }
   return <InternalUserDetailPage userId={userId} role="employee" />;
