@@ -8,6 +8,7 @@ import {
 import { getCrmCustomer, type CrmCustomerDetail } from "@/lib/crm.functions";
 import { CrmMessagingPanel } from "./CrmMessagingPanel";
 import { CrmCartCard } from "./CrmCartCard";
+import { CrmCouponPanel } from "./CrmCouponPanel";
 
 function fmtBDT(n: number) {
   return `৳${Math.round(n).toLocaleString("en-BD")}`;
