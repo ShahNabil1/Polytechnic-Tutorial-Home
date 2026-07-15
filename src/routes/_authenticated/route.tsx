@@ -1,11 +1,14 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { AuthDrawer } from "@/components/auth-drawer";
 import { SessionEnforcer } from "@/components/account/SessionEnforcer";
 import { InactivityLogout } from "@/components/InactivityLogout";
 import { MfaChallengeGate } from "@/components/account/MfaChallengeGate";
 import { Loader2, Lock } from "lucide-react";
+import { getMyAccountStatus } from "@/lib/account-status.functions";
+import { signOutSafely } from "@/lib/auth-reliability";
 
 
 export const Route = createFileRoute("/_authenticated")({
@@ -20,6 +23,32 @@ function AuthenticatedLayout() {
   useEffect(() => {
     if (!loading && !user) setDrawerOpen(true);
   }, [loading, user]);
+
+  // Active-account gate: sign out immediately if the internal account has
+  // been deactivated by an admin. Runs on mount and every 45s while mounted.
+  useEffect(() => {
+    if (loading || !user) return;
+    let cancelled = false;
+    async function check() {
+      try {
+        const res = await getMyAccountStatus();
+        if (cancelled) return;
+        if (res && (res as any).active === false) {
+          toast.error("আপনার একাউন্টটি ডিএ্যাক্টিভ করা হয়েছে");
+          await signOutSafely();
+        }
+      } catch {
+        /* transient — ignore */
+      }
+    }
+    check();
+    const t = window.setInterval(check, 45_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(t);
+    };
+  }, [loading, user]);
+
 
   if (loading) {
     return (

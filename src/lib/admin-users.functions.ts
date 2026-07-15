@@ -651,3 +651,157 @@ export const startImpersonation = createServerFn({ method: "POST" })
     console.log("[impersonate] issued token for", data.user_id, "by admin", context.userId);
     return { email, hashed_token, primary_role: primary, bypass_token: bypassToken, bypass_expires_at: expiresAt };
   });
+
+// =====================================================================
+// Admin: Passkey management for a target user
+// =====================================================================
+
+export const adminListUserPasskeys = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ user_id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureCanManageUsers(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
+      .from("webauthn_credentials")
+      .select("id, device_name, created_at, last_used_at")
+      .eq("user_id", data.user_id)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+export const adminDeleteUserPasskey = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ user_id: z.string().uuid(), id: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureManageableTarget(context, data.user_id);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("webauthn_credentials")
+      .delete()
+      .eq("id", data.id)
+      .eq("user_id", data.user_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// =====================================================================
+// Admin: Reset password — generate a strong random password, apply it,
+// email it to the user's primary email, and log the delivery so it shows
+// up in the same Email Logs panel.
+// =====================================================================
+
+function generateStrongPassword(): string {
+  const upper = "ABCDEFGHJKMNPQRSTUVWXYZ";
+  const lower = "abcdefghjkmnpqrstuvwxyz";
+  const digits = "23456789";
+  const symbols = "!@#$%^&*";
+  const all = upper + lower + digits + symbols;
+  const rand = (chars: string) => chars[Math.floor(Math.random() * chars.length)];
+  const pw = [rand(upper), rand(lower), rand(digits), rand(symbols)];
+  for (let i = 0; i < 10; i++) pw.push(rand(all));
+  // Fisher–Yates
+  for (let i = pw.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pw[i], pw[j]] = [pw[j], pw[i]];
+  }
+  return pw.join("");
+}
+
+export const adminResetUserPassword = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ user_id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureManageableTarget(context, data.user_id);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(data.user_id);
+    const email = String(authUser?.user?.email ?? "").trim().toLowerCase();
+    if (!email) throw new Error("Target has no primary email on file");
+
+    const { data: prof } = await supabaseAdmin
+      .from("profiles")
+      .select("full_name")
+      .eq("id", data.user_id)
+      .maybeSingle();
+    const fullName = (prof as any)?.full_name || (authUser?.user as any)?.user_metadata?.full_name || "Team member";
+
+    const newPassword = generateStrongPassword();
+
+    const { error: updErr } = await supabaseAdmin.auth.admin.updateUserById(data.user_id, {
+      password: newPassword,
+    } as never);
+    if (updErr) throw new Error(updErr.message);
+
+    // Kill all existing sessions so old devices must sign in with the new password.
+    await revokeAllTargetSessions(context, data.user_id);
+
+    // Send email using the same helper/log path as internal_welcome.
+    try {
+      const { renderEmailTemplate } = await import("@/lib/email-templates.server");
+      const { sendEbookEmail } = await import("@/lib/ebook-delivery.server");
+      const { SITE_URL } = await import("@/lib/site-url");
+
+      const { data: tpl } = await supabaseAdmin
+        .from("email_templates")
+        .select("subject, body_html, enabled")
+        .eq("key", "internal_password_reset")
+        .maybeSingle();
+
+      const vars = {
+        full_name: fullName,
+        email,
+        password: newPassword,
+        login_url: `${SITE_URL}/auth`,
+      };
+
+      const subject = tpl?.subject
+        ? renderEmailTemplate(tpl.subject as string, vars)
+        : `আপনার পাসওয়ার্ড রিসেট করা হয়েছে`;
+      const body = tpl?.body_html
+        ? renderEmailTemplate(tpl.body_html as string, vars)
+        : `<p>নমস্কার ${fullName},</p><p>আপনার একাউন্টের পাসওয়ার্ড এ্যাডমিন কর্তৃক রিসেট করা হয়েছে।</p>
+           <p><b>নতুন পাসওয়ার্ড:</b> <code style="font-family:monospace;background:#f1f5f9;padding:4px 8px;border-radius:4px;">${newPassword}</code></p>
+           <p>লগইন: <a href="${SITE_URL}/auth">${SITE_URL}/auth</a></p>
+           <p>নিরাপত্তার জন্য লগইন করে সাথে সাথে পাসওয়ার্ড পরিবর্তন করুন।</p>`;
+      const html = `<!doctype html><html><body style="margin:0;padding:32px 12px;background:#f6f8fa;">${body}</body></html>`;
+
+      const { data: row } = await supabaseAdmin
+        .from("internal_email_deliveries")
+        .insert({
+          user_id: data.user_id,
+          kind: "internal_password_reset",
+          to_email: email,
+          subject,
+          status: "queued",
+        } as never)
+        .select("id")
+        .single();
+
+      const res = await sendEbookEmail({ to: email, subject, html });
+
+      if ((row as any)?.id) {
+        await supabaseAdmin
+          .from("internal_email_deliveries")
+          .update({
+            status: res.ok ? "sent" : "failed",
+            resend_email_id: res.ok ? (res as any).id : null,
+            sent_at: res.ok ? new Date().toISOString() : null,
+            error_reason: res.ok ? null : ((res as any).error?.slice?.(0, 500) ?? null),
+          } as never)
+          .eq("id", (row as any).id);
+      }
+
+      if (!res.ok) {
+        return { ok: true, emailed: false, error: (res as any).error ?? "email failed" };
+      }
+    } catch (err) {
+      console.error("[adminResetUserPassword] email dispatch failed", err);
+      return { ok: true, emailed: false, error: err instanceof Error ? err.message : String(err) };
+    }
+
+    return { ok: true, emailed: true };
+  });
