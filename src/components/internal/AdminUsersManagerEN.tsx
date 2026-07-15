@@ -141,8 +141,15 @@ export function AdminUsersManagerEN({ role }: { role: "employee" | "instructor" 
             Phone
             <input
               value={form.phone}
-              onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value.replace(/[^\d+]/g, "") }))}
-              placeholder="8801XXXXXXXXX"
+              onChange={(e) => {
+                let v = e.target.value.replace(/\D/g, "");
+                if (v.startsWith("88") && v.length > 11) v = v.slice(2);
+                if (v.length > 11) v = v.slice(0, 11);
+                setForm((f) => ({ ...f, phone: v }));
+              }}
+              placeholder="01XXXXXXXXX"
+              inputMode="numeric"
+              maxLength={11}
               autoComplete="off"
               className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900 outline-none focus:border-indigo-500"
             />
