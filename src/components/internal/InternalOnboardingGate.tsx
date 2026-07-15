@@ -84,6 +84,13 @@ export function InternalOnboardingGate({ role, children }: Props) {
         const hasVerifiedTotp = (factors.data?.totp ?? []).some((f) => f.status === "verified");
         setMfaVerified(hasVerifiedTotp);
 
+        if (!profile.first_login_completed) {
+          setRequired(true);
+          if (!hasName) setStep("profile");
+          else setStep("password");
+          return;
+        }
+
         if (requiresMfa && !hasVerifiedTotp) {
           await updateInternal({ data: { mfa_enrolled: false } as never }).catch(() => null);
           setRequired(true);
@@ -100,10 +107,6 @@ export function InternalOnboardingGate({ role, children }: Props) {
           setRequired(false);
           return;
         }
-
-        setRequired(true);
-        if (!hasName) setStep("profile");
-        else setStep("password");
       } catch (err) {
         setRequired(true);
         setStep("error");
@@ -170,7 +173,7 @@ export function InternalOnboardingGate({ role, children }: Props) {
       toast.success("Password updated");
       setPw1("");
       setPw2("");
-      if (requiresMfa) setStep("mfa");
+      if (requiresMfa && !mfaVerified) setStep("mfa");
       else await finish();
     } catch (err) {
       toast.error("Password change failed: " + (err instanceof Error ? err.message : String(err)));
