@@ -66,6 +66,7 @@ import { cn } from "@/lib/utils";
 import { receiptUrl } from "@/lib/site-url";
 import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 import { WhatsAppIcon } from "@/components/ui/whatsapp-icon";
+import { SmsStatusChip } from "@/components/internal/SmsStatusChip";
 import { ResendLogo, ResendEventChips } from "@/components/internal/ResendEventChips";
 import {
   SteadfastEventChips,
