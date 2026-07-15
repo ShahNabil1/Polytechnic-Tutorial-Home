@@ -306,6 +306,7 @@ export function InternalProfilePage({ role }: { role: AppRole }) {
 
       <RoleProfileFieldsEN role={role} />
 
+      <EmailChangeCard />
       <LinkedAccountsCard />
       <PasswordCard />
       <PasskeysCard />
