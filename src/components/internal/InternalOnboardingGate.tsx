@@ -35,6 +35,7 @@ import {
 import type { AppRole } from "@/lib/roles.functions";
 import { toEnglishPassword, toEnglishText } from "@/lib/input-filter";
 import { retrySupabaseAuth, signOutSafely } from "@/lib/auth-reliability";
+import { useScrollLock } from "@/hooks/use-scroll-lock";
 
 type Props = {
   role: AppRole;
