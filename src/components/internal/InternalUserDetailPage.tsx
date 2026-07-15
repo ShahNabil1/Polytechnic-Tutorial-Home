@@ -73,18 +73,20 @@ export function InternalUserDetailPage({ userId, role }: Props) {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const [d, s] = await Promise.all([
+      const [d, s, pk] = await Promise.all([
         getDetail({ data: { user_id: userId } }),
         listSessions({ data: { user_id: userId } }),
+        listPasskeys({ data: { user_id: userId } }).catch(() => []),
       ]);
       setDetail(d);
       setSessions(s ?? []);
+      setPasskeys((pk as any) ?? []);
     } catch (e) {
       toast.error("Load failed: " + (e instanceof Error ? e.message : String(e)));
     } finally {
       setLoading(false);
     }
-  }, [userId, getDetail, listSessions]);
+  }, [userId, getDetail, listSessions, listPasskeys]);
 
   useEffect(() => {
     refresh();
