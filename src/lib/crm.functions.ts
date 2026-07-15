@@ -44,7 +44,7 @@ export type CrmIncompleteRow = {
   last_outcome: string;
   first_attempt_at: string;
   last_attempt_at: string;
-  cart: unknown;
+  cart: any;
 };
 
 export type CrmCustomerDetail = {
