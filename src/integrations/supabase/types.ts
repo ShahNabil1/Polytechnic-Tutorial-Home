@@ -388,7 +388,12 @@ export type Database = {
           is_active: boolean
           job_role: string | null
           mfa_enrolled: boolean
+          nid_back_r2_key: string | null
+          nid_front_r2_key: string | null
           nid_number: string | null
+          nid_resubmit_reason: string | null
+          nid_resubmit_requested_at: string | null
+          nid_resubmit_requested_by: string | null
           subjects: string[]
           updated_at: string
           user_id: string
@@ -405,7 +410,12 @@ export type Database = {
           is_active?: boolean
           job_role?: string | null
           mfa_enrolled?: boolean
+          nid_back_r2_key?: string | null
+          nid_front_r2_key?: string | null
           nid_number?: string | null
+          nid_resubmit_reason?: string | null
+          nid_resubmit_requested_at?: string | null
+          nid_resubmit_requested_by?: string | null
           subjects?: string[]
           updated_at?: string
           user_id: string
@@ -422,7 +432,12 @@ export type Database = {
           is_active?: boolean
           job_role?: string | null
           mfa_enrolled?: boolean
+          nid_back_r2_key?: string | null
+          nid_front_r2_key?: string | null
           nid_number?: string | null
+          nid_resubmit_reason?: string | null
+          nid_resubmit_requested_at?: string | null
+          nid_resubmit_requested_by?: string | null
           subjects?: string[]
           updated_at?: string
           user_id?: string
