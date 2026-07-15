@@ -59,15 +59,21 @@ export const sendCrmBulkSms = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await ensureStaff(context);
-    const { sendBulksmsbd, estimateSmsCount, isUnicodeMessage } = await import(
+    const { sendBulksmsbdMany, estimateSmsCount, isUnicodeMessage } = await import(
       "@/lib/sms.server"
     );
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    let sent = 0;
-    let failed = 0;
-    const rows: any[] = [];
-
+    // 1. Pre-render every message; skip empties up front
+    type Prep = {
+      user_id: string | null;
+      to_phone: string;
+      body: string;
+      is_unicode: boolean;
+      sms_count: number;
+    };
+    const prepared: Prep[] = [];
+    let skipped = 0;
     for (const r of data.recipients) {
       const rendered = renderVars(data.body, {
         name: r.vars?.name ?? null,
@@ -77,40 +83,91 @@ export const sendCrmBulkSms = createServerFn({ method: "POST" })
         ltv: r.vars?.ltv ?? null,
       }).trim();
       if (!rendered) {
-        failed++;
+        skipped++;
         continue;
       }
-      const isUnicode = isUnicodeMessage(rendered);
-      const smsCount = estimateSmsCount(rendered);
-      let res: { ok: boolean; status: number | null; response: string | null; id?: string | null } = {
-        ok: false,
-        status: null,
-        response: null,
-      };
-      try {
-        res = await sendBulksmsbd({ to: r.phone, message: rendered });
-      } catch (e: any) {
-        res = { ok: false, status: null, response: String(e?.message ?? e) };
-      }
-      if (res.ok) sent++;
-      else failed++;
-      rows.push({
+      prepared.push({
         user_id: r.user_id ?? null,
         to_phone: r.phone,
         body: rendered,
-        template_id: data.template_id ?? null,
-        kind: "crm_bulk",
-        sender_user_id: context.userId,
-        status: res.ok ? "sent" : "failed",
-        sms_count: smsCount,
-        is_unicode: isUnicode,
-        provider_status: res.status,
-        provider_response: res.response?.slice(0, 500) ?? null,
-        error_reason: res.ok ? null : res.response?.slice(0, 500) ?? null,
+        is_unicode: isUnicodeMessage(rendered),
+        sms_count: estimateSmsCount(rendered),
       });
     }
-    if (rows.length) {
-      const { error } = await supabaseAdmin.from("crm_sms_deliveries").insert(rows as never);
+
+    // 2. Chunk into batches for bulksmsbd many-to-many API. Provider caps
+    //    a single POST around ~100 rows; keep well below that. A short
+    //    delay between batches spreads load on the SMS gateway.
+    const CHUNK = 80;
+    const DELAY_MS = 250;
+    let sent = 0;
+    let failed = skipped;
+    const rows: any[] = [];
+    const nowIso = new Date().toISOString();
+
+    for (let i = 0; i < prepared.length; i += CHUNK) {
+      const chunk = prepared.slice(i, i + CHUNK);
+      let batch: {
+        ok: boolean;
+        status: number;
+        response_code: number | null;
+        code_label: string;
+        response: string;
+        perMessage: Array<{ ok: boolean; response_code: number | null; code_label: string }>;
+      };
+      try {
+        batch = await sendBulksmsbdMany({
+          messages: chunk.map((p) => ({ to: p.to_phone, message: p.body })),
+        });
+      } catch (e: any) {
+        const msg = String(e?.message ?? e);
+        batch = {
+          ok: false,
+          status: 0,
+          response_code: null,
+          code_label: msg.slice(0, 120),
+          response: msg,
+          perMessage: chunk.map(() => ({
+            ok: false,
+            response_code: null,
+            code_label: msg.slice(0, 120),
+          })),
+        };
+      }
+      for (let j = 0; j < chunk.length; j++) {
+        const p = chunk[j];
+        const per = batch.perMessage[j];
+        if (per.ok) sent++;
+        else failed++;
+        rows.push({
+          user_id: p.user_id,
+          to_phone: p.to_phone,
+          body: p.body,
+          template_id: data.template_id ?? null,
+          kind: "crm_bulk",
+          sender_user_id: context.userId,
+          status: per.ok ? "sent" : "failed",
+          sms_count: p.sms_count,
+          is_unicode: p.is_unicode,
+          provider_status: per.response_code,
+          provider_response: batch.response?.slice(0, 500) ?? null,
+          error_reason: per.ok ? null : per.code_label ?? batch.response?.slice(0, 500) ?? null,
+          created_at: nowIso,
+        });
+      }
+      if (i + CHUNK < prepared.length) {
+        await new Promise((r) => setTimeout(r, DELAY_MS));
+      }
+    }
+
+    // 3. Persist delivery logs in chunks (Supabase insert limit is generous
+    //    but we stay under 500 per statement to be safe).
+    const LOG_CHUNK = 500;
+    for (let i = 0; i < rows.length; i += LOG_CHUNK) {
+      const slice = rows.slice(i, i + LOG_CHUNK);
+      const { error } = await supabaseAdmin
+        .from("crm_sms_deliveries")
+        .insert(slice as never);
       if (error) console.error("[sendCrmBulkSms] log error", error);
     }
     return { sent, failed, total: data.recipients.length };
@@ -148,12 +205,10 @@ export const sendCrmBulkEmail = createServerFn({ method: "POST" })
     const { sendEbookEmail } = await import("@/lib/ebook-delivery.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    let sent = 0;
-    let failed = 0;
-    const rows: any[] = [];
-    const nowIso = new Date().toISOString();
-
-    for (const r of data.recipients) {
+    // Pre-render everything, then send with limited concurrency so we
+    // don't hammer Resend or the provider rate limits. Chunks are queued;
+    // within a chunk sends run in parallel.
+    const prepared = data.recipients.map((r) => {
       const rVars: BulkVars = {
         name: r.vars?.name ?? null,
         phone: r.vars?.phone ?? null,
@@ -163,36 +218,67 @@ export const sendCrmBulkEmail = createServerFn({ method: "POST" })
       };
       const subject = renderVars(data.subject, rVars).trim();
       const body = renderVars(data.body_html, rVars);
-      const wrapped = `<!doctype html><html><body style="margin:0;padding:32px 12px;background:#f6f8fa;">${body}</body></html>`;
-      let res: any;
-      try {
-        res = await sendEbookEmail({ to: r.email, subject, html: wrapped });
-      } catch (e: any) {
-        res = { ok: false, error: String(e?.message ?? e) };
+      return { user_id: r.user_id ?? null, to_email: r.email, subject, body };
+    });
+
+    const CHUNK = 10; // parallel sends per wave
+    const DELAY_MS = 300;
+    let sent = 0;
+    let failed = 0;
+    const rows: any[] = [];
+
+    for (let i = 0; i < prepared.length; i += CHUNK) {
+      const chunk = prepared.slice(i, i + CHUNK);
+      const results = await Promise.all(
+        chunk.map(async (p) => {
+          const wrapped = `<!doctype html><html><body style="margin:0;padding:32px 12px;background:#f6f8fa;">${p.body}</body></html>`;
+          try {
+            const res: any = await sendEbookEmail({
+              to: p.to_email,
+              subject: p.subject,
+              html: wrapped,
+            });
+            return { p, res };
+          } catch (e: any) {
+            return { p, res: { ok: false, error: String(e?.message ?? e) } };
+          }
+        }),
+      );
+      const nowIso = new Date().toISOString();
+      for (const { p, res } of results) {
+        if (res.ok) sent++;
+        else failed++;
+        rows.push({
+          user_id: p.user_id,
+          to_email: p.to_email,
+          subject: p.subject,
+          body_html: p.body,
+          template_id: data.template_id ?? null,
+          kind: "crm_bulk",
+          attempt_no: 1,
+          sender_user_id: context.userId,
+          resend_email_id: res.ok ? res.id : null,
+          status: res.ok ? "sent" : "failed",
+          sent_at: res.ok ? nowIso : null,
+          error_reason: res.ok ? null : res.error?.slice?.(0, 500) ?? null,
+        });
       }
-      if (res.ok) sent++;
-      else failed++;
-      rows.push({
-        user_id: r.user_id ?? null,
-        to_email: r.email,
-        subject,
-        body_html: body,
-        template_id: data.template_id ?? null,
-        kind: "crm_bulk",
-        attempt_no: 1,
-        sender_user_id: context.userId,
-        resend_email_id: res.ok ? res.id : null,
-        status: res.ok ? "sent" : "failed",
-        sent_at: res.ok ? nowIso : null,
-        error_reason: res.ok ? null : res.error?.slice?.(0, 500) ?? null,
-      });
+      if (i + CHUNK < prepared.length) {
+        await new Promise((r) => setTimeout(r, DELAY_MS));
+      }
     }
-    if (rows.length) {
-      const { error } = await supabaseAdmin.from("crm_email_deliveries").insert(rows as never);
+
+    const LOG_CHUNK = 500;
+    for (let i = 0; i < rows.length; i += LOG_CHUNK) {
+      const slice = rows.slice(i, i + LOG_CHUNK);
+      const { error } = await supabaseAdmin
+        .from("crm_email_deliveries")
+        .insert(slice as never);
       if (error) console.error("[sendCrmBulkEmail] log error", error);
     }
     return { sent, failed, total: data.recipients.length };
   });
+
 
 // ---------- Segments ----------
 
@@ -376,9 +462,9 @@ export const createCrmCustomerCoupon = createServerFn({ method: "POST" })
           status: res.ok ? "sent" : "failed",
           sms_count: estimateSmsCount(notifyMsg),
           is_unicode: isUnicodeMessage(notifyMsg),
-          provider_status: res.status,
+          provider_status: res.response_code,
           provider_response: res.response?.slice(0, 500) ?? null,
-          error_reason: res.ok ? null : res.response?.slice(0, 500) ?? null,
+          error_reason: res.ok ? null : res.code_label ?? res.response?.slice(0, 500) ?? null,
         } as never);
         smsResult = { ok: res.ok, error: res.ok ? undefined : res.response ?? undefined };
       } catch (e: any) {

@@ -14,6 +14,7 @@ import {
 } from "@/lib/crm-messaging.functions";
 import { listSmsTemplates } from "@/lib/sms.functions";
 import { listEmailTemplates } from "@/lib/email-templates.functions";
+import { SmsStatusChip } from "@/components/internal/SmsStatusChip";
 
 function fmtWhen(iso: string | null | undefined) {
   if (!iso) return "—";
@@ -309,7 +310,7 @@ export function CrmMessagingPanel({ vars, userId, phone, email }: Props) {
               <div key={`s-${d.id}`} className="flex flex-col gap-1.5 px-5 py-3">
                 <div className="flex items-center gap-2 text-sm">
                   <MessageSquare className="size-3.5 text-muted-foreground" />
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${chipTone(d.status)}`}>{d.status}</span>
+                  <SmsStatusChip status={d.status} providerStatus={d.provider_status} errorReason={d.error_reason} />
                   <span className="text-xs text-muted-foreground">{d.to_phone} · {d.sms_count ?? 1} SMS{d.is_unicode ? " (Unicode)" : ""}</span>
                   <span className="ml-auto text-xs text-muted-foreground">{fmtWhen(d.created_at)}</span>
                 </div>
