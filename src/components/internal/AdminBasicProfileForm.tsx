@@ -88,10 +88,14 @@ export function AdminBasicProfileForm({
       setFullName(nextName);
       setAvatarUrl(nextAvatar);
       setEditMode(false);
-      toast.success("Profile updated");
+      toast.success("Profile updated", {
+        description: "Changes are reflected in the user's profile.",
+      });
       onSaved?.({ full_name: nextName || null, avatar_url: nextAvatar || null });
     } catch (err) {
-      toast.error("Save failed: " + (err instanceof Error ? err.message : String(err)));
+      toast.error("Save failed", {
+        description: err instanceof Error ? err.message : String(err),
+      });
     } finally {
       setSaving(false);
     }
