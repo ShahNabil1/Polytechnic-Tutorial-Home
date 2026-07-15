@@ -58,6 +58,7 @@ import { Route as AuthenticatedInternalWorkspaceEcommerceOrdersRouteImport } fro
 import { Route as AuthenticatedInternalWorkspaceEcommerceCouponsRouteImport } from './routes/_authenticated/_internal.workspace.ecommerce.coupons'
 import { Route as AuthenticatedInternalWorkspaceEcommerceCategoriesRouteImport } from './routes/_authenticated/_internal.workspace.ecommerce.categories'
 import { Route as AuthenticatedInternalWorkspaceCrmSignedRouteImport } from './routes/_authenticated/_internal.workspace.crm.signed'
+import { Route as AuthenticatedInternalWorkspaceCrmIncompleteRouteImport } from './routes/_authenticated/_internal.workspace.crm.incomplete'
 import { Route as AuthenticatedInternalWorkspaceCrmGuestsRouteImport } from './routes/_authenticated/_internal.workspace.crm.guests'
 import { Route as AuthenticatedInternalWorkspaceCrmCustomersRouteImport } from './routes/_authenticated/_internal.workspace.crm.customers'
 import { Route as AuthenticatedInternalWorkspaceLmsAndCoursesCurriculumSubjectSlugRouteImport } from './routes/_authenticated/_internal.workspace.lms-and-courses.curriculum.$subjectSlug'
@@ -335,6 +336,12 @@ const AuthenticatedInternalWorkspaceCrmSignedRoute =
     path: '/signed',
     getParentRoute: () => AuthenticatedInternalWorkspaceCrmRoute,
   } as any)
+const AuthenticatedInternalWorkspaceCrmIncompleteRoute =
+  AuthenticatedInternalWorkspaceCrmIncompleteRouteImport.update({
+    id: '/incomplete',
+    path: '/incomplete',
+    getParentRoute: () => AuthenticatedInternalWorkspaceCrmRoute,
+  } as any)
 const AuthenticatedInternalWorkspaceCrmGuestsRoute =
   AuthenticatedInternalWorkspaceCrmGuestsRouteImport.update({
     id: '/guests',
@@ -397,6 +404,7 @@ export interface FileRoutesByFullPath {
   '/workspace/': typeof AuthenticatedInternalWorkspaceIndexRoute
   '/workspace/crm/customers': typeof AuthenticatedInternalWorkspaceCrmCustomersRoute
   '/workspace/crm/guests': typeof AuthenticatedInternalWorkspaceCrmGuestsRoute
+  '/workspace/crm/incomplete': typeof AuthenticatedInternalWorkspaceCrmIncompleteRoute
   '/workspace/crm/signed': typeof AuthenticatedInternalWorkspaceCrmSignedRoute
   '/workspace/ecommerce/categories': typeof AuthenticatedInternalWorkspaceEcommerceCategoriesRoute
   '/workspace/ecommerce/coupons': typeof AuthenticatedInternalWorkspaceEcommerceCouponsRoute
@@ -446,6 +454,7 @@ export interface FileRoutesByTo {
   '/workspace': typeof AuthenticatedInternalWorkspaceIndexRoute
   '/workspace/crm/customers': typeof AuthenticatedInternalWorkspaceCrmCustomersRoute
   '/workspace/crm/guests': typeof AuthenticatedInternalWorkspaceCrmGuestsRoute
+  '/workspace/crm/incomplete': typeof AuthenticatedInternalWorkspaceCrmIncompleteRoute
   '/workspace/crm/signed': typeof AuthenticatedInternalWorkspaceCrmSignedRoute
   '/workspace/ecommerce/categories': typeof AuthenticatedInternalWorkspaceEcommerceCategoriesRoute
   '/workspace/ecommerce/coupons': typeof AuthenticatedInternalWorkspaceEcommerceCouponsRoute
@@ -502,6 +511,7 @@ export interface FileRoutesById {
   '/_authenticated/_internal/workspace/': typeof AuthenticatedInternalWorkspaceIndexRoute
   '/_authenticated/_internal/workspace/crm/customers': typeof AuthenticatedInternalWorkspaceCrmCustomersRoute
   '/_authenticated/_internal/workspace/crm/guests': typeof AuthenticatedInternalWorkspaceCrmGuestsRoute
+  '/_authenticated/_internal/workspace/crm/incomplete': typeof AuthenticatedInternalWorkspaceCrmIncompleteRoute
   '/_authenticated/_internal/workspace/crm/signed': typeof AuthenticatedInternalWorkspaceCrmSignedRoute
   '/_authenticated/_internal/workspace/ecommerce/categories': typeof AuthenticatedInternalWorkspaceEcommerceCategoriesRoute
   '/_authenticated/_internal/workspace/ecommerce/coupons': typeof AuthenticatedInternalWorkspaceEcommerceCouponsRoute
@@ -557,6 +567,7 @@ export interface FileRouteTypes {
     | '/workspace/'
     | '/workspace/crm/customers'
     | '/workspace/crm/guests'
+    | '/workspace/crm/incomplete'
     | '/workspace/crm/signed'
     | '/workspace/ecommerce/categories'
     | '/workspace/ecommerce/coupons'
@@ -606,6 +617,7 @@ export interface FileRouteTypes {
     | '/workspace'
     | '/workspace/crm/customers'
     | '/workspace/crm/guests'
+    | '/workspace/crm/incomplete'
     | '/workspace/crm/signed'
     | '/workspace/ecommerce/categories'
     | '/workspace/ecommerce/coupons'
@@ -661,6 +673,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_internal/workspace/'
     | '/_authenticated/_internal/workspace/crm/customers'
     | '/_authenticated/_internal/workspace/crm/guests'
+    | '/_authenticated/_internal/workspace/crm/incomplete'
     | '/_authenticated/_internal/workspace/crm/signed'
     | '/_authenticated/_internal/workspace/ecommerce/categories'
     | '/_authenticated/_internal/workspace/ecommerce/coupons'
@@ -1049,6 +1062,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInternalWorkspaceCrmSignedRouteImport
       parentRoute: typeof AuthenticatedInternalWorkspaceCrmRoute
     }
+    '/_authenticated/_internal/workspace/crm/incomplete': {
+      id: '/_authenticated/_internal/workspace/crm/incomplete'
+      path: '/incomplete'
+      fullPath: '/workspace/crm/incomplete'
+      preLoaderRoute: typeof AuthenticatedInternalWorkspaceCrmIncompleteRouteImport
+      parentRoute: typeof AuthenticatedInternalWorkspaceCrmRoute
+    }
     '/_authenticated/_internal/workspace/crm/guests': {
       id: '/_authenticated/_internal/workspace/crm/guests'
       path: '/guests'
@@ -1101,6 +1121,7 @@ const AuthenticatedInternalInstructorRouteWithChildren =
 interface AuthenticatedInternalWorkspaceCrmRouteChildren {
   AuthenticatedInternalWorkspaceCrmCustomersRoute: typeof AuthenticatedInternalWorkspaceCrmCustomersRoute
   AuthenticatedInternalWorkspaceCrmGuestsRoute: typeof AuthenticatedInternalWorkspaceCrmGuestsRoute
+  AuthenticatedInternalWorkspaceCrmIncompleteRoute: typeof AuthenticatedInternalWorkspaceCrmIncompleteRoute
   AuthenticatedInternalWorkspaceCrmSignedRoute: typeof AuthenticatedInternalWorkspaceCrmSignedRoute
   AuthenticatedInternalWorkspaceCrmIndexRoute: typeof AuthenticatedInternalWorkspaceCrmIndexRoute
 }
@@ -1111,6 +1132,8 @@ const AuthenticatedInternalWorkspaceCrmRouteChildren: AuthenticatedInternalWorks
       AuthenticatedInternalWorkspaceCrmCustomersRoute,
     AuthenticatedInternalWorkspaceCrmGuestsRoute:
       AuthenticatedInternalWorkspaceCrmGuestsRoute,
+    AuthenticatedInternalWorkspaceCrmIncompleteRoute:
+      AuthenticatedInternalWorkspaceCrmIncompleteRoute,
     AuthenticatedInternalWorkspaceCrmSignedRoute:
       AuthenticatedInternalWorkspaceCrmSignedRoute,
     AuthenticatedInternalWorkspaceCrmIndexRoute:
