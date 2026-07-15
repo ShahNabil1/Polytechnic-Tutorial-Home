@@ -14,6 +14,57 @@ export type AdminUserRow = {
   mfa_enrolled: boolean;
 };
 
+async function sha256Hex(value: string) {
+  const encoded = new TextEncoder().encode(value);
+  const digest = await globalThis.crypto.subtle.digest("SHA-256", encoded);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function ensureCanManageUsers(context: { supabase: any; userId: string }) {
+  const [{ data: canManage, error: permissionError }, { data: isSuperAdmin, error: roleError }] = await Promise.all([
+    context.supabase.rpc("has_permission", {
+      _user_id: context.userId,
+      _permission: "manage_users",
+    }),
+    context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "super_admin",
+    }),
+  ]);
+  if (permissionError) throw new Error(permissionError.message);
+  if (roleError) throw new Error(roleError.message);
+  if (canManage !== true) throw new Error("Forbidden: manage_users only");
+  return { isSuperAdmin: isSuperAdmin === true };
+}
+
+async function ensureManageableTarget(
+  context: { supabase: any; userId: string },
+  targetUserId: string,
+) {
+  const caller = await ensureCanManageUsers(context);
+  if (targetUserId === context.userId) {
+    throw new Error("You cannot perform this action on your own account");
+  }
+  const { data: targetIsSuperAdmin, error } = await context.supabase.rpc("has_role", {
+    _user_id: targetUserId,
+    _role: "super_admin",
+  });
+  if (error) throw new Error(error.message);
+  if (targetIsSuperAdmin === true && !caller.isSuperAdmin) {
+    throw new Error("Forbidden: only super_admin can manage a super_admin account");
+  }
+  return caller;
+}
+
+async function revokeAllTargetSessions(context: { supabase: any }, targetUserId: string) {
+  const { error } = await context.supabase.rpc("admin_revoke_all_user_sessions", {
+    _target_user_id: targetUserId,
+  });
+  if (error) throw new Error(error.message);
+}
+
 export const listInternalUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
