@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
+import { confirm as confirmDialog, promptText } from "@/components/ui/confirm-dialog";
 import {
   ArrowLeft,
   ScrollText,
