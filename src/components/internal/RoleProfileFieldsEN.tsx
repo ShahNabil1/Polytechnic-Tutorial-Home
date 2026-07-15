@@ -20,6 +20,10 @@ import {
   type InternalProfile,
   type BankDetails,
 } from "@/lib/internal-profile.functions";
+import {
+  adminGetTargetInternalProfile,
+  adminUpdateTargetInternalProfile,
+} from "@/lib/admin-users.functions";
 import type { AppRole } from "@/lib/roles.functions";
 import { uploadFileToR2 } from "@/lib/upload-client";
 import { toEnglishText } from "@/lib/input-filter";
