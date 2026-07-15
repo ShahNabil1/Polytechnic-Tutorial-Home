@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getFreshAccessToken, withAuthRetry } from "@/lib/auth-reliability";
 
 export type TrackedSession = {
   id: string;
@@ -25,18 +26,16 @@ export type RegisterSessionResult =
   | { ok: false };
 
 async function authFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-  if (!token) throw new Error("No active auth session");
+  const token = await getFreshAccessToken();
 
-  const res = await fetch(path, {
+  const res = await withAuthRetry(() => fetch(path, {
     ...init,
     headers: {
       "content-type": "application/json",
       ...(init?.headers ?? {}),
       Authorization: `Bearer ${token}`,
     },
-  });
+  }));
   const json = (await res.json().catch(() => null)) as { error?: string } | T | null;
   if (!res.ok) {
     const errorMessage =
