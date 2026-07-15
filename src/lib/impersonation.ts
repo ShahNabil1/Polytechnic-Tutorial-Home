@@ -13,6 +13,7 @@ type Saved = {
   bypass_token: string;
   bypass_expires_at: string;
   started_at: string;
+  origin_path?: string;
 };
 
 export function getImpersonationState(): Saved | null {
@@ -53,6 +54,7 @@ export async function beginImpersonation(opts: {
     bypass_token: res.bypass_token,
     bypass_expires_at: res.bypass_expires_at,
     started_at: new Date().toISOString(),
+    origin_path: typeof window !== "undefined" ? window.location.pathname + window.location.search : undefined,
   });
 
   // Consume the magic link → creates a fresh session as the target user.
@@ -90,5 +92,5 @@ export async function endImpersonation(): Promise<{ redirectTo: string; adminUse
     throw error;
   }
   setState(null);
-  return { redirectTo: "/workspace", adminUserId: state.admin_user_id };
+  return { redirectTo: state.origin_path || "/workspace", adminUserId: state.admin_user_id };
 }
