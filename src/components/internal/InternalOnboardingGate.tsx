@@ -7,7 +7,8 @@
  *   3. (employees + super_admin only) Enrolled TOTP 2FA
  *
  * On completion, marks internal_profiles.first_login_completed = true.
- * Instructors skip step 3.
+ * Instructors skip step 3. Internal MFA is enforced on every visit, not only
+ * first login, so disabling 2FA never leaves an already-completed account open.
  */
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -20,6 +21,7 @@ import {
   Eye,
   EyeOff,
   LogOut,
+  ShieldCheck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -39,7 +41,7 @@ type Props = {
   children: React.ReactNode;
 };
 
-type Step = "loading" | "profile" | "password" | "mfa" | "done";
+type Step = "loading" | "profile" | "password" | "mfa" | "error" | "done";
 
 export function InternalOnboardingGate({ role, children }: Props) {
   const { user } = useAuth();
@@ -51,6 +53,7 @@ export function InternalOnboardingGate({ role, children }: Props) {
   const [step, setStep] = useState<Step>("loading");
   const [required, setRequired] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [checkError, setCheckError] = useState<string | null>(null);
 
   const requiresMfa = role === "employee" || role === "super_admin";
 
@@ -58,6 +61,9 @@ export function InternalOnboardingGate({ role, children }: Props) {
     if (!user) return;
     let cancelled = false;
     (async () => {
+      setStep("loading");
+      setRequired(false);
+      setCheckError(null);
       try {
         const [profile, factors] = await Promise.all([
           getProfile({ data: undefined as never }),
@@ -69,11 +75,6 @@ export function InternalOnboardingGate({ role, children }: Props) {
           setRequired(false);
           return;
         }
-        if (profile.first_login_completed) {
-          setStep("done");
-          setRequired(false);
-          return;
-        }
         const { data: prof } = await supabase
           .from("profiles")
           .select("full_name")
@@ -81,22 +82,42 @@ export function InternalOnboardingGate({ role, children }: Props) {
           .maybeSingle();
         const hasName = !!(prof as { full_name?: string | null } | null)?.full_name?.trim();
         const hasVerifiedTotp = (factors.data?.totp ?? []).some((f) => f.status === "verified");
-        setRequired(true);
-        if (!hasName) setStep("profile");
-        else setStep("password");
-        // Pre-cache verified state for MFA gate check below
         setMfaVerified(hasVerifiedTotp);
+
+        if (!profile.first_login_completed) {
+          setRequired(true);
+          if (!hasName) setStep("profile");
+          else setStep("password");
+          return;
+        }
+
+        if (requiresMfa && !hasVerifiedTotp) {
+          await updateInternal({ data: { mfa_enrolled: false } as never }).catch(() => null);
+          setRequired(true);
+          setStep("mfa");
+          return;
+        }
+
+        if (requiresMfa && hasVerifiedTotp && !profile.mfa_enrolled) {
+          await updateInternal({ data: { mfa_enrolled: true } as never }).catch(() => null);
+        }
+
+        if (profile.first_login_completed) {
+          setStep("done");
+          setRequired(false);
+          return;
+        }
       } catch (err) {
-        // If we can't verify, do not block — fail open to avoid lockout.
-        setStep("done");
-        setRequired(false);
+        setRequired(true);
+        setStep("error");
+        setCheckError(err instanceof Error ? err.message : String(err));
         console.warn("Onboarding gate check failed:", err);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [user, getProfile]);
+  }, [user, getProfile, requiresMfa, updateInternal]);
 
   // Step 1: Profile (full name)
   const [fullName, setFullName] = useState("");
@@ -152,7 +173,7 @@ export function InternalOnboardingGate({ role, children }: Props) {
       toast.success("Password updated");
       setPw1("");
       setPw2("");
-      if (requiresMfa) setStep("mfa");
+      if (requiresMfa && !mfaVerified) setStep("mfa");
       else await finish();
     } catch (err) {
       toast.error("Password change failed: " + (err instanceof Error ? err.message : String(err)));
@@ -172,6 +193,14 @@ export function InternalOnboardingGate({ role, children }: Props) {
     } catch (err) {
       toast.error("Could not finalize onboarding: " + (err instanceof Error ? err.message : String(err)));
     }
+  }
+
+  function retryGateCheck() {
+    setCheckError(null);
+    setStep("loading");
+    // Changing this local state is enough to avoid rendering the protected shell;
+    // the auth/role hooks will re-run the gate after the component settles.
+    window.setTimeout(() => window.location.reload(), 50);
   }
 
   async function signOut() {
@@ -213,6 +242,39 @@ export function InternalOnboardingGate({ role, children }: Props) {
     return (
       <div className="grid min-h-[70vh] place-items-center">
         <Loader2 className="size-6 animate-spin text-slate-400" />
+      </div>
+    );
+  }
+
+  if (step === "error") {
+    return (
+      <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur">
+        <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-2xl">
+          <div className="mx-auto mb-3 grid size-10 place-items-center rounded-full bg-red-50 text-red-600">
+            <ShieldCheck className="size-5" />
+          </div>
+          <h2 className="font-display text-lg font-bold text-slate-950">Security check required</h2>
+          <p className="mt-2 text-sm text-slate-600">
+            We couldn't verify your 2FA status yet, so the workspace is locked until the check succeeds.
+          </p>
+          {checkError && <p className="mt-3 break-words text-xs text-slate-400">{checkError}</p>}
+          <div className="mt-5 flex gap-2">
+            <button
+              type="button"
+              onClick={retryGateCheck}
+              className="inline-flex flex-1 items-center justify-center rounded-md bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800"
+            >
+              Retry
+            </button>
+            <button
+              type="button"
+              onClick={signOut}
+              className="inline-flex flex-1 items-center justify-center rounded-md border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
