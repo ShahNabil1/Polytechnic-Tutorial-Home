@@ -46,7 +46,7 @@ import { RoleProfileFieldsEN } from "@/components/internal/RoleProfileFieldsEN";
 import { beginImpersonation } from "@/lib/impersonation";
 import { ExternalLink, AlertTriangle } from "lucide-react";
 
-type Props = { userId: string; role: "employee" | "instructor" };
+type Props = { userId: string; role: "employee" | "instructor" | "customer" };
 
 export function InternalUserDetailPage({ userId, role }: Props) {
   const router = useRouter();
