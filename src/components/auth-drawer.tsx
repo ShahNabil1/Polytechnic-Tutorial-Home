@@ -21,14 +21,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { AlertCircle, CheckCircle2, Eye, EyeOff, KeyRound } from "lucide-react";
+import { AlertCircle, CheckCircle2, Eye, EyeOff, KeyRound, ShieldCheck } from "lucide-react";
 import { checkPhoneAvailability } from "@/lib/auth.functions";
 import { toEnglishText, toEnglishPassword, friendlyPasswordError } from "@/lib/input-filter";
-import { isTransientAuthError, retrySupabaseAuth, signOutSafely } from "@/lib/auth-reliability";
+import { authErrorMessage, retrySupabaseAuth, signOutSafely } from "@/lib/auth-reliability";
 
 type Tab = "login" | "signup";
 type Stage = "form" | "otp" | "mfa" | "reset";
 type OtpFlow = "signup" | "forgot";
+type MfaPurpose = "password-reset" | "session";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 const MAX_RESENDS = 3;
@@ -74,7 +75,8 @@ function isValidBdMobile(raw: string): boolean {
 }
 
 function errMsg(e: unknown, fallback = "কিছু ভুল হয়েছে, আবার চেষ্টা করুন"): string {
-  if (isTransientAuthError(e)) return "নেটওয়ার্ক/সেশন কানেকশন সাময়িকভাবে ব্যর্থ হয়েছে। আবার চেষ্টা করুন।";
+  const friendly = authErrorMessage(e, fallback);
+  if (friendly) return friendly;
   if (!e) return fallback;
   if (typeof e === "string") return e;
   if (typeof e === "object") {
@@ -142,9 +144,15 @@ function PasswordFieldEl({
 export function AuthDrawer({
   open,
   onOpenChange,
+  sessionMfaFactorId = null,
+  onSessionMfaComplete,
+  onSessionMfaCancel,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  sessionMfaFactorId?: string | null;
+  onSessionMfaComplete?: () => void;
+  onSessionMfaCancel?: () => void;
 }) {
   const [tab, setTab] = useState<Tab>("login");
   const [stage, setStage] = useState<Stage>("form");
@@ -160,6 +168,7 @@ export function AuthDrawer({
   const [mfaCode, setMfaCode] = useState("");
   const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
   const [mfaChallengeId, setMfaChallengeId] = useState<string | null>(null);
+  const [mfaPurpose, setMfaPurpose] = useState<MfaPurpose | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
@@ -172,6 +181,7 @@ export function AuthDrawer({
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
   const [lockRemaining, setLockRemaining] = useState(0);
   const tickRef = useRef<number | null>(null);
+  const sessionMfaInitRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (cooldown <= 0 && lockedUntil === null) return;
@@ -208,6 +218,8 @@ export function AuthDrawer({
     setMfaCode("");
     setMfaFactorId(null);
     setMfaChallengeId(null);
+    setMfaPurpose(null);
+    sessionMfaInitRef.current = null;
     setStage("form");
     setTab("login");
     setForgotMode(false);
@@ -230,9 +242,47 @@ export function AuthDrawer({
   }
 
   function requestClose() {
+    if (mfaPurpose === "session") return;
     if (inProgress) setConfirmClose(true);
     else onOpenChange(false);
   }
+
+  async function startMfaChallenge(factorId: string, purpose: MfaPurpose) {
+    const { data: chal, error } = await retrySupabaseAuth(() => supabase.auth.mfa.challenge({ factorId }));
+    if (error) throw error;
+    setMfaFactorId(factorId);
+    setMfaChallengeId(chal.id);
+    setMfaCode("");
+    setMfaPurpose(purpose);
+    setStage("mfa");
+    setInfoMsg(
+      purpose === "session"
+        ? "আপনার Authenticator অ্যাপ থেকে ৬-ডিজিট 2FA কোড দিন"
+        : "আপনার Authenticator অ্যাপ থেকে ৬-ডিজিট 2FA কোড দিন",
+    );
+  }
+
+  async function beginSessionMfaIfNeeded(): Promise<boolean> {
+    const { data: aal } = await retrySupabaseAuth(() => supabase.auth.mfa.getAuthenticatorAssuranceLevel());
+    if (aal?.currentLevel === "aal2" || aal?.nextLevel !== "aal2") return false;
+    const { data: factors } = await retrySupabaseAuth(() => supabase.auth.mfa.listFactors());
+    const totp = (factors?.totp ?? []).find((f) => f.status === "verified");
+    if (!totp) return false;
+    await startMfaChallenge(totp.id, "session");
+    return true;
+  }
+
+  useEffect(() => {
+    if (!open || !sessionMfaFactorId) return;
+    if (sessionMfaInitRef.current === sessionMfaFactorId && stage === "mfa") return;
+    sessionMfaInitRef.current = sessionMfaFactorId;
+    setLoading(true);
+    setFormError(null);
+    setInfoMsg(null);
+    startMfaChallenge(sessionMfaFactorId, "session")
+      .catch((error) => setFormError("2FA যাচাই শুরু করা যায়নি। আবার চেষ্টা করুন। " + errMsg(error)))
+      .finally(() => setLoading(false));
+  }, [open, sessionMfaFactorId, stage]);
 
   function confirmDiscard() {
     setConfirmClose(false);
@@ -295,6 +345,8 @@ export function AuthDrawer({
         }
         return;
       }
+      const needsMfa = await beginSessionMfaIfNeeded();
+      if (needsMfa) return;
       toast.success("সাইন ইন সফল");
       resetAll();
       onOpenChange(false);
@@ -436,16 +488,8 @@ export function AuthDrawer({
           const { data: factors } = await retrySupabaseAuth(() => supabase.auth.mfa.listFactors());
           const totp = (factors?.totp ?? []).find((f) => f.status === "verified");
           if (totp) {
-            const { data: chal, error: cErr } = await retrySupabaseAuth(() => supabase.auth.mfa.challenge({
-              factorId: totp.id,
-            }));
-            if (cErr) throw cErr;
-            setMfaFactorId(totp.id);
-            setMfaChallengeId(chal.id);
-            setMfaCode("");
+            await startMfaChallenge(totp.id, "password-reset");
             setLoading(false);
-            setStage("mfa");
-            setInfoMsg("আপনার Authenticator অ্যাপ থেকে ৬-ডিজিট 2FA কোড দিন");
             return;
           }
         } catch (mfaErr) {
@@ -487,10 +531,19 @@ export function AuthDrawer({
         setFormError("2FA কোড ভুল বা মেয়াদ শেষ");
         return;
       }
+      if (mfaPurpose === "session") {
+        setLoading(false);
+        toast.success("2FA সফল");
+        resetAll();
+        onSessionMfaComplete?.();
+        onOpenChange(false);
+        return;
+      }
       setLoading(false);
       setMfaCode("");
       setMfaFactorId(null);
       setMfaChallengeId(null);
+      setMfaPurpose(null);
       setPassword("");
       setConfirmPassword("");
       setStage("reset");
@@ -568,6 +621,11 @@ export function AuthDrawer({
       // hint so allowCredentials can be scoped for older authenticators.
       const phoneHint = isValidBdMobile(phoneRaw) ? phone : undefined;
       await passkeyClient.signInWithPasskey(phoneHint);
+      const needsMfa = await beginSessionMfaIfNeeded();
+      if (needsMfa) {
+        setLoading(false);
+        return;
+      }
       setLoading(false);
       toast.success("Passkey দিয়ে সাইন ইন সফল");
       resetAll();
@@ -679,7 +737,7 @@ export function AuthDrawer({
 
           <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-6">
             <div className="w-full max-w-sm">
-              <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+                <div className="min-h-[350px] rounded-xl border border-border bg-card p-5 shadow-sm">
                 <div className="mb-4 text-center">
                   <h2 className="text-lg font-semibold">{cardTitle}</h2>
                 </div>
@@ -902,12 +960,13 @@ export function AuthDrawer({
                   </form>
                 )}
 
-                {/* MFA (2FA) — forgot-password gate for staff/admin */}
+                {/* MFA (2FA) — session challenge / forgot-password gate */}
                 {stage === "mfa" && (
                   <form className="space-y-4" onSubmit={handleVerifyMfaOtp}>
                     <div className="rounded-lg bg-muted/60 p-3 text-sm">
-                      আপনার একাউন্টে টু-ফ্যাক্টর অথেন্টিকেশন চালু আছে। পাসওয়ার্ড রিসেট করার
-                      আগে Authenticator অ্যাপ থেকে ৬-ডিজিট কোড দিন।
+                      {mfaPurpose === "session"
+                        ? "আপনার একাউন্টে টু-ফ্যাক্টর অথেন্টিকেশন চালু আছে। চালিয়ে যেতে Authenticator অ্যাপ থেকে ৬-ডিজিট কোড দিন।"
+                        : "আপনার একাউন্টে টু-ফ্যাক্টর অথেন্টিকেশন চালু আছে। পাসওয়ার্ড রিসেট করার আগে Authenticator অ্যাপ থেকে ৬-ডিজিট কোড দিন।"}
                     </div>
                     {InfoBox}
                     <div className="space-y-2">
@@ -931,14 +990,16 @@ export function AuthDrawer({
                       className="w-full bg-amber-500 text-amber-950 hover:bg-amber-600"
                       disabled={loading || mfaCode.length !== 6}
                     >
-                      {loading ? "যাচাই করা হচ্ছে..." : "ভেরিফাই করুন"}
+                      {loading ? "যাচাই করা হচ্ছে..." : <><ShieldCheck className="mr-2 size-4" />ভেরিফাই করুন</>}
                     </Button>
                     <div className="text-center text-xs">
                       <button
                         type="button"
                         onClick={async () => {
-                          await supabase.auth.signOut();
+                          await signOutSafely();
+                          onSessionMfaCancel?.();
                           resetAll();
+                          onOpenChange(false);
                         }}
                         className="text-muted-foreground hover:text-foreground"
                       >

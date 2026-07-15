@@ -13,8 +13,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { signOutSafely } from "@/lib/auth-reliability";
 import { Sheet, SheetContent, SheetTitle, SheetHeader } from "@/components/ui/sheet";
 import {
   Tooltip,
@@ -129,7 +129,7 @@ export function InternalShell({ brand, subtitle, nav, groups, profileTo, childre
   const handleSignOut = async () => {
     setSigningOut(true);
     try {
-      await supabase.auth.signOut();
+      await signOutSafely();
     } finally {
       setSigningOut(false);
       setSignOutOpen(false);
