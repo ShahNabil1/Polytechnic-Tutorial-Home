@@ -131,18 +131,6 @@ export const updateMyInternalProfile = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-export const updateMyInternalProfile = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => UpdateSchema.parse(input))
-  .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
-      .from("internal_profiles")
-      .update(data as never)
-      .eq("user_id", context.userId);
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
-
 export const getInternalDocSignedUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
