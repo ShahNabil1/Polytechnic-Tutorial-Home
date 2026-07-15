@@ -54,6 +54,7 @@ export async function beginImpersonation(opts: {
     bypass_token: res.bypass_token,
     bypass_expires_at: res.bypass_expires_at,
     started_at: new Date().toISOString(),
+    origin_path: typeof window !== "undefined" ? window.location.pathname + window.location.search : undefined,
   });
 
   // Consume the magic link → creates a fresh session as the target user.
