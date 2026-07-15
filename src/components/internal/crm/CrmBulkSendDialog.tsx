@@ -37,6 +37,7 @@ export function CrmBulkSendDialog({
   const [body, setBody] = useState("");
   const [subject, setSubject] = useState("");
   const [sending, setSending] = useState(false);
+  useScrollLock(true);
 
   const eligible = recipients.filter((r) =>
     channel === "sms" ? !!r.phone : !!r.email,
