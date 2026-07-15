@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { syncMyPrimaryAuthEmail, updateMyInternalProfile } from "@/lib/internal-profile.functions";
 import { toEnglishDigits } from "@/lib/input-filter";
+import { signOutSafely } from "@/lib/auth-reliability";
+import { revokeOtherTrackedSessions } from "@/lib/session-api";
 
 type Factor = { id: string; friendly_name?: string | null; status: string; factor_type: string };
 
