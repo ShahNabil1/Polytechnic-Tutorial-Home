@@ -190,6 +190,158 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_email_deliveries: {
+        Row: {
+          attempt_no: number
+          body_html: string
+          bounce_type: string | null
+          bounced_at: string | null
+          clicked_at: string | null
+          created_at: string
+          delivered_at: string | null
+          error_reason: string | null
+          id: string
+          kind: string
+          opened_at: string | null
+          parent_delivery_id: string | null
+          provider_payload: Json | null
+          resend_email_id: string | null
+          sender_user_id: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["email_delivery_status"]
+          subject: string
+          template_id: string | null
+          to_email: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          attempt_no?: number
+          body_html: string
+          bounce_type?: string | null
+          bounced_at?: string | null
+          clicked_at?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          error_reason?: string | null
+          id?: string
+          kind?: string
+          opened_at?: string | null
+          parent_delivery_id?: string | null
+          provider_payload?: Json | null
+          resend_email_id?: string | null
+          sender_user_id?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["email_delivery_status"]
+          subject: string
+          template_id?: string | null
+          to_email: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          attempt_no?: number
+          body_html?: string
+          bounce_type?: string | null
+          bounced_at?: string | null
+          clicked_at?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          error_reason?: string | null
+          id?: string
+          kind?: string
+          opened_at?: string | null
+          parent_delivery_id?: string | null
+          provider_payload?: Json | null
+          resend_email_id?: string | null
+          sender_user_id?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["email_delivery_status"]
+          subject?: string
+          template_id?: string | null
+          to_email?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_email_deliveries_parent_delivery_id_fkey"
+            columns: ["parent_delivery_id"]
+            isOneToOne: false
+            referencedRelation: "crm_email_deliveries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_email_deliveries_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_sms_deliveries: {
+        Row: {
+          body: string
+          created_at: string
+          error_reason: string | null
+          id: string
+          is_unicode: boolean | null
+          kind: string
+          provider_response: string | null
+          provider_status: number | null
+          sender_user_id: string | null
+          sms_count: number | null
+          status: string
+          template_id: string | null
+          to_phone: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          error_reason?: string | null
+          id?: string
+          is_unicode?: boolean | null
+          kind?: string
+          provider_response?: string | null
+          provider_status?: number | null
+          sender_user_id?: string | null
+          sms_count?: number | null
+          status?: string
+          template_id?: string | null
+          to_phone: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          error_reason?: string | null
+          id?: string
+          is_unicode?: boolean | null
+          kind?: string
+          provider_response?: string | null
+          provider_status?: number | null
+          sender_user_id?: string | null
+          sms_count?: number | null
+          status?: string
+          template_id?: string | null
+          to_phone?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_sms_deliveries_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "sms_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_templates: {
         Row: {
           body_html: string
@@ -1735,6 +1887,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_carts: {
+        Row: {
+          created_at: string
+          item_count: number
+          items: Json
+          subtotal_bdt: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          item_count?: number
+          items?: Json
+          subtotal_bdt?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          item_count?: number
+          items?: Json
+          subtotal_bdt?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_permissions: {
         Row: {
