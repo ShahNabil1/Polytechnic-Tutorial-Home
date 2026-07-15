@@ -189,6 +189,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <BlocklistGate>
         <div className="flex min-h-screen flex-col">
+          <ImpersonationBanner />
           <SiteHeader />
           <main className="flex-1">
             <Outlet />
