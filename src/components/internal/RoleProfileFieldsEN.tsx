@@ -23,6 +23,7 @@ import {
 import type { AppRole } from "@/lib/roles.functions";
 import { uploadFileToR2 } from "@/lib/upload-client";
 import { toEnglishText } from "@/lib/input-filter";
+import { NidUploadCard } from "@/components/internal/NidUploadCard";
 import { cn } from "@/lib/utils";
 
 type FormState = {
