@@ -40,6 +40,8 @@ import {
   type InternalUserDetail,
 } from "@/lib/admin-users.functions";
 import { InternalEmailLogsDialog } from "@/components/internal/InternalEmailLogsDialog";
+import { AdminBasicProfileForm } from "@/components/internal/AdminBasicProfileForm";
+import { RoleProfileFieldsEN } from "@/components/internal/RoleProfileFieldsEN";
 import { beginImpersonation } from "@/lib/impersonation";
 import { ExternalLink, AlertTriangle } from "lucide-react";
 
