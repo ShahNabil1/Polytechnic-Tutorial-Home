@@ -1,82 +1,46 @@
-# CRM Module Plan
+# CRM Phase 2 Plan
 
-একটা নতুন `/workspace/crm` সেকশন বানাবো, ৪টা ট্যাব দিয়ে। সব ট্যাব **লাইভ কম্পিউটেড** — কোনো ম্যানুয়াল স্ট্যাটাস ফিল্ড না, তাই একজন কোর্স/শপ থেকে কিনলে/সাইনআপ করলে অটোমেটিক এক ট্যাব থেকে আরেক ট্যাবে চলে যাবে।
+Goal: bring CRM customer detail up to parity with the order detail drawer's messaging/tracking surface, plus live cart visibility.
 
-## ট্যাব সংজ্ঞা (SQL views দিয়ে)
+## Scope
 
-1. **Customers (Active)** — signed-up user AND (has active `lms_enrollments` OR has any completed `orders` from shop)
-2. **Signed-up, No Purchase Yet** — signed-up user (role=student) AND no active enrollment AND no completed order
-3. **Guest / Incomplete** — কোনো auth user নাই এমন phone/email যাদের আছে:
-   - `orders` (guest checkout, no user_id) — purchased guests
-   - `incomplete_checkouts` — didn't complete
-   - যদি সেই email/phone দিয়ে পরে account create হয় → auto ট্যাব 2 বা 1 এ চলে যাবে (কারণ সেগ্মেন্ট computed, and we'll exclude রো যেগুলোর email/phone কোনো `auth.users` এ ম্যাচ করে)
+### 1. SMS sending (per customer)
+- New server fn `sendCrmSms` — mirrors order SMS flow (BulkSMSBD via existing `sms.functions.ts` helpers).
+- Template picker (from `sms_templates`) OR free-form typing with variable substitution: `{{name}}`, `{{phone}}`, `{{email}}`, `{{student_id}}`, `{{last_order_no}}`, `{{ltv}}`.
+- Recipient = customer's phone (from profile / order / incomplete lead).
+- Persist to `order_sms_deliveries`-style table? → reuse a new lightweight table `crm_sms_deliveries` (customer_id/phone/user_id, template_id, body, status, provider_ref, cost, sent_at) OR extend `order_sms_deliveries` with nullable order_id + `context` column. **Decision: new `crm_sms_deliveries` table** — cleaner, avoids polluting order deliveries.
 
-## Detail page (per-customer)
+### 2. Email sending + resend + tracking chips
+- New server fn `sendCrmEmail` — reuses Resend gateway path from `order-notifications.server.ts`.
+- Template picker from `email_templates` + free-form subject/HTML with same variable set.
+- Resend: `resendCrmEmail(delivery_id)` re-fires with same payload.
+- Tracking: subscribe to Resend webhook events (already handled in `api/public/webhooks/resend.ts`) — extend the webhook to also update `crm_email_deliveries` rows (matched by resend `email_id`).
+- New table `crm_email_deliveries` with same shape as `order_email_deliveries`: status enum (`queued`,`sent`,`delivered`,`opened`,`clicked`,`bounced`,`complained`,`failed`), timestamps per event, opens/clicks counters.
+- Show tracking as coloured chips in customer detail's Communications tab — identical component styling as order drawer.
 
-`/workspace/crm/$id` — employee/instructor detail page এর মতোই সব প্রযোজ্য ফিচার:
-- Basic profile, contact info (email/phone সহ admin change), address
-- **LTV card** — total spent (completed orders sum), order count, avg order value, first/last purchase date, enrolled courses count
-- **Order history** — সব অর্ডার লিস্ট (existing AdminOrderDrawer এ ক্লিক করে)
-- **Enrollments** — সাব্জেক্ট/কোর্স লিস্ট
-- **Live Cart** — signed-in user এর জন্য cart items (persist হয় localStorage এ, কিন্তু cart items ডেটাবেসে persist নাই — [দেখুন Technical])
-- **SMS** — sms_templates থেকে template select/type with `{{name}}` variables, existing `sendOrderSms` pattern এর মতো নতুন `sendCustomerSms` server fn, `order_sms_deliveries` এর মতো `customer_sms_deliveries` টেবিলে লগ (chips সহ)
-- **Email** — email_templates select/type, Resend দিয়ে send, `customer_email_deliveries` এ লগ, existing `ResendEventChips` reuse করে tracking (delivered/opened/clicked)
-- **Coupon** — এই customer এর জন্য special coupon বানানোর বাটন → existing `coupons` টেবিলে `applies_to='customers'` + `coupon_targets` এ এই user_id দিয়ে insert, এক ক্লিকে
+### 3. Live cart view (signed-in users only)
+- Server fn `getCrmUserCart({ userId })` — reads whatever the app persists carts to. Investigate: is there a `carts` table, or is cart client-side only in localStorage?
+- If purely client-side: add a lightweight `user_carts` table (user_id PK, items jsonb, subtotal, updated_at) and a client sync hook that writes on cart changes for signed-in users. Show in CRM as "Current cart" card.
+- If server-persisted already: just read it.
 
-## Bulk actions (list view এ)
+### 4. UI wiring in `CrmCustomerDetailPage.tsx`
+- Add tabs: Overview / Orders / Enrollments / **Messages** / **Cart**.
+- Messages tab: SMS composer + email composer side-by-side, with delivery history + tracking chips below.
+- Cart tab: current cart items, subtotal, last updated timestamp, "empty" state.
 
-- Checkbox দিয়ে multiple select
-- **Bulk SMS** — template select, `{{name}}` etc. প্রতি রেসিপিয়েন্টের জন্য render হয়ে যাবে
-- **Bulk Email** — same, personalized per recipient
+## Out of scope (Phase 3)
+- Bulk select + bulk messaging
+- Per-customer coupon generation
 
-## Technical
+## Migration summary
+1. `crm_sms_deliveries` table + grants + RLS (internal-only via `has_permission(auth.uid(), 'manage_crm')` or `manage_orders`).
+2. `crm_email_deliveries` table + grants + RLS + status enum reuse.
+3. `user_carts` table (only if no existing cart persistence) + grants + RLS (`auth.uid() = user_id` for own, admin read via permission).
+4. Extend resend webhook handler to also match `crm_email_deliveries`.
 
-### Database (migration)
-- **View `crm_customer_summary`** (security_invoker=on, `TO authenticated` grant, admin/manage_users দিয়ে filtered): joins `auth.users` (via `profiles`), aggregates orders total/count, enrollment count, computes `segment` column ('active' | 'signed_no_purchase')
-- **View `crm_guest_leads`**: unions guest `orders` (user_id IS NULL) with `incomplete_checkouts`, dedupes by phone/email, excludes any phone/email that matches an existing `auth.users` row (auto-migration when they sign up)
-- **Tables**:
-  - `customer_sms_deliveries` (mirrors `order_sms_deliveries` shape, `target_user_id` or `target_phone`)
-  - `customer_email_deliveries` (mirrors `order_email_deliveries`)
-  - Both: GRANT + RLS (`manage_users` only), Resend webhook already logs to email deliveries — will extend that webhook to also match customer_email_deliveries by resend message_id
+## Open questions
+1. **Permission gate** — should CRM use `manage_orders`, `manage_users`, or a new `manage_crm` permission? Existing sidebar just checks internal role. Confirm.
+2. **Cart persistence** — do you already sync signed-in user carts to Supabase, or is cart currently only in browser storage? I'll check `src/` next; if none, I'll add `user_carts` and a sync hook.
+3. **SMS/email cost tracking** — mirror the order flow's cost column?
 
-### Server functions (`src/lib/crm.functions.ts`)
-- `listCrmActive({search, page})`, `listCrmSignedNoPurchase(...)`, `listCrmGuests(...)` — all use `requireSupabaseAuth` + `manage_users` check
-- `getCrmCustomer(id)` — profile + LTV + orders + enrollments
-- `sendCustomerSms({userId?, phone, message})`, `sendCustomerEmail({userId?, email, subject, html})`
-- `bulkSendSms({recipients: [{userId?, phone, vars}], templateBody})`, `bulkSendEmail(...)`
-- `createCustomerCoupon({userId, code, discountType, value, ...})`
-- `getUserCart(userId)` — [see below]
-
-### Live cart tracking
-Currently cart is client-side only (`zustand + persist` in `cart-store.ts`). To show it admin-side, need to persist to DB. Add table `user_carts (user_id PK, items jsonb, updated_at)` — sync from `cart-store` on change when user is signed in (add a small subscribe hook). Admin reads that row.
-
-### Routes
-- `src/routes/_authenticated/_internal.workspace.crm.tsx` — layout with 4 tabs
-- `.crm.customers.tsx`, `.crm.signed.tsx`, `.crm.guests.tsx`, `.crm.$id.tsx`
-
-### Reused components
-- `AdminBasicProfileForm`, `AdminContactChangeCard`, `NidUploadCard` (if applicable), `ResendEventChips`, `SmsTemplatesManager` template picker logic, `AdminOrderDrawer` for order details
-
-### Sidebar
-Add "CRM" entry in `InternalShell` nav under a `manage_users` gate.
-
-## স্কোপ ও ধাপ
-
-কারণ এটা বড় ফিচার, আমি ধাপে ধাপে করব:
-
-**Phase 1 (এই মেসেজে যদি approve করেন):**
-- DB migration: views + 2 delivery tables + user_carts table
-- CRM routes + 4 tabs list + basic search/pagination
-- Customer detail page: profile view, LTV, orders, enrollments
-- Sidebar link
-
-**Phase 2:**
-- SMS send + templates + delivery chips
-- Email send + Resend webhook extend + chips
-- Live cart view + cart sync hook
-
-**Phase 3:**
-- Bulk SMS/Email
-- Per-customer coupon quick-create
-
-Approve করলে Phase 1 দিয়ে শুরু করব।
+Reply "go" to proceed with defaults (new `manage_crm` permission, add `user_carts` if missing, mirror cost tracking), or answer the three questions.
