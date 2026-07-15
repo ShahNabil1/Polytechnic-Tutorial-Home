@@ -235,6 +235,36 @@ export type Database = {
         }
         Relationships: []
       }
+      impersonation_sessions: {
+        Row: {
+          admin_user_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          target_user_id: string
+          token_hash: string
+          used_at: string | null
+        }
+        Insert: {
+          admin_user_id: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          target_user_id: string
+          token_hash: string
+          used_at?: string | null
+        }
+        Update: {
+          admin_user_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          target_user_id?: string
+          token_hash?: string
+          used_at?: string | null
+        }
+        Relationships: []
+      }
       incomplete_checkouts: {
         Row: {
           address_line: string | null
@@ -1888,6 +1918,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_revoke_all_user_sessions: {
+        Args: { _target_user_id: string }
+        Returns: number
+      }
+      admin_revoke_user_session: {
+        Args: { _target_user_id: string; _tracked_id: string }
+        Returns: boolean
+      }
       cleanup_stuck_sessions: { Args: never; Returns: Json }
       create_passkey_auth_session: {
         Args: {
