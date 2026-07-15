@@ -41,6 +41,7 @@ export function BulkRTSDialog({
   const [results, setResults] = useState<Result[]>([]);
   const [errorText, setErrorText] = useState<string | null>(null);
   const startedRef = useRef(false);
+  useScrollLock(open);
 
   useEffect(() => {
     if (!open) {
