@@ -1,24 +1,21 @@
 import { useEffect, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   Loader2,
   UserPlus,
-  ShieldOff,
-  ShieldCheck,
-  UserMinus,
   IdCard,
   Eye,
   EyeOff,
   RefreshCw,
   ScrollText,
+  ExternalLink,
 } from "lucide-react";
 import {
   listInternalUsers,
   createInternalUser,
-  revokeInternalRole,
-  setInternalUserActive,
   type AdminUserRow,
 } from "@/lib/admin-users.functions";
 import { InternalEmailLogsDialog } from "@/components/internal/InternalEmailLogsDialog";
