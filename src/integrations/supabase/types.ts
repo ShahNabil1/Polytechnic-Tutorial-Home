@@ -1915,7 +1915,87 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      crm_customers: {
+        Row: {
+          active_enrollments: number | null
+          avatar_url: string | null
+          email: string | null
+          first_order_at: string | null
+          full_name: string | null
+          last_order_at: string | null
+          order_count: number | null
+          phone: string | null
+          segment: string | null
+          signed_up_at: string | null
+          total_enrollments: number | null
+          total_spent: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      crm_guest_purchased: {
+        Row: {
+          email: string | null
+          first_order_at: string | null
+          last_order_at: string | null
+          name: string | null
+          order_count: number | null
+          phone: string | null
+          total_spent: number | null
+        }
+        Relationships: []
+      }
+      crm_incomplete_leads: {
+        Row: {
+          attempt_count: number | null
+          cart: Json | null
+          district: string | null
+          division: string | null
+          email: string | null
+          first_attempt_at: string | null
+          id: string | null
+          last_attempt_at: string | null
+          last_outcome: string | null
+          name: string | null
+          phone: string | null
+          subtotal_bdt: number | null
+          thana: string | null
+          total_bdt: number | null
+        }
+        Insert: {
+          attempt_count?: number | null
+          cart?: Json | null
+          district?: string | null
+          division?: string | null
+          email?: string | null
+          first_attempt_at?: string | null
+          id?: string | null
+          last_attempt_at?: string | null
+          last_outcome?: string | null
+          name?: string | null
+          phone?: string | null
+          subtotal_bdt?: number | null
+          thana?: string | null
+          total_bdt?: number | null
+        }
+        Update: {
+          attempt_count?: number | null
+          cart?: Json | null
+          district?: string | null
+          division?: string | null
+          email?: string | null
+          first_attempt_at?: string | null
+          id?: string | null
+          last_attempt_at?: string | null
+          last_outcome?: string | null
+          name?: string | null
+          phone?: string | null
+          subtotal_bdt?: number | null
+          thana?: string | null
+          total_bdt?: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       admin_revoke_all_user_sessions: {
