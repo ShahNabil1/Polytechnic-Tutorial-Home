@@ -326,6 +326,10 @@ export type InternalUserDetail = {
   address: string | null;
   nid_number: string | null;
   cv_r2_key: string | null;
+  nid_front_r2_key: string | null;
+  nid_back_r2_key: string | null;
+  nid_resubmit_requested_at: string | null;
+  nid_resubmit_reason: string | null;
   workplace: string | null;
   job_role: string | null;
   subjects: string[];
