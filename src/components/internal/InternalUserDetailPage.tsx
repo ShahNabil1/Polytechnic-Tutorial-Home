@@ -519,3 +519,52 @@ function Info({ label, value }: { label: string; value: string | null | undefine
     </div>
   );
 }
+
+const PAYMENT_LABELS: Record<string, string> = {
+  method: "Method",
+  account_name: "Account name",
+  account_number: "Account number",
+  bank_name: "Bank name",
+  branch: "Branch",
+  routing: "Routing number",
+  mfs_number: "MFS number",
+};
+const METHOD_LABEL: Record<string, string> = {
+  bank: "Bank transfer",
+  bkash: "bKash",
+  nagad: "Nagad",
+  rocket: "Rocket",
+  upay: "Upay",
+};
+
+function PaymentDetailsCard({ bank }: { bank: Record<string, unknown> }) {
+  const method = typeof bank.method === "string" ? bank.method : "bank";
+  // Only surface fields that belong to this method — hides ghost values from legacy rows.
+  const keys = method === "bank"
+    ? ["method", "account_name", "bank_name", "branch", "account_number", "routing"]
+    : ["method", "account_name", "mfs_number"];
+  const rows = keys
+    .map((k) => {
+      const v = bank[k];
+      if (typeof v !== "string" || !v.trim()) return null;
+      const display = k === "method" ? METHOD_LABEL[v] ?? v : v;
+      return { k, label: PAYMENT_LABELS[k] ?? k, value: display };
+    })
+    .filter((x): x is { k: string; label: string; value: string } => x !== null);
+  if (rows.length === 0) return null;
+  return (
+    <div className="mt-6">
+      <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">
+        Payment details
+      </div>
+      <dl className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2">
+        {rows.map((r) => (
+          <div key={r.k}>
+            <dt className="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">{r.label}</dt>
+            <dd className="mt-0.5 break-words text-sm font-medium text-slate-900">{r.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
