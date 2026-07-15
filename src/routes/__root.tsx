@@ -18,6 +18,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { Toaster } from "@/components/ui/sonner";
 import { BlocklistGate } from "@/components/BlocklistGate";
 import { ConfirmDialogHost } from "@/components/ui/confirm-dialog";
+import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 
 function NotFoundComponent() {
   return (
