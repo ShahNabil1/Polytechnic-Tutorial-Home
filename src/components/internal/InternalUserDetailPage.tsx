@@ -526,14 +526,14 @@ export function InternalUserDetailPage({ userId, role }: Props) {
                 onClick={handleResetPassword}
                 disabled={busy === "pwreset"}
                 className="inline-flex items-center gap-1.5 rounded-md border border-orange-300 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-800 hover:bg-orange-100 disabled:opacity-60"
-                title="Generate a new random password and email it to the primary email"
+                title="Generate a new random password and SMS it to the user's phone"
               >
                 {busy === "pwreset" ? (
                   <Loader2 className="size-3.5 animate-spin" />
                 ) : (
                   <Mail className="size-3.5" />
                 )}
-                Reset & email password
+                Reset & SMS password
               </button>
             </div>
           </div>
