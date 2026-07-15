@@ -57,6 +57,7 @@ import { Route as AuthenticatedInternalWorkspaceEcommerceProductsRouteImport } f
 import { Route as AuthenticatedInternalWorkspaceEcommerceOrdersRouteImport } from './routes/_authenticated/_internal.workspace.ecommerce.orders'
 import { Route as AuthenticatedInternalWorkspaceEcommerceCouponsRouteImport } from './routes/_authenticated/_internal.workspace.ecommerce.coupons'
 import { Route as AuthenticatedInternalWorkspaceEcommerceCategoriesRouteImport } from './routes/_authenticated/_internal.workspace.ecommerce.categories'
+import { Route as AuthenticatedInternalWorkspaceCrmSignedRouteImport } from './routes/_authenticated/_internal.workspace.crm.signed'
 import { Route as AuthenticatedInternalWorkspaceCrmCustomersRouteImport } from './routes/_authenticated/_internal.workspace.crm.customers'
 import { Route as AuthenticatedInternalWorkspaceLmsAndCoursesCurriculumSubjectSlugRouteImport } from './routes/_authenticated/_internal.workspace.lms-and-courses.curriculum.$subjectSlug'
 import { Route as AuthenticatedInternalWorkspaceLmsAndCoursesCoursesDeptSlugSemSlugRouteImport } from './routes/_authenticated/_internal.workspace.lms-and-courses.courses.$deptSlug.$semSlug'
@@ -327,6 +328,12 @@ const AuthenticatedInternalWorkspaceEcommerceCategoriesRoute =
     path: '/ecommerce/categories',
     getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
   } as any)
+const AuthenticatedInternalWorkspaceCrmSignedRoute =
+  AuthenticatedInternalWorkspaceCrmSignedRouteImport.update({
+    id: '/signed',
+    path: '/signed',
+    getParentRoute: () => AuthenticatedInternalWorkspaceCrmRoute,
+  } as any)
 const AuthenticatedInternalWorkspaceCrmCustomersRoute =
   AuthenticatedInternalWorkspaceCrmCustomersRouteImport.update({
     id: '/customers',
@@ -382,6 +389,7 @@ export interface FileRoutesByFullPath {
   '/instructor/': typeof AuthenticatedInternalInstructorIndexRoute
   '/workspace/': typeof AuthenticatedInternalWorkspaceIndexRoute
   '/workspace/crm/customers': typeof AuthenticatedInternalWorkspaceCrmCustomersRoute
+  '/workspace/crm/signed': typeof AuthenticatedInternalWorkspaceCrmSignedRoute
   '/workspace/ecommerce/categories': typeof AuthenticatedInternalWorkspaceEcommerceCategoriesRoute
   '/workspace/ecommerce/coupons': typeof AuthenticatedInternalWorkspaceEcommerceCouponsRoute
   '/workspace/ecommerce/orders': typeof AuthenticatedInternalWorkspaceEcommerceOrdersRoute
@@ -429,6 +437,7 @@ export interface FileRoutesByTo {
   '/instructor': typeof AuthenticatedInternalInstructorIndexRoute
   '/workspace': typeof AuthenticatedInternalWorkspaceIndexRoute
   '/workspace/crm/customers': typeof AuthenticatedInternalWorkspaceCrmCustomersRoute
+  '/workspace/crm/signed': typeof AuthenticatedInternalWorkspaceCrmSignedRoute
   '/workspace/ecommerce/categories': typeof AuthenticatedInternalWorkspaceEcommerceCategoriesRoute
   '/workspace/ecommerce/coupons': typeof AuthenticatedInternalWorkspaceEcommerceCouponsRoute
   '/workspace/ecommerce/orders': typeof AuthenticatedInternalWorkspaceEcommerceOrdersRoute
@@ -483,6 +492,7 @@ export interface FileRoutesById {
   '/_authenticated/_internal/instructor/': typeof AuthenticatedInternalInstructorIndexRoute
   '/_authenticated/_internal/workspace/': typeof AuthenticatedInternalWorkspaceIndexRoute
   '/_authenticated/_internal/workspace/crm/customers': typeof AuthenticatedInternalWorkspaceCrmCustomersRoute
+  '/_authenticated/_internal/workspace/crm/signed': typeof AuthenticatedInternalWorkspaceCrmSignedRoute
   '/_authenticated/_internal/workspace/ecommerce/categories': typeof AuthenticatedInternalWorkspaceEcommerceCategoriesRoute
   '/_authenticated/_internal/workspace/ecommerce/coupons': typeof AuthenticatedInternalWorkspaceEcommerceCouponsRoute
   '/_authenticated/_internal/workspace/ecommerce/orders': typeof AuthenticatedInternalWorkspaceEcommerceOrdersRoute
@@ -536,6 +546,7 @@ export interface FileRouteTypes {
     | '/instructor/'
     | '/workspace/'
     | '/workspace/crm/customers'
+    | '/workspace/crm/signed'
     | '/workspace/ecommerce/categories'
     | '/workspace/ecommerce/coupons'
     | '/workspace/ecommerce/orders'
@@ -583,6 +594,7 @@ export interface FileRouteTypes {
     | '/instructor'
     | '/workspace'
     | '/workspace/crm/customers'
+    | '/workspace/crm/signed'
     | '/workspace/ecommerce/categories'
     | '/workspace/ecommerce/coupons'
     | '/workspace/ecommerce/orders'
@@ -636,6 +648,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_internal/instructor/'
     | '/_authenticated/_internal/workspace/'
     | '/_authenticated/_internal/workspace/crm/customers'
+    | '/_authenticated/_internal/workspace/crm/signed'
     | '/_authenticated/_internal/workspace/ecommerce/categories'
     | '/_authenticated/_internal/workspace/ecommerce/coupons'
     | '/_authenticated/_internal/workspace/ecommerce/orders'
@@ -1016,6 +1029,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInternalWorkspaceEcommerceCategoriesRouteImport
       parentRoute: typeof AuthenticatedInternalWorkspaceRoute
     }
+    '/_authenticated/_internal/workspace/crm/signed': {
+      id: '/_authenticated/_internal/workspace/crm/signed'
+      path: '/signed'
+      fullPath: '/workspace/crm/signed'
+      preLoaderRoute: typeof AuthenticatedInternalWorkspaceCrmSignedRouteImport
+      parentRoute: typeof AuthenticatedInternalWorkspaceCrmRoute
+    }
     '/_authenticated/_internal/workspace/crm/customers': {
       id: '/_authenticated/_internal/workspace/crm/customers'
       path: '/customers'
@@ -1060,6 +1080,7 @@ const AuthenticatedInternalInstructorRouteWithChildren =
 
 interface AuthenticatedInternalWorkspaceCrmRouteChildren {
   AuthenticatedInternalWorkspaceCrmCustomersRoute: typeof AuthenticatedInternalWorkspaceCrmCustomersRoute
+  AuthenticatedInternalWorkspaceCrmSignedRoute: typeof AuthenticatedInternalWorkspaceCrmSignedRoute
   AuthenticatedInternalWorkspaceCrmIndexRoute: typeof AuthenticatedInternalWorkspaceCrmIndexRoute
 }
 
@@ -1067,6 +1088,8 @@ const AuthenticatedInternalWorkspaceCrmRouteChildren: AuthenticatedInternalWorks
   {
     AuthenticatedInternalWorkspaceCrmCustomersRoute:
       AuthenticatedInternalWorkspaceCrmCustomersRoute,
+    AuthenticatedInternalWorkspaceCrmSignedRoute:
+      AuthenticatedInternalWorkspaceCrmSignedRoute,
     AuthenticatedInternalWorkspaceCrmIndexRoute:
       AuthenticatedInternalWorkspaceCrmIndexRoute,
   }
