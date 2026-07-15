@@ -22,6 +22,9 @@ import {
 import {
   getInternalUserDetail,
   getUserCvSignedUrl,
+  getUserNidSignedUrl,
+  requestNidResubmit,
+  cancelNidResubmit,
   listUserSessionsAsAdmin,
   revokeUserSessionAsAdmin,
   revokeAllUserSessionsAsAdmin,
@@ -33,6 +36,7 @@ import {
 } from "@/lib/admin-users.functions";
 import { InternalEmailLogsDialog } from "@/components/internal/InternalEmailLogsDialog";
 import { beginImpersonation } from "@/lib/impersonation";
+import { ExternalLink, AlertTriangle } from "lucide-react";
 
 type Props = { userId: string; role: "employee" | "instructor" };
 
@@ -40,6 +44,9 @@ export function InternalUserDetailPage({ userId, role }: Props) {
   const router = useRouter();
   const getDetail = useServerFn(getInternalUserDetail);
   const getCv = useServerFn(getUserCvSignedUrl);
+  const getNid = useServerFn(getUserNidSignedUrl);
+  const requestResubmit = useServerFn(requestNidResubmit);
+  const cancelResubmit = useServerFn(cancelNidResubmit);
   const listSessions = useServerFn(listUserSessionsAsAdmin);
   const revokeSession = useServerFn(revokeUserSessionAsAdmin);
   const revokeAllSessions = useServerFn(revokeAllUserSessionsAsAdmin);
@@ -85,6 +92,63 @@ export function InternalUserDetailPage({ userId, role }: Props) {
       setBusy(null);
     }
   }
+
+  async function handleOpenNid(side: "front" | "back", download: boolean) {
+    setBusy(`nid-${side}-${download ? "dl" : "view"}`);
+    try {
+      const res = await getNid({ data: { user_id: userId, side } });
+      const url = (res as { url: string }).url;
+      if (download) {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `nid-${side}-${detail?.display_id ?? userId}.jpg`;
+        a.target = "_blank";
+        a.rel = "noopener";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } else {
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
+    } catch (e) {
+      toast.error("NID open failed: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleRequestResubmit() {
+    const reason = window.prompt(
+      "Reason for resubmit request (visible to the user):",
+      "The photo is not clear enough. Please retake and upload again.",
+    );
+    if (!reason || !reason.trim()) return;
+    setBusy("nid-resubmit");
+    try {
+      await requestResubmit({ data: { user_id: userId, reason: reason.trim() } });
+      toast.success("Resubmit requested — user has been notified in their profile");
+      await refresh();
+    } catch (e) {
+      toast.error("Failed: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleCancelResubmit() {
+    setBusy("nid-cancel");
+    try {
+      await cancelResubmit({ data: { user_id: userId } });
+      toast.success("Resubmit request cancelled");
+      await refresh();
+    } catch (e) {
+      toast.error("Failed: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+
 
   async function handleImpersonate() {
     if (
@@ -401,6 +465,107 @@ export function InternalUserDetailPage({ userId, role }: Props) {
         </dl>
         {detail.bank_details && <PaymentDetailsCard bank={detail.bank_details as Record<string, unknown>} />}
       </section>
+
+      {/* NID photos */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-display text-base font-bold tracking-tight">
+            NID Photos
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {detail.nid_resubmit_requested_at ? (
+              <button
+                type="button"
+                onClick={handleCancelResubmit}
+                disabled={busy === "nid-cancel"}
+                className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+              >
+                {busy === "nid-cancel" ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="size-3.5" />
+                )}
+                Cancel resubmit request
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleRequestResubmit}
+                disabled={busy === "nid-resubmit"}
+                className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 hover:bg-amber-100 disabled:opacity-60"
+              >
+                {busy === "nid-resubmit" ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <AlertTriangle className="size-3.5" />
+                )}
+                Request resubmit
+              </button>
+            )}
+          </div>
+        </div>
+
+        {detail.nid_resubmit_requested_at && (
+          <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs font-semibold text-amber-900">
+            <div className="mb-0.5">
+              Resubmit requested{" "}
+              {new Date(detail.nid_resubmit_requested_at).toLocaleString()}
+            </div>
+            {detail.nid_resubmit_reason && (
+              <div className="font-medium">Reason: {detail.nid_resubmit_reason}</div>
+            )}
+          </div>
+        )}
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          {(["front", "back"] as const).map((side) => {
+            const has =
+              side === "front" ? !!detail.nid_front_r2_key : !!detail.nid_back_r2_key;
+            return (
+              <div key={side} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                  {side === "front" ? "Front side" : "Back side"}
+                </div>
+                <div className="mb-3 grid aspect-[1.586] place-items-center overflow-hidden rounded-md border border-dashed border-slate-300 bg-white">
+                  {has ? (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenNid(side, false)}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:underline"
+                    >
+                      <ExternalLink className="size-3.5" /> View {side}
+                    </button>
+                  ) : (
+                    <div className="text-xs font-semibold text-slate-400">
+                      Not uploaded
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenNid(side, false)}
+                    disabled={!has || busy === `nid-${side}-view`}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold hover:bg-slate-50 disabled:opacity-40"
+                  >
+                    <ExternalLink className="size-3.5" /> Open
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenNid(side, true)}
+                    disabled={!has || busy === `nid-${side}-dl`}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold hover:bg-slate-50 disabled:opacity-40"
+                  >
+                    <FileDown className="size-3.5" /> Download
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+
 
       {/* Sessions */}
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

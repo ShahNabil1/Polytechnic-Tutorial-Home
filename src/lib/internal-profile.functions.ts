@@ -18,6 +18,10 @@ export type InternalProfile = {
   address: string | null;
   nid_number: string | null;
   cv_r2_key: string | null;
+  nid_front_r2_key: string | null;
+  nid_back_r2_key: string | null;
+  nid_resubmit_requested_at: string | null;
+  nid_resubmit_reason: string | null;
   bank_details: BankDetails | null;
   workplace: string | null;
   job_role: string | null;
@@ -85,6 +89,8 @@ const UpdateSchema = z.object({
   address: z.string().max(500).optional().nullable(),
   nid_number: z.string().max(50).optional().nullable(),
   cv_r2_key: z.string().max(300).optional().nullable(),
+  nid_front_r2_key: z.string().max(300).optional().nullable(),
+  nid_back_r2_key: z.string().max(300).optional().nullable(),
   bank_details: z
     .object({
       method: z.enum(["bank", "bkash", "nagad", "rocket", "upay"]).optional(),
@@ -108,9 +114,18 @@ export const updateMyInternalProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => UpdateSchema.parse(input))
   .handler(async ({ data, context }) => {
+    // If a new NID photo is being saved, auto-clear any pending resubmit request.
+    const clearsResubmit =
+      Object.prototype.hasOwnProperty.call(data, "nid_front_r2_key") ||
+      Object.prototype.hasOwnProperty.call(data, "nid_back_r2_key");
+    const payload: Record<string, unknown> = { ...data };
+    if (clearsResubmit) {
+      payload.nid_resubmit_requested_at = null;
+      payload.nid_resubmit_reason = null;
+    }
     const { error } = await context.supabase
       .from("internal_profiles")
-      .update(data as never)
+      .update(payload as never)
       .eq("user_id", context.userId);
     if (error) throw new Error(error.message);
     return { ok: true };

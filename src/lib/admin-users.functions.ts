@@ -326,6 +326,10 @@ export type InternalUserDetail = {
   address: string | null;
   nid_number: string | null;
   cv_r2_key: string | null;
+  nid_front_r2_key: string | null;
+  nid_back_r2_key: string | null;
+  nid_resubmit_requested_at: string | null;
+  nid_resubmit_reason: string | null;
   workplace: string | null;
   job_role: string | null;
   subjects: string[];
@@ -378,6 +382,10 @@ export const getInternalUserDetail = createServerFn({ method: "POST" })
       address: i.address ?? null,
       nid_number: i.nid_number ?? null,
       cv_r2_key: i.cv_r2_key ?? null,
+      nid_front_r2_key: i.nid_front_r2_key ?? null,
+      nid_back_r2_key: i.nid_back_r2_key ?? null,
+      nid_resubmit_requested_at: i.nid_resubmit_requested_at ?? null,
+      nid_resubmit_reason: i.nid_resubmit_reason ?? null,
       workplace: i.workplace ?? null,
       job_role: i.job_role ?? null,
       subjects: i.subjects ?? [],
@@ -409,6 +417,67 @@ export const getUserCvSignedUrl = createServerFn({ method: "POST" })
     const { createPresignedGetUrl } = await import("@/lib/r2.server");
     return createPresignedGetUrl({ key, expiresInSeconds: 300 });
   });
+
+export const getUserNidSignedUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ user_id: z.string().uuid(), side: z.enum(["front", "back"]) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureSuperAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const col = data.side === "front" ? "nid_front_r2_key" : "nid_back_r2_key";
+    const { data: row } = await supabaseAdmin
+      .from("internal_profiles")
+      .select(col)
+      .eq("user_id", data.user_id)
+      .maybeSingle();
+    const key = (row as any)?.[col] as string | null;
+    if (!key) throw new Error(`No NID ${data.side} photo uploaded`);
+    const { createPresignedGetUrl } = await import("@/lib/r2.server");
+    return createPresignedGetUrl({ key, expiresInSeconds: 300 });
+  });
+
+export const requestNidResubmit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({ user_id: z.string().uuid(), reason: z.string().trim().min(3).max(500) })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureSuperAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("internal_profiles")
+      .update({
+        nid_resubmit_requested_at: new Date().toISOString(),
+        nid_resubmit_reason: data.reason,
+        nid_resubmit_requested_by: context.userId,
+      } as never)
+      .eq("user_id", data.user_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const cancelNidResubmit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ user_id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureSuperAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("internal_profiles")
+      .update({
+        nid_resubmit_requested_at: null,
+        nid_resubmit_reason: null,
+        nid_resubmit_requested_by: null,
+      } as never)
+      .eq("user_id", data.user_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 
 export const listUserSessionsAsAdmin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
