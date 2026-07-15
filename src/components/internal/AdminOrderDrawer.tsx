@@ -2037,16 +2037,11 @@ function SmsLogRow({ row }: { row: any }) {
         <span className="inline-flex items-center gap-1 rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-white">
           <MessageSquareText className="size-3" /> SMS
         </span>
-        <span
-          className={cn(
-            "rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase ring-1",
-            sent
-              ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
-              : "bg-rose-50 text-rose-700 ring-rose-200",
-          )}
-        >
-          {sent ? "Delivered to gateway" : "Failed"}
-        </span>
+        <SmsStatusChip
+          status={row.status}
+          providerStatus={row.provider_status}
+          errorReason={row.error_reason}
+        />
         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 ring-1 ring-slate-200">
           {row.kind === "order_confirm" ? "Auto confirmation" : row.kind === "manual" ? "Manual" : row.kind}
         </span>
