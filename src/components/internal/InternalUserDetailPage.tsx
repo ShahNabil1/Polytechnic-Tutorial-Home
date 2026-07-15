@@ -129,11 +129,19 @@ export function InternalUserDetailPage({ userId, role }: Props) {
   }
 
   async function handleRequestResubmit() {
-    const reason = window.prompt(
-      "Reason for resubmit request (visible to the user):",
-      "The photo is not clear enough. Please retake and upload again.",
-    );
-    if (!reason || !reason.trim()) return;
+    const reason = await promptText({
+      variant: "warning",
+      title: "Request NID resubmit",
+      description: "Explain why the user needs to re-upload their NID. This message will be visible to them in their profile.",
+      inputLabel: "Reason (visible to the user)",
+      placeholder: "e.g. The photo is not clear enough. Please retake and upload again.",
+      defaultValue: "The photo is not clear enough. Please retake and upload again.",
+      multiline: true,
+      minLength: 5,
+      maxLength: 500,
+      confirmLabel: "Send request",
+    });
+    if (!reason) return;
     setBusy("nid-resubmit");
     try {
       await requestResubmit({ data: { user_id: userId, reason: reason.trim() } });
