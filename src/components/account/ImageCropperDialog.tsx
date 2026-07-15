@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import Cropper from "react-easy-crop";
 import type { Area } from "react-easy-crop";
 import { Loader2, ZoomIn, ZoomOut, RotateCw, X, Check } from "lucide-react";
+import { useScrollLock } from "@/hooks/use-scroll-lock";
 
 type Props = {
   file: File;
