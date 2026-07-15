@@ -578,11 +578,13 @@ export function InternalUserDetailPage({ userId, role }: Props) {
         </dl>
       </section>
 
-      {/* Editable role-specific fields (address, NID, CV, workplace, job_role, subjects, departments, bank) */}
-      <RoleProfileFieldsEN role={role} targetUserId={userId} />
+      {/* Editable role-specific fields (staff only) */}
+      {!isCustomer && (
+        <RoleProfileFieldsEN role={role as any} targetUserId={userId} />
+      )}
 
-
-      {/* NID photos */}
+      {/* NID photos (staff only) */}
+      {!isCustomer && (
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-base font-bold tracking-tight">
@@ -680,6 +682,7 @@ export function InternalUserDetailPage({ userId, role }: Props) {
           })}
         </div>
       </section>
+      )}
 
 
 
