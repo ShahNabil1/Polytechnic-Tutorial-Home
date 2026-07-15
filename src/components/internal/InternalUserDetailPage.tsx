@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
+import { confirm as confirmDialog, promptText } from "@/components/ui/confirm-dialog";
 import {
   ArrowLeft,
   ScrollText,
@@ -129,11 +129,19 @@ export function InternalUserDetailPage({ userId, role }: Props) {
   }
 
   async function handleRequestResubmit() {
-    const reason = window.prompt(
-      "Reason for resubmit request (visible to the user):",
-      "The photo is not clear enough. Please retake and upload again.",
-    );
-    if (!reason || !reason.trim()) return;
+    const reason = await promptText({
+      variant: "warning",
+      title: "Request NID resubmit",
+      description: "Explain why the user needs to re-upload their NID. This message will be visible to them in their profile.",
+      inputLabel: "Reason (visible to the user)",
+      placeholder: "e.g. The photo is not clear enough. Please retake and upload again.",
+      defaultValue: "The photo is not clear enough. Please retake and upload again.",
+      multiline: true,
+      minLength: 5,
+      maxLength: 500,
+      confirmLabel: "Send request",
+    });
+    if (!reason) return;
     setBusy("nid-resubmit");
     try {
       await requestResubmit({ data: { user_id: userId, reason: reason.trim() } });
@@ -282,10 +290,24 @@ export function InternalUserDetailPage({ userId, role }: Props) {
       toast.error("Target has no email on file — cannot confirm delete");
       return;
     }
-    const typed = window.prompt(
-      `PERMANENT DELETE. Type the user's email to confirm:\n${detail.email}`,
-      "",
-    );
+    const typed = await promptText({
+      variant: "danger",
+      title: "Permanently delete this account?",
+      description: (
+        <>
+          This cannot be undone. All data associated with this account will be permanently removed. To confirm, type the user's email exactly:
+          <br />
+          <span className="mt-2 inline-block rounded-md bg-rose-50 px-2 py-1 font-mono text-xs font-bold text-rose-700">
+            {detail.email}
+          </span>
+        </>
+      ),
+      inputLabel: "Type email to confirm",
+      placeholder: detail.email,
+      minLength: detail.email.length,
+      maxLength: 320,
+      confirmLabel: "Permanently delete",
+    });
     if (!typed) return;
     if (typed.trim().toLowerCase() !== detail.email.toLowerCase()) {
       toast.error("Email did not match");
