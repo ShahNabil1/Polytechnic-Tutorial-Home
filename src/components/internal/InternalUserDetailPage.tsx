@@ -537,11 +537,18 @@ export function InternalUserDetailPage({ userId, role }: Props) {
         </div>
       </section>
 
-      {/* Info grid */}
+      {/* Editable personal info (avatar + name) */}
+      <AdminBasicProfileForm
+        userId={userId}
+        initialFullName={detail.full_name}
+        initialAvatarUrl={detail.avatar_url}
+        onSaved={() => refresh()}
+      />
+
+      {/* Read-only account meta */}
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 font-display text-base font-bold tracking-tight">Account information</h2>
+        <h2 className="mb-4 font-display text-base font-bold tracking-tight">Account meta</h2>
         <dl className="grid gap-4 sm:grid-cols-2">
-          <Info label="Full name" value={detail.full_name} />
           <Info label="Email (primary ID)" value={detail.email} />
           <Info label="Phone" value={detail.phone} />
           <Info label="Display ID" value={detail.display_id} />
@@ -555,19 +562,12 @@ export function InternalUserDetailPage({ userId, role }: Props) {
             label="Last sign-in"
             value={detail.auth.last_sign_in_at ? new Date(detail.auth.last_sign_in_at).toLocaleString() : "—"}
           />
-          <Info label="Workplace" value={detail.workplace} />
-          <Info label="Job role" value={detail.job_role} />
-          <Info label="Address" value={detail.address} />
-          <Info label="NID" value={detail.nid_number} />
-          {detail.subjects.length > 0 && (
-            <Info label="Subjects" value={detail.subjects.join(", ")} />
-          )}
-          {detail.departments.length > 0 && (
-            <Info label="Departments" value={detail.departments.join(", ")} />
-          )}
         </dl>
-        {detail.bank_details && <PaymentDetailsCard bank={detail.bank_details as Record<string, unknown>} />}
       </section>
+
+      {/* Editable role-specific fields (address, NID, CV, workplace, job_role, subjects, departments, bank) */}
+      <RoleProfileFieldsEN role={role} targetUserId={userId} />
+
 
       {/* NID photos */}
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
