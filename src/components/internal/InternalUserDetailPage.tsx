@@ -280,7 +280,7 @@ export function InternalUserDetailPage({ userId, role }: Props) {
     try {
       await revokeRole({ data: { user_id: userId, role } });
       toast.success("Role revoked");
-      router.navigate({ to: role === "employee" ? "/workspace/employees" : "/workspace/instructors" });
+      router.navigate({ to: role === "employee" ? "/workspace/employees" : role === "instructor" ? "/workspace/instructors" : "/workspace/crm" });
     } catch (e) {
       toast.error("Failed: " + (e instanceof Error ? e.message : String(e)));
     } finally {
