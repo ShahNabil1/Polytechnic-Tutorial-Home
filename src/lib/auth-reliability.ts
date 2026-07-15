@@ -1,7 +1,7 @@
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-const TRANSIENT_RETRY_DELAYS_MS = [350, 900];
+const TRANSIENT_RETRY_DELAYS_MS = [300, 800, 1_600, 3_000];
 const SESSION_MIN_VALIDITY_SECONDS = 90;
 
 function messageOf(error: unknown): string {
@@ -17,7 +17,7 @@ function messageOf(error: unknown): string {
 }
 
 function wait(ms: number) {
-  return new Promise((resolve) => window.setTimeout(resolve, ms));
+  return new Promise((resolve) => window.setTimeout(resolve, ms + Math.floor(Math.random() * 180)));
 }
 
 export function isTransientAuthError(error: unknown): boolean {
@@ -64,6 +64,14 @@ export async function retrySupabaseAuth<T extends { error: unknown }>(operation:
     if (result.error && isTransientAuthError(result.error)) throw result.error;
     return result;
   });
+}
+
+export function authErrorMessage(error: unknown, fallback = "কিছু ভুল হয়েছে, আবার চেষ্টা করুন"): string {
+  const raw = messageOf(error);
+  if (isTransientAuthError(error)) {
+    return "কানেকশন সাময়িকভাবে ধীর ছিল। আমরা আবার চেষ্টা করেছি — অনুগ্রহ করে আবার সাবমিট করুন।";
+  }
+  return raw || fallback;
 }
 
 export async function getFreshSession(minValiditySeconds = SESSION_MIN_VALIDITY_SECONDS): Promise<Session | null> {

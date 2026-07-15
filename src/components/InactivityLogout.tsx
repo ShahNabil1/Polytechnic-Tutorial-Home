@@ -4,8 +4,8 @@
  * 30 minutes continuously, signs out too.
  */
 import { useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { signOutSafely } from "@/lib/auth-reliability";
 
 const IDLE_MS = 30 * 60 * 1000;
 const ACTIVITY_EVENTS = ["mousemove", "keydown", "click", "touchstart", "scroll"];
@@ -21,7 +21,7 @@ export function InactivityLogout() {
       signedOut = true;
       toast.error(reason);
       try {
-        await supabase.auth.signOut();
+        await signOutSafely();
       } catch {
         /* ignore */
       }

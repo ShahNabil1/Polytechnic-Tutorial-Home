@@ -21,14 +21,16 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { AlertCircle, CheckCircle2, Eye, EyeOff, KeyRound } from "lucide-react";
+import { AlertCircle, CheckCircle2, Eye, EyeOff, KeyRound, ShieldCheck } from "lucide-react";
 import { checkPhoneAvailability } from "@/lib/auth.functions";
 import { toEnglishText, toEnglishPassword, friendlyPasswordError } from "@/lib/input-filter";
-import { isTransientAuthError, retrySupabaseAuth, signOutSafely } from "@/lib/auth-reliability";
+import { authErrorMessage, retrySupabaseAuth, signOutSafely } from "@/lib/auth-reliability";
 
 type Tab = "login" | "signup";
-type Stage = "form" | "otp" | "mfa" | "reset";
+type Stage = "form" | "otp" | "mfa" | "mfa-enroll" | "reset";
 type OtpFlow = "signup" | "forgot";
+type MfaPurpose = "password-reset" | "session";
+type MfaEnrollment = { factorId: string; qr: string; secret: string };
 
 const RESEND_COOLDOWN_SECONDS = 60;
 const MAX_RESENDS = 3;
@@ -74,7 +76,8 @@ function isValidBdMobile(raw: string): boolean {
 }
 
 function errMsg(e: unknown, fallback = "কিছু ভুল হয়েছে, আবার চেষ্টা করুন"): string {
-  if (isTransientAuthError(e)) return "নেটওয়ার্ক/সেশন কানেকশন সাময়িকভাবে ব্যর্থ হয়েছে। আবার চেষ্টা করুন।";
+  const friendly = authErrorMessage(e, fallback);
+  if (friendly) return friendly;
   if (!e) return fallback;
   if (typeof e === "string") return e;
   if (typeof e === "object") {
@@ -142,9 +145,23 @@ function PasswordFieldEl({
 export function AuthDrawer({
   open,
   onOpenChange,
+  sessionMfaFactorId = null,
+  mfaEnrollmentOpen = false,
+  onBeforeMfaEnrollment,
+  onMfaEnrollmentComplete,
+  onMfaEnrollmentCancel,
+  onSessionMfaComplete,
+  onSessionMfaCancel,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  sessionMfaFactorId?: string | null;
+  mfaEnrollmentOpen?: boolean;
+  onBeforeMfaEnrollment?: () => Promise<void>;
+  onMfaEnrollmentComplete?: () => Promise<void> | void;
+  onMfaEnrollmentCancel?: () => Promise<void> | void;
+  onSessionMfaComplete?: () => void;
+  onSessionMfaCancel?: () => void;
 }) {
   const [tab, setTab] = useState<Tab>("login");
   const [stage, setStage] = useState<Stage>("form");
@@ -160,6 +177,8 @@ export function AuthDrawer({
   const [mfaCode, setMfaCode] = useState("");
   const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
   const [mfaChallengeId, setMfaChallengeId] = useState<string | null>(null);
+  const [mfaPurpose, setMfaPurpose] = useState<MfaPurpose | null>(null);
+  const [mfaEnrollment, setMfaEnrollment] = useState<MfaEnrollment | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
@@ -172,6 +191,8 @@ export function AuthDrawer({
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
   const [lockRemaining, setLockRemaining] = useState(0);
   const tickRef = useRef<number | null>(null);
+  const sessionMfaInitRef = useRef<string | null>(null);
+  const mfaEnrollmentStartedRef = useRef(false);
 
   useEffect(() => {
     if (cooldown <= 0 && lockedUntil === null) return;
@@ -208,6 +229,10 @@ export function AuthDrawer({
     setMfaCode("");
     setMfaFactorId(null);
     setMfaChallengeId(null);
+    setMfaPurpose(null);
+    setMfaEnrollment(null);
+    sessionMfaInitRef.current = null;
+    mfaEnrollmentStartedRef.current = false;
     setStage("form");
     setTab("login");
     setForgotMode(false);
@@ -230,9 +255,89 @@ export function AuthDrawer({
   }
 
   function requestClose() {
+    if (mfaPurpose === "session" || stage === "mfa-enroll") return;
     if (inProgress) setConfirmClose(true);
     else onOpenChange(false);
   }
+
+  async function startMfaChallenge(factorId: string, purpose: MfaPurpose) {
+    const { data: chal, error } = await retrySupabaseAuth(() => supabase.auth.mfa.challenge({ factorId }));
+    if (error) throw error;
+    setMfaFactorId(factorId);
+    setMfaChallengeId(chal.id);
+    setMfaCode("");
+    setMfaPurpose(purpose);
+    setStage("mfa");
+    setInfoMsg(
+      purpose === "session"
+        ? "আপনার Authenticator অ্যাপ থেকে ৬-ডিজিট 2FA কোড দিন"
+        : "আপনার Authenticator অ্যাপ থেকে ৬-ডিজিট 2FA কোড দিন",
+    );
+  }
+
+  async function beginSessionMfaIfNeeded(): Promise<boolean> {
+    const { data: aal } = await retrySupabaseAuth(() => supabase.auth.mfa.getAuthenticatorAssuranceLevel());
+    if (aal?.currentLevel === "aal2" || aal?.nextLevel !== "aal2") return false;
+    const { data: factors } = await retrySupabaseAuth(() => supabase.auth.mfa.listFactors());
+    const totp = (factors?.totp ?? []).find((f) => f.status === "verified");
+    if (!totp) return false;
+    await startMfaChallenge(totp.id, "session");
+    return true;
+  }
+
+  useEffect(() => {
+    if (!open || !sessionMfaFactorId) return;
+    if (sessionMfaInitRef.current === sessionMfaFactorId && stage === "mfa") return;
+    sessionMfaInitRef.current = sessionMfaFactorId;
+    setLoading(true);
+    setFormError(null);
+    setInfoMsg(null);
+    startMfaChallenge(sessionMfaFactorId, "session")
+      .catch((error) => setFormError("2FA যাচাই শুরু করা যায়নি। আবার চেষ্টা করুন। " + errMsg(error)))
+      .finally(() => setLoading(false));
+  }, [open, sessionMfaFactorId, stage]);
+
+  useEffect(() => {
+    if (!open || !mfaEnrollmentOpen) return;
+    if (mfaEnrollmentStartedRef.current) return;
+    mfaEnrollmentStartedRef.current = true;
+    setStage("mfa-enroll");
+    setFormError(null);
+    setInfoMsg(null);
+    setMfaCode("");
+    setLoading(true);
+    (async () => {
+      try {
+        await onBeforeMfaEnrollment?.();
+        const { data: list, error: listError } = await retrySupabaseAuth(() => supabase.auth.mfa.listFactors());
+        if (listError) throw listError;
+        const verified = (list?.totp ?? []).find((factor) => factor.status === "verified");
+        if (verified) {
+          await onMfaEnrollmentComplete?.();
+          resetAll();
+          onOpenChange(false);
+          return;
+        }
+        for (const factor of list?.totp ?? []) {
+          if (factor.status !== "verified") {
+            await retrySupabaseAuth(() => supabase.auth.mfa.unenroll({ factorId: factor.id }));
+          }
+        }
+        const { data, error } = await retrySupabaseAuth(() => supabase.auth.mfa.enroll({
+          factorType: "totp",
+          friendlyName: `TOTP-${Date.now()}`,
+          issuer: "Polytechnic Tutorial",
+        }));
+        if (error) throw error;
+        setMfaEnrollment({ factorId: data.id, qr: data.totp.qr_code, secret: data.totp.secret });
+        setInfoMsg("Authenticator অ্যাপে QR স্ক্যান করে ৬-ডিজিট কোড দিন");
+      } catch (error) {
+        setFormError("2FA সেটআপ শুরু করা যায়নি। " + errMsg(error));
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [open, mfaEnrollmentOpen, onBeforeMfaEnrollment, onMfaEnrollmentComplete, onOpenChange]);
 
   function confirmDiscard() {
     setConfirmClose(false);
@@ -293,6 +398,11 @@ export function AuthDrawer({
         } else {
           setFormError(errMsg(error));
         }
+        return;
+      }
+      const needsMfa = await beginSessionMfaIfNeeded();
+      if (needsMfa) {
+        setLoading(false);
         return;
       }
       toast.success("সাইন ইন সফল");
@@ -436,16 +546,8 @@ export function AuthDrawer({
           const { data: factors } = await retrySupabaseAuth(() => supabase.auth.mfa.listFactors());
           const totp = (factors?.totp ?? []).find((f) => f.status === "verified");
           if (totp) {
-            const { data: chal, error: cErr } = await retrySupabaseAuth(() => supabase.auth.mfa.challenge({
-              factorId: totp.id,
-            }));
-            if (cErr) throw cErr;
-            setMfaFactorId(totp.id);
-            setMfaChallengeId(chal.id);
-            setMfaCode("");
+            await startMfaChallenge(totp.id, "password-reset");
             setLoading(false);
-            setStage("mfa");
-            setInfoMsg("আপনার Authenticator অ্যাপ থেকে ৬-ডিজিট 2FA কোড দিন");
             return;
           }
         } catch (mfaErr) {
@@ -487,10 +589,19 @@ export function AuthDrawer({
         setFormError("2FA কোড ভুল বা মেয়াদ শেষ");
         return;
       }
+      if (mfaPurpose === "session") {
+        setLoading(false);
+        toast.success("2FA সফল");
+        resetAll();
+        onSessionMfaComplete?.();
+        onOpenChange(false);
+        return;
+      }
       setLoading(false);
       setMfaCode("");
       setMfaFactorId(null);
       setMfaChallengeId(null);
+      setMfaPurpose(null);
       setPassword("");
       setConfirmPassword("");
       setStage("reset");
@@ -498,6 +609,39 @@ export function AuthDrawer({
     } catch (err) {
       setLoading(false);
       setFormError(errMsg(err));
+    }
+  }
+
+  async function handleVerifyMfaEnrollment(e: React.FormEvent) {
+    e.preventDefault();
+    setFormError(null);
+    setInfoMsg(null);
+    if (!mfaEnrollment) return setFormError("2FA সেটআপ প্রস্তুত নয়, আবার চেষ্টা করুন");
+    if (mfaCode.length !== 6) return setFormError("৬ ডিজিটের 2FA কোড দিন");
+    setLoading(true);
+    try {
+      const { data: chal, error: cErr } = await retrySupabaseAuth(() => supabase.auth.mfa.challenge({
+        factorId: mfaEnrollment.factorId,
+      }));
+      if (cErr) throw cErr;
+      const { error: vErr } = await retrySupabaseAuth(() => supabase.auth.mfa.verify({
+        factorId: mfaEnrollment.factorId,
+        challengeId: chal.id,
+        code: mfaCode,
+      }));
+      if (vErr) {
+        setLoading(false);
+        setFormError("2FA কোড ভুল বা মেয়াদ শেষ");
+        return;
+      }
+      await onMfaEnrollmentComplete?.();
+      setLoading(false);
+      toast.success("2FA চালু হয়েছে");
+      resetAll();
+      onOpenChange(false);
+    } catch (error) {
+      setLoading(false);
+      setFormError(errMsg(error));
     }
   }
 
@@ -568,6 +712,11 @@ export function AuthDrawer({
       // hint so allowCredentials can be scoped for older authenticators.
       const phoneHint = isValidBdMobile(phoneRaw) ? phone : undefined;
       await passkeyClient.signInWithPasskey(phoneHint);
+      const needsMfa = await beginSessionMfaIfNeeded();
+      if (needsMfa) {
+        setLoading(false);
+        return;
+      }
       setLoading(false);
       toast.success("Passkey দিয়ে সাইন ইন সফল");
       resetAll();
@@ -640,6 +789,8 @@ export function AuthDrawer({
   const cardTitle =
     stage === "reset"
       ? "নতুন পাসওয়ার্ড সেট করুন"
+      : stage === "mfa-enroll"
+      ? "টু-ফ্যাক্টর সেটআপ"
       : stage === "mfa"
         ? "টু-ফ্যাক্টর কোড দিন"
         : stage === "otp"
@@ -679,7 +830,7 @@ export function AuthDrawer({
 
           <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-6">
             <div className="w-full max-w-sm">
-              <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+                <div className="min-h-[350px] rounded-xl border border-border bg-card p-5 shadow-sm">
                 <div className="mb-4 text-center">
                   <h2 className="text-lg font-semibold">{cardTitle}</h2>
                 </div>
@@ -902,12 +1053,13 @@ export function AuthDrawer({
                   </form>
                 )}
 
-                {/* MFA (2FA) — forgot-password gate for staff/admin */}
+                {/* MFA (2FA) — session challenge / forgot-password gate */}
                 {stage === "mfa" && (
                   <form className="space-y-4" onSubmit={handleVerifyMfaOtp}>
                     <div className="rounded-lg bg-muted/60 p-3 text-sm">
-                      আপনার একাউন্টে টু-ফ্যাক্টর অথেন্টিকেশন চালু আছে। পাসওয়ার্ড রিসেট করার
-                      আগে Authenticator অ্যাপ থেকে ৬-ডিজিট কোড দিন।
+                      {mfaPurpose === "session"
+                        ? "আপনার একাউন্টে টু-ফ্যাক্টর অথেন্টিকেশন চালু আছে। চালিয়ে যেতে Authenticator অ্যাপ থেকে ৬-ডিজিট কোড দিন।"
+                        : "আপনার একাউন্টে টু-ফ্যাক্টর অথেন্টিকেশন চালু আছে। পাসওয়ার্ড রিসেট করার আগে Authenticator অ্যাপ থেকে ৬-ডিজিট কোড দিন।"}
                     </div>
                     {InfoBox}
                     <div className="space-y-2">
@@ -931,18 +1083,94 @@ export function AuthDrawer({
                       className="w-full bg-amber-500 text-amber-950 hover:bg-amber-600"
                       disabled={loading || mfaCode.length !== 6}
                     >
-                      {loading ? "যাচাই করা হচ্ছে..." : "ভেরিফাই করুন"}
+                      {loading ? "যাচাই করা হচ্ছে..." : <><ShieldCheck className="mr-2 size-4" />ভেরিফাই করুন</>}
                     </Button>
                     <div className="text-center text-xs">
                       <button
                         type="button"
                         onClick={async () => {
-                          await supabase.auth.signOut();
+                          await signOutSafely();
+                          onSessionMfaCancel?.();
                           resetAll();
+                          onOpenChange(false);
                         }}
                         className="text-muted-foreground hover:text-foreground"
                       >
                         ← বাতিল করে সাইন আউট
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* MFA enrollment — first-time internal setup */}
+                {stage === "mfa-enroll" && (
+                  <form className="space-y-4" onSubmit={handleVerifyMfaEnrollment}>
+                    <div className="rounded-lg bg-muted/60 p-3 text-sm">
+                      Authenticator অ্যাপে QR স্ক্যান করুন, তারপর ৬-ডিজিট কোড দিন।
+                    </div>
+                    {InfoBox}
+                    {!mfaEnrollment ? (
+                      <div className="rounded-lg border border-border bg-background px-3 py-8 text-center text-sm text-muted-foreground">
+                        {loading ? "2FA সেটআপ প্রস্তুত হচ্ছে..." : "2FA সেটআপ শুরু করুন"}
+                      </div>
+                    ) : (
+                      <>
+                        <div className="rounded-lg border border-border bg-muted/40 p-3">
+                          <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
+                            <img
+                              src={mfaEnrollment.qr}
+                              alt="2FA QR code"
+                              className="size-32 rounded-md border border-border bg-background p-2"
+                            />
+                            <div className="min-w-0 flex-1 space-y-1.5">
+                              <div className="text-[11px] font-semibold uppercase text-muted-foreground">
+                                Manual secret
+                              </div>
+                              <code className="block break-all rounded-md border border-border bg-background px-2 py-1.5 font-mono text-xs">
+                                {mfaEnrollment.secret}
+                              </code>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="auth-mfa-enroll">২FA কোড</Label>
+                          <Input
+                            id="auth-mfa-enroll"
+                            inputMode="numeric"
+                            autoComplete="one-time-code"
+                            maxLength={6}
+                            value={mfaCode}
+                            onChange={(e) =>
+                              setMfaCode(bnToEnDigits(e.target.value).replace(/\D/g, "").slice(0, 6))
+                            }
+                            required
+                            autoFocus
+                          />
+                        </div>
+                      </>
+                    )}
+                    {ErrorBox}
+                    <Button
+                      type="submit"
+                      className="w-full bg-amber-500 text-amber-950 hover:bg-amber-600"
+                      disabled={loading || !mfaEnrollment || mfaCode.length !== 6}
+                    >
+                      {loading ? "যাচাই করা হচ্ছে..." : <><ShieldCheck className="mr-2 size-4" />2FA চালু করুন</>}
+                    </Button>
+                    <div className="text-center text-xs">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (mfaEnrollment) {
+                            await retrySupabaseAuth(() => supabase.auth.mfa.unenroll({ factorId: mfaEnrollment.factorId })).catch(() => undefined);
+                          }
+                          await onMfaEnrollmentCancel?.();
+                          resetAll();
+                          onOpenChange(false);
+                        }}
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        ← বাতিল করুন
                       </button>
                     </div>
                   </form>

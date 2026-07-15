@@ -56,11 +56,10 @@ function AuthenticatedLayout() {
   }
 
   return (
-    <>
+    <MfaChallengeGate>
       <Outlet />
       <SessionEnforcer />
       <InactivityLogout />
-      <MfaChallengeGate />
-    </>
+    </MfaChallengeGate>
   );
 }
