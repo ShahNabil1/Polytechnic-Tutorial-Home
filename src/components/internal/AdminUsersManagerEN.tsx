@@ -12,6 +12,7 @@ import {
   Eye,
   EyeOff,
   RefreshCw,
+  ScrollText,
 } from "lucide-react";
 import {
   listInternalUsers,
@@ -20,6 +21,7 @@ import {
   setInternalUserActive,
   type AdminUserRow,
 } from "@/lib/admin-users.functions";
+import { InternalEmailLogsDialog } from "@/components/internal/InternalEmailLogsDialog";
 
 type FormState = {
   full_name: string;
