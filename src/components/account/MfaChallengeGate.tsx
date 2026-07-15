@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, ShieldCheck, X } from "lucide-react";
 import { toEnglishDigits } from "@/lib/input-filter";
+import { retrySupabaseAuth, signOutSafely } from "@/lib/auth-reliability";
 
 export function MfaChallengeGate() {
   const [need, setNeed] = useState<null | { factorId: string }>(null);
@@ -22,17 +23,17 @@ export function MfaChallengeGate() {
     if (checkingRef.current) return;
     checkingRef.current = true;
     try {
-      const { data: sess } = await supabase.auth.getSession();
+      const { data: sess } = await retrySupabaseAuth(() => supabase.auth.getSession());
       if (!sess.session) {
         setNeed(null);
         return;
       }
-      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      const { data: aal } = await retrySupabaseAuth(() => supabase.auth.mfa.getAuthenticatorAssuranceLevel());
       if (aal?.currentLevel === "aal2" || aal?.nextLevel !== "aal2") {
         setNeed(null);
         return;
       }
-      const { data: factors } = await supabase.auth.mfa.listFactors();
+      const { data: factors } = await retrySupabaseAuth(() => supabase.auth.mfa.listFactors());
       const totp = (factors?.totp ?? []).find((f) => f.status === "verified");
       if (totp) setNeed({ factorId: totp.id });
     } finally {
@@ -56,15 +57,15 @@ export function MfaChallengeGate() {
     if (code.length !== 6) return toast.error("৬ ডিজিটের কোড দিন");
     setBusy(true);
     try {
-      const { data: chal, error: cErr } = await supabase.auth.mfa.challenge({
+      const { data: chal, error: cErr } = await retrySupabaseAuth(() => supabase.auth.mfa.challenge({
         factorId: need.factorId,
-      });
+      }));
       if (cErr) throw cErr;
-      const { error: vErr } = await supabase.auth.mfa.verify({
+      const { error: vErr } = await retrySupabaseAuth(() => supabase.auth.mfa.verify({
         factorId: need.factorId,
         challengeId: chal.id,
         code,
-      });
+      }));
       if (vErr) throw vErr;
       toast.success("2FA সফল");
       setCode("");
@@ -79,7 +80,7 @@ export function MfaChallengeGate() {
   async function cancel() {
     setNeed(null);
     setCode("");
-    await supabase.auth.signOut();
+    await signOutSafely();
   }
 
   useEffect(() => {
