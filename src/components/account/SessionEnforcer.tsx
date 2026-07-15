@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Loader2, Monitor, LogOut } from "lucide-react";
 import { pingTrackedSession, registerTrackedSession, revokeTrackedSession } from "@/lib/session-api";
 import { getFreshSession, signOutSafely } from "@/lib/auth-reliability";
+import { useScrollLock } from "@/hooks/use-scroll-lock";
 
 type ChoiceSession = {
   id: string;
