@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { BD_LOCATIONS } from "@/lib/bd-locations";
+import { useScrollLock } from "@/hooks/use-scroll-lock";
 
 import {
   X,
@@ -92,6 +93,7 @@ export function AdminOrderDrawer({
   const searchProducts = useServerFn(searchProductsForOrder);
   const retrySF = useServerFn(retrySteadfastDispatch);
   const [retryingSF, setRetryingSF] = useState(false);
+  useScrollLock(true);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["admin-order", orderId],

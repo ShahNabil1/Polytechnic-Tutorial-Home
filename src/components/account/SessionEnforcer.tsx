@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Loader2, Monitor, LogOut } from "lucide-react";
 import { pingTrackedSession, registerTrackedSession, revokeTrackedSession } from "@/lib/session-api";
 import { getFreshSession, signOutSafely } from "@/lib/auth-reliability";
+import { useScrollLock } from "@/hooks/use-scroll-lock";
 
 type ChoiceSession = {
   id: string;
@@ -43,6 +44,7 @@ export function SessionEnforcer() {
   const [choice, setChoice] = useState<ChoiceSession[] | null>(null);
   const [kicking, setKicking] = useState<string | null>(null);
   const registeredForSessionRef = useRef<string | null>(null);
+  useScrollLock(!!choice);
 
   useEffect(() => {
     let cancelled = false;

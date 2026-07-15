@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Loader2, X, CheckCircle2, XCircle, Truck } from "lucide-react";
 import { bulkDispatchToSteadfast } from "@/lib/steadfast.functions";
 import { cn } from "@/lib/utils";
+import { useScrollLock } from "@/hooks/use-scroll-lock";
 
 export type BulkDispatchOrder = {
   id: string;
@@ -40,6 +41,7 @@ export function BulkRTSDialog({
   const [results, setResults] = useState<Result[]>([]);
   const [errorText, setErrorText] = useState<string | null>(null);
   const startedRef = useRef(false);
+  useScrollLock(open);
 
   useEffect(() => {
     if (!open) {

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { sendCrmBulkSms, sendCrmBulkEmail } from "@/lib/crm-bulk.functions";
 import { listSmsTemplates } from "@/lib/sms.functions";
 import { listEmailTemplates } from "@/lib/email-templates.functions";
+import { useScrollLock } from "@/hooks/use-scroll-lock";
 
 export type BulkRecipient = {
   user_id?: string | null;
@@ -36,6 +37,7 @@ export function CrmBulkSendDialog({
   const [body, setBody] = useState("");
   const [subject, setSubject] = useState("");
   const [sending, setSending] = useState(false);
+  useScrollLock(true);
 
   const eligible = recipients.filter((r) =>
     channel === "sms" ? !!r.phone : !!r.email,

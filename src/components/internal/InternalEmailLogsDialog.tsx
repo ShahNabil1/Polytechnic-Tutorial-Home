@@ -4,6 +4,7 @@ import { Loader2, X, Mail, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ResendEventChips, ResendLogo } from "@/components/internal/ResendEventChips";
 import { listInternalEmailDeliveries } from "@/lib/admin-users.functions";
+import { useScrollLock } from "@/hooks/use-scroll-lock";
 
 type Row = {
   id: string;
@@ -50,6 +51,7 @@ export function InternalEmailLogsDialog({
   const list = useServerFn(listInternalEmailDeliveries);
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
+  useScrollLock(true);
 
   async function refresh() {
     try {

@@ -35,6 +35,7 @@ import {
 import type { AppRole } from "@/lib/roles.functions";
 import { toEnglishPassword, toEnglishText } from "@/lib/input-filter";
 import { retrySupabaseAuth, signOutSafely } from "@/lib/auth-reliability";
+import { useScrollLock } from "@/hooks/use-scroll-lock";
 
 type Props = {
   role: AppRole;
@@ -56,6 +57,7 @@ export function InternalOnboardingGate({ role, children }: Props) {
   const [checkError, setCheckError] = useState<string | null>(null);
 
   const requiresMfa = role === "employee" || role === "super_admin";
+  useScrollLock(required && step !== "done" && step !== "loading");
 
   useEffect(() => {
     if (!user) return;
