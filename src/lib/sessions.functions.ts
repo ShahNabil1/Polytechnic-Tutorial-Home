@@ -162,16 +162,12 @@ export const listMySessions = createServerFn({ method: "GET" })
 
 const RevokeSchema = z.object({ id: z.string().uuid() });
 
-/** Revoke a specific session (by row id). Kicked device self-signs-out via heartbeat. */
+/** Revoke a specific session (by row id). Also kills the auth session server-side. */
 export const revokeSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => RevokeSchema.parse(input))
   .handler(async ({ context, data }) => {
-    const { error } = await context.supabase
-      .from("user_sessions")
-      .delete()
-      .eq("id", data.id)
-      .eq("user_id", context.userId);
+    const { error } = await context.supabase.rpc("revoke_user_session", { _tracked_id: data.id });
     if (error) throw new Error(error.message);
     return { ok: true as const };
   });
@@ -197,7 +193,7 @@ export const renameSession = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
-/** Revoke every session for the user EXCEPT the current one. */
+/** Revoke every session for the user EXCEPT the current one (kills auth tokens too). */
 export const revokeOtherSessions = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -207,14 +203,11 @@ export const revokeOtherSessions = createServerFn({ method: "POST" })
       console.error("[sessions] missing session_id claim; keys=", Object.keys(c));
       throw new Error("Session claim missing (session_id)");
     }
-    const { data, error } = await context.supabase
-      .from("user_sessions")
-      .delete()
-      .eq("user_id", context.userId)
-      .neq("session_token_hash", sessionId)
-      .select("id");
+    const { data, error } = await context.supabase.rpc("revoke_other_user_sessions", {
+      _current_token_hash: sessionId,
+    });
     if (error) throw new Error(error.message);
-    return { ok: true as const, revoked: data?.length ?? 0 };
+    return { ok: true as const, revoked: typeof data === "number" ? data : 0 };
   });
 
 /**
