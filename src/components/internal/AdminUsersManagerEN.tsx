@@ -285,6 +285,14 @@ export function AdminUsersManagerEN({ role }: { role: "employee" | "instructor" 
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
+                    onClick={() => setLogsFor(r)}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                    title="View welcome-email delivery logs"
+                  >
+                    <ScrollText className="size-3.5" /> Logs
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => toggleActive(r)}
                     disabled={busyId === r.user_id}
                     className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold hover:bg-slate-50 disabled:opacity-60"
