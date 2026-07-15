@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, BookOpen, ShoppingBag, User as UserIcon } from "lucide-react";
+import { LayoutDashboard, BookOpen, ShoppingBag, User as UserIcon, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
@@ -52,6 +52,14 @@ function StudentDashboardLayout() {
 
   const missing = getMissingProfileFields(profile);
   const onProfilePage = pathname === "/sdash/profile";
+
+  if (roleLoading || !info || isInternal) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 md:flex-row md:px-6 md:py-10">
