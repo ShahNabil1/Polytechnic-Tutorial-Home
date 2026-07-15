@@ -151,11 +151,26 @@ export function RoleProfileFieldsEN({ role }: { role: AppRole }) {
     e.preventDefault();
     setSaving(true);
     try {
+      // Only keep fields relevant to the currently-selected payout method so
+      // switching from bank → MFS (or vice versa) does not persist stale fields.
+      const method = form.bank.method ?? "bank";
+      const cleanBank: BankDetails = { method };
+      if (form.bank.account_name?.trim()) cleanBank.account_name = form.bank.account_name.trim();
+      if (method === "bank") {
+        if (form.bank.bank_name?.trim()) cleanBank.bank_name = form.bank.bank_name.trim();
+        if (form.bank.branch?.trim()) cleanBank.branch = form.bank.branch.trim();
+        if (form.bank.account_number?.trim()) cleanBank.account_number = form.bank.account_number.trim();
+        if (form.bank.routing?.trim()) cleanBank.routing = form.bank.routing.trim();
+      } else {
+        if (form.bank.mfs_number?.trim()) cleanBank.mfs_number = form.bank.mfs_number.trim();
+      }
+      const hasBank = Object.keys(cleanBank).length > 1; // method + at least one field
+
       const payload = {
         address: form.address.trim() || null,
         nid_number: form.nid_number.trim() || null,
         cv_r2_key: form.cv_r2_key.trim() || null,
-        bank_details: form.bank && Object.values(form.bank).some(Boolean) ? form.bank : null,
+        bank_details: hasBank ? cleanBank : null,
         workplace: isInstructor ? form.workplace.trim() || null : null,
         job_role: isInstructor ? form.job_role.trim() || null : null,
         subjects: isInstructor
@@ -166,7 +181,9 @@ export function RoleProfileFieldsEN({ role }: { role: AppRole }) {
           : [],
       };
       await save({ data: payload });
-      setSaved(form);
+      const nextForm = { ...form, bank: cleanBank };
+      setForm(nextForm);
+      setSaved(nextForm);
       setEditMode(false);
       toast.success("Saved");
     } catch (err) {
