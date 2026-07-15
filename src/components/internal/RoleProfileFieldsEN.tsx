@@ -475,6 +475,7 @@ export function RoleProfileFieldsEN({ role }: { role: AppRole }) {
           </form>
         </section>
       )}
+      {!isSuperAdmin && <NidUploadCard />}
     </>
   );
 }
