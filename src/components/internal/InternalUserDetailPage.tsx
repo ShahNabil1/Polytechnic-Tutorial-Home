@@ -270,17 +270,31 @@ export function InternalUserDetailPage({ userId, role }: Props) {
       {/* Header card */}
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
-          {detail.avatar_url ? (
-            <img
-              src={detail.avatar_url}
-              alt=""
-              className="size-24 rounded-full object-cover ring-2 ring-indigo-500/30"
-            />
-          ) : (
-            <div className="grid size-24 place-items-center rounded-full bg-slate-100">
-              <UserIcon className="size-9 text-slate-400" />
-            </div>
-          )}
+          <div className="group relative">
+            {detail.avatar_url ? (
+              <img
+                src={detail.avatar_url}
+                alt=""
+                className="size-24 rounded-full object-cover ring-2 ring-indigo-500/30"
+              />
+            ) : (
+              <div className="grid size-24 place-items-center rounded-full bg-slate-100">
+                <UserIcon className="size-9 text-slate-400" />
+              </div>
+            )}
+            {detail.avatar_url && (
+              <a
+                href={detail.avatar_url}
+                download={`${(detail.full_name || "avatar").replace(/[^a-z0-9-_]+/gi, "_")}.jpg`}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Download profile picture"
+                className="absolute -bottom-1 -right-1 grid size-8 place-items-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
+              >
+                <FileDown className="size-3.5" />
+              </a>
+            )}
+          </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="font-display text-2xl font-bold tracking-tight text-slate-900">
@@ -385,16 +399,7 @@ export function InternalUserDetailPage({ userId, role }: Props) {
             <Info label="Departments" value={detail.departments.join(", ")} />
           )}
         </dl>
-        {detail.bank_details && (
-          <div className="mt-6">
-            <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">
-              Payment details
-            </div>
-            <pre className="overflow-x-auto rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
-              {JSON.stringify(detail.bank_details, null, 2)}
-            </pre>
-          </div>
-        )}
+        {detail.bank_details && <PaymentDetailsCard bank={detail.bank_details as Record<string, unknown>} />}
       </section>
 
       {/* Sessions */}
@@ -511,6 +516,55 @@ function Info({ label, value }: { label: string; value: string | null | undefine
     <div>
       <dt className="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">{label}</dt>
       <dd className="mt-0.5 break-words text-sm font-medium text-slate-900">{value || "—"}</dd>
+    </div>
+  );
+}
+
+const PAYMENT_LABELS: Record<string, string> = {
+  method: "Method",
+  account_name: "Account name",
+  account_number: "Account number",
+  bank_name: "Bank name",
+  branch: "Branch",
+  routing: "Routing number",
+  mfs_number: "MFS number",
+};
+const METHOD_LABEL: Record<string, string> = {
+  bank: "Bank transfer",
+  bkash: "bKash",
+  nagad: "Nagad",
+  rocket: "Rocket",
+  upay: "Upay",
+};
+
+function PaymentDetailsCard({ bank }: { bank: Record<string, unknown> }) {
+  const method = typeof bank.method === "string" ? bank.method : "bank";
+  // Only surface fields that belong to this method — hides ghost values from legacy rows.
+  const keys = method === "bank"
+    ? ["method", "account_name", "bank_name", "branch", "account_number", "routing"]
+    : ["method", "account_name", "mfs_number"];
+  const rows = keys
+    .map((k) => {
+      const v = bank[k];
+      if (typeof v !== "string" || !v.trim()) return null;
+      const display = k === "method" ? METHOD_LABEL[v] ?? v : v;
+      return { k, label: PAYMENT_LABELS[k] ?? k, value: display };
+    })
+    .filter((x): x is { k: string; label: string; value: string } => x !== null);
+  if (rows.length === 0) return null;
+  return (
+    <div className="mt-6">
+      <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">
+        Payment details
+      </div>
+      <dl className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2">
+        {rows.map((r) => (
+          <div key={r.k}>
+            <dt className="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">{r.label}</dt>
+            <dd className="mt-0.5 break-words text-sm font-medium text-slate-900">{r.value}</dd>
+          </div>
+        ))}
+      </dl>
     </div>
   );
 }
