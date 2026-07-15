@@ -13,6 +13,7 @@ type Saved = {
   bypass_token: string;
   bypass_expires_at: string;
   started_at: string;
+  origin_path?: string;
 };
 
 export function getImpersonationState(): Saved | null {
