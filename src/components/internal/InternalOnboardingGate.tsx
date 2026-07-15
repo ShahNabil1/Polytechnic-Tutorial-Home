@@ -15,7 +15,6 @@ import { toast } from "sonner";
 import {
   Loader2,
   CheckCircle2,
-  ShieldCheck,
   KeyRound,
   User as UserIcon,
   Eye,
@@ -24,14 +23,15 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { AuthDrawer } from "@/components/auth-drawer";
 import {
   getMyInternalProfile,
   completeInternalFirstLogin,
-  syncMyPrimaryAuthEmail,
   updateMyInternalProfile,
 } from "@/lib/internal-profile.functions";
 import type { AppRole } from "@/lib/roles.functions";
-import { toEnglishDigits, toEnglishPassword, toEnglishText } from "@/lib/input-filter";
+import { toEnglishPassword, toEnglishText } from "@/lib/input-filter";
+import { retrySupabaseAuth, signOutSafely } from "@/lib/auth-reliability";
 
 type Props = {
   role: AppRole;
@@ -44,7 +44,6 @@ export function InternalOnboardingGate({ role, children }: Props) {
   const { user } = useAuth();
   const getProfile = useServerFn(getMyInternalProfile);
   const markDone = useServerFn(completeInternalFirstLogin);
-  const syncEmail = useServerFn(syncMyPrimaryAuthEmail);
   const updateInternal = useServerFn(updateMyInternalProfile);
 
   const [step, setStep] = useState<Step>("loading");
@@ -60,7 +59,7 @@ export function InternalOnboardingGate({ role, children }: Props) {
       try {
         const [profile, factors] = await Promise.all([
           getProfile({ data: undefined as never }),
-          supabase.auth.mfa.listFactors(),
+          retrySupabaseAuth(() => supabase.auth.mfa.listFactors()),
         ]);
         if (cancelled) return;
         if (!profile) {
@@ -146,7 +145,7 @@ export function InternalOnboardingGate({ role, children }: Props) {
     if (pw1 !== pw2) return toast.error("Passwords do not match.");
     setSaving(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password: pw1 });
+      const { error } = await retrySupabaseAuth(() => supabase.auth.updateUser({ password: pw1 }));
       if (error) throw error;
       toast.success("Password updated");
       setPw1("");
@@ -160,60 +159,8 @@ export function InternalOnboardingGate({ role, children }: Props) {
     }
   }
 
-  // Step 3: MFA (only when required)
+  // Step 3: MFA (only when required) is rendered inside the shared auth drawer.
   const [mfaVerified, setMfaVerified] = useState(false);
-  const [enrolling, setEnrolling] = useState<null | { factorId: string; qr: string; secret: string }>(null);
-  const [code, setCode] = useState("");
-
-  useEffect(() => {
-    if (step !== "mfa" || !requiresMfa || mfaVerified) return;
-    (async () => {
-      setSaving(true);
-      try {
-        await syncEmail({ data: undefined as never });
-        const { data: list } = await supabase.auth.mfa.listFactors();
-        for (const f of list?.totp ?? []) {
-          if (f.status !== "verified") await supabase.auth.mfa.unenroll({ factorId: f.id });
-        }
-        const { data, error } = await supabase.auth.mfa.enroll({
-          factorType: "totp",
-          friendlyName: `TOTP-${Date.now()}`,
-          issuer: "Polytechnic Tutorial",
-        });
-        if (error) throw error;
-        setEnrolling({ factorId: data.id, qr: data.totp.qr_code, secret: data.totp.secret });
-      } catch (err) {
-        toast.error("Could not start 2FA setup: " + (err instanceof Error ? err.message : String(err)));
-      } finally {
-        setSaving(false);
-      }
-    })();
-  }, [step, requiresMfa, mfaVerified, syncEmail]);
-
-  async function verifyMfa() {
-    if (!enrolling) return;
-    if (code.length !== 6) return toast.error("Enter the 6-digit code from your app.");
-    setSaving(true);
-    try {
-      const { data: chal, error: cErr } = await supabase.auth.mfa.challenge({ factorId: enrolling.factorId });
-      if (cErr) throw cErr;
-      const { error: vErr } = await supabase.auth.mfa.verify({
-        factorId: enrolling.factorId,
-        challengeId: chal.id,
-        code,
-      });
-      if (vErr) throw vErr;
-      await updateInternal({ data: { mfa_enrolled: true } as never }).catch(() => null);
-      setMfaVerified(true);
-      toast.success("2FA enabled");
-      setCode("");
-      await finish();
-    } catch (err) {
-      toast.error("Incorrect code: " + (err instanceof Error ? err.message : String(err)));
-    } finally {
-      setSaving(false);
-    }
-  }
 
   async function finish() {
     try {
@@ -226,8 +173,8 @@ export function InternalOnboardingGate({ role, children }: Props) {
   }
 
   async function signOut() {
-    await supabase.auth.signOut();
-    window.location.href = "/auth";
+    await signOutSafely();
+    window.location.href = "/";
   }
 
   const stepIndex = useMemo(() => {
@@ -237,6 +184,28 @@ export function InternalOnboardingGate({ role, children }: Props) {
   }, [step, requiresMfa]);
 
   if (!required || step === "done") return <>{children}</>;
+  if (step === "mfa" && requiresMfa && !mfaVerified) {
+    return (
+      <div className="min-h-[60vh]">
+        <div className="flex min-h-[60vh] items-center justify-center px-4 text-center">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="size-4 animate-spin" /> Preparing secure 2FA setup...
+          </div>
+        </div>
+        <AuthDrawer
+          open={true}
+          onOpenChange={() => undefined}
+          mfaEnrollmentOpen={true}
+          onMfaEnrollmentComplete={async () => {
+            await updateInternal({ data: { mfa_enrolled: true } as never }).catch(() => null);
+            setMfaVerified(true);
+            await finish();
+          }}
+          onMfaEnrollmentCancel={signOut}
+        />
+      </div>
+    );
+  }
   if (step === "loading") {
     return (
       <div className="grid min-h-[70vh] place-items-center">
@@ -357,61 +326,6 @@ export function InternalOnboardingGate({ role, children }: Props) {
             </form>
           )}
 
-          {step === "mfa" && requiresMfa && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
-                <ShieldCheck className="size-4 text-indigo-600" /> Enable two-factor authentication
-              </div>
-              <p className="text-xs font-medium text-slate-500">
-                Scan the QR code in Google Authenticator, Authy, or 1Password, then enter the 6-digit code.
-                2FA is mandatory for {role === "super_admin" ? "super admins" : "employees"}.
-              </p>
-              {!enrolling ? (
-                <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 p-3 text-xs font-medium text-slate-600">
-                  <Loader2 className="size-4 animate-spin" /> Preparing your 2FA secret...
-                </div>
-              ) : (
-                <>
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                    <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
-                      <img
-                        src={enrolling.qr}
-                        alt="TOTP QR"
-                        className="size-36 rounded-md border border-slate-200 bg-white p-2"
-                      />
-                      <div className="w-full space-y-1.5">
-                        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                          Or enter this secret manually
-                        </div>
-                        <code className="block break-all rounded-md border border-slate-200 bg-white px-2 py-1.5 font-mono text-xs">
-                          {enrolling.secret}
-                        </code>
-                      </div>
-                    </div>
-                  </div>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    maxLength={6}
-                    value={code}
-                    onChange={(e) => setCode(toEnglishDigits(e.target.value).replace(/\D/g, "").slice(0, 6))}
-                    placeholder="000000"
-                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-3 text-center font-mono text-2xl tracking-widest outline-none focus:border-indigo-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={verifyMfa}
-                    disabled={saving || code.length !== 6}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-60"
-                  >
-                    {saving ? <Loader2 className="size-4 animate-spin" /> : <ShieldCheck className="size-4" />}
-                    Verify &amp; finish
-                  </button>
-                </>
-              )}
-            </div>
-          )}
         </div>
       </div>
     </div>
