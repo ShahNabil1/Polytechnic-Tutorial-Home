@@ -259,27 +259,14 @@ export function AdminUsersManagerEN({ role }: { role: "employee" | "instructor" 
                   >
                     <ScrollText className="size-3.5" /> Logs
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => toggleActive(r)}
-                    disabled={busyId === r.user_id}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold hover:bg-slate-50 disabled:opacity-60"
+                  <Link
+                    to={role === "employee" ? "/workspace/employees/$userId" : "/workspace/instructors/$userId"}
+                    params={{ userId: r.user_id }}
+                    className="inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-3 py-1.5 text-xs font-bold text-white hover:bg-slate-800"
+                    title="Open full details"
                   >
-                    {r.is_active ? (
-                      <ShieldOff className="size-3.5" />
-                    ) : (
-                      <ShieldCheck className="size-3.5" />
-                    )}
-                    {r.is_active ? "Deactivate" : "Activate"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => revokeUser(r.user_id)}
-                    disabled={busyId === r.user_id}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-100 disabled:opacity-60"
-                  >
-                    <UserMinus className="size-3.5" /> Revoke Role
-                  </button>
+                    <ExternalLink className="size-3.5" /> View
+                  </Link>
                 </div>
               </li>
             ))}
