@@ -1,11 +1,14 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { AuthDrawer } from "@/components/auth-drawer";
 import { SessionEnforcer } from "@/components/account/SessionEnforcer";
 import { InactivityLogout } from "@/components/InactivityLogout";
 import { MfaChallengeGate } from "@/components/account/MfaChallengeGate";
 import { Loader2, Lock } from "lucide-react";
+import { getMyAccountStatus } from "@/lib/account-status.functions";
+import { signOutSafely } from "@/lib/auth-reliability";
 
 
 export const Route = createFileRoute("/_authenticated")({
