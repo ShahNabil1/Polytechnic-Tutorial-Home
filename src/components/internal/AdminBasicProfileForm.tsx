@@ -63,11 +63,14 @@ export function AdminBasicProfileForm({
         onProgress: (p) => setPct(p),
       });
       setAvatarUrl(url);
-      toast.success("Photo uploaded");
+      toast.success("Photo uploaded", { description: "Click Save Changes to apply." });
     } catch (err) {
-      toast.error("Upload failed: " + (err instanceof Error ? err.message : "unknown"));
+      toast.error("Upload failed", {
+        description: err instanceof Error ? err.message : "unknown",
+      });
     } finally {
       setUploading(false);
+      setPct(0);
     }
   }
 
