@@ -19,6 +19,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { BlocklistGate } from "@/components/BlocklistGate";
 import { ConfirmDialogHost } from "@/components/ui/confirm-dialog";
 import { ImpersonationBanner } from "@/components/ImpersonationBanner";
+import { CartSync } from "@/components/CartSync";
+
 
 function NotFoundComponent() {
   return (
@@ -196,10 +198,12 @@ function RootComponent() {
           </main>
           {!hideFooter && <SiteFooter />}
         </div>
+        <CartSync />
       </BlocklistGate>
       <Toaster richColors position="top-center" />
       <ConfirmDialogHost />
     </QueryClientProvider>
+
   );
 }
 
