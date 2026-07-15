@@ -14,6 +14,7 @@ import {
 } from "@/lib/crm-messaging.functions";
 import { listSmsTemplates } from "@/lib/sms.functions";
 import { listEmailTemplates } from "@/lib/email-templates.functions";
+import { SmsStatusChip } from "@/components/internal/SmsStatusChip";
 
 function fmtWhen(iso: string | null | undefined) {
   if (!iso) return "—";
