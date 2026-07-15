@@ -133,7 +133,7 @@ export const listInternalUsers = createServerFn({ method: "GET" })
       return {
         user_id: id,
         full_name: p.full_name ?? null,
-        phone: p.phone ?? null,
+        phone: stripBDCountryCode(p.phone ?? null),
         email: p.email ?? syncedEmails.get(id) ?? null,
         avatar_url: p.avatar_url ?? null,
         role: byUser.get(id) as AdminUserRow["role"],
