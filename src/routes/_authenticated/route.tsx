@@ -24,6 +24,32 @@ function AuthenticatedLayout() {
     if (!loading && !user) setDrawerOpen(true);
   }, [loading, user]);
 
+  // Active-account gate: sign out immediately if the internal account has
+  // been deactivated by an admin. Runs on mount and every 45s while mounted.
+  useEffect(() => {
+    if (loading || !user) return;
+    let cancelled = false;
+    async function check() {
+      try {
+        const res = await getMyAccountStatus();
+        if (cancelled) return;
+        if (res && (res as any).active === false) {
+          toast.error("আপনার একাউন্টটি ডিএ্যাক্টিভ করা হয়েছে");
+          await signOutSafely();
+        }
+      } catch {
+        /* transient — ignore */
+      }
+    }
+    check();
+    const t = window.setInterval(check, 45_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(t);
+    };
+  }, [loading, user]);
+
+
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
