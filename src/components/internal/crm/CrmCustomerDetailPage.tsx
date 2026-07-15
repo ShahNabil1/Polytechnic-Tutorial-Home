@@ -8,6 +8,7 @@ import {
 import { getCrmCustomer, type CrmCustomerDetail } from "@/lib/crm.functions";
 import { CrmMessagingPanel } from "./CrmMessagingPanel";
 import { CrmCartCard } from "./CrmCartCard";
+import { CrmCouponPanel } from "./CrmCouponPanel";
 
 function fmtBDT(n: number) {
   return `৳${Math.round(n).toLocaleString("en-BD")}`;
@@ -17,7 +18,7 @@ function fmtDate(iso: string | null | undefined) {
   return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-type Tab = "overview" | "messages" | "cart";
+type Tab = "overview" | "messages" | "cart" | "coupons";
 
 export function CrmCustomerDetailPage({ userId }: { userId: string }) {
   const router = useRouter();
@@ -106,7 +107,7 @@ export function CrmCustomerDetailPage({ userId }: { userId: string }) {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-border">
-        {(["overview", "messages", "cart"] as const).map((t) => (
+        {(["overview", "messages", "cart", "coupons"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -204,6 +205,15 @@ export function CrmCustomerDetailPage({ userId }: { userId: string }) {
       )}
 
       {tab === "cart" && <CrmCartCard userId={detail.user_id} />}
+
+      {tab === "coupons" && (
+        <CrmCouponPanel
+          userId={detail.user_id}
+          name={detail.full_name}
+          phone={detail.phone}
+          email={detail.email}
+        />
+      )}
     </div>
   );
 }
