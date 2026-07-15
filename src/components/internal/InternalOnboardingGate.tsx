@@ -27,6 +27,7 @@ import { AuthDrawer } from "@/components/auth-drawer";
 import {
   getMyInternalProfile,
   completeInternalFirstLogin,
+  syncMyPrimaryAuthEmail,
   updateMyInternalProfile,
 } from "@/lib/internal-profile.functions";
 import type { AppRole } from "@/lib/roles.functions";
@@ -44,6 +45,7 @@ export function InternalOnboardingGate({ role, children }: Props) {
   const { user } = useAuth();
   const getProfile = useServerFn(getMyInternalProfile);
   const markDone = useServerFn(completeInternalFirstLogin);
+  const syncEmail = useServerFn(syncMyPrimaryAuthEmail);
   const updateInternal = useServerFn(updateMyInternalProfile);
 
   const [step, setStep] = useState<Step>("loading");
@@ -196,6 +198,7 @@ export function InternalOnboardingGate({ role, children }: Props) {
           open={true}
           onOpenChange={() => undefined}
           mfaEnrollmentOpen={true}
+          onBeforeMfaEnrollment={() => syncEmail({ data: undefined as never }).then(() => undefined)}
           onMfaEnrollmentComplete={async () => {
             await updateInternal({ data: { mfa_enrolled: true } as never }).catch(() => null);
             setMfaVerified(true);
