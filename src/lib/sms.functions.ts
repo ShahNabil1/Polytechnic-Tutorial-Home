@@ -140,7 +140,7 @@ export const sendOrderSms = createServerFn({ method: "POST" })
       console.error("[sendOrderSms] log failed", logErr);
     }
 
-    if (!res.ok) throw new Error(`SMS provider failed: ${res.response}`);
+    if (!res.ok) throw new Error(`SMS failed: ${res.code_label} (#${res.response_code ?? "?"})`);
     return { ok: true, to: order.customer_phone, smsCount };
   });
 
