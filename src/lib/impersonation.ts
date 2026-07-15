@@ -92,5 +92,5 @@ export async function endImpersonation(): Promise<{ redirectTo: string; adminUse
     throw error;
   }
   setState(null);
-  return { redirectTo: "/workspace", adminUserId: state.admin_user_id };
+  return { redirectTo: state.origin_path || "/workspace", adminUserId: state.admin_user_id };
 }
