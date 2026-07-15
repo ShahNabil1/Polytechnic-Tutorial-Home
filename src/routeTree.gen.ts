@@ -57,6 +57,7 @@ import { Route as AuthenticatedInternalWorkspaceEcommerceProductsRouteImport } f
 import { Route as AuthenticatedInternalWorkspaceEcommerceOrdersRouteImport } from './routes/_authenticated/_internal.workspace.ecommerce.orders'
 import { Route as AuthenticatedInternalWorkspaceEcommerceCouponsRouteImport } from './routes/_authenticated/_internal.workspace.ecommerce.coupons'
 import { Route as AuthenticatedInternalWorkspaceEcommerceCategoriesRouteImport } from './routes/_authenticated/_internal.workspace.ecommerce.categories'
+import { Route as AuthenticatedInternalWorkspaceCrmCustomersRouteImport } from './routes/_authenticated/_internal.workspace.crm.customers'
 import { Route as AuthenticatedInternalWorkspaceLmsAndCoursesCurriculumSubjectSlugRouteImport } from './routes/_authenticated/_internal.workspace.lms-and-courses.curriculum.$subjectSlug'
 import { Route as AuthenticatedInternalWorkspaceLmsAndCoursesCoursesDeptSlugSemSlugRouteImport } from './routes/_authenticated/_internal.workspace.lms-and-courses.courses.$deptSlug.$semSlug'
 
@@ -326,6 +327,12 @@ const AuthenticatedInternalWorkspaceEcommerceCategoriesRoute =
     path: '/ecommerce/categories',
     getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
   } as any)
+const AuthenticatedInternalWorkspaceCrmCustomersRoute =
+  AuthenticatedInternalWorkspaceCrmCustomersRouteImport.update({
+    id: '/customers',
+    path: '/customers',
+    getParentRoute: () => AuthenticatedInternalWorkspaceCrmRoute,
+  } as any)
 const AuthenticatedInternalWorkspaceLmsAndCoursesCurriculumSubjectSlugRoute =
   AuthenticatedInternalWorkspaceLmsAndCoursesCurriculumSubjectSlugRouteImport.update(
     {
@@ -374,6 +381,7 @@ export interface FileRoutesByFullPath {
   '/api/public/webhooks/resend': typeof ApiPublicWebhooksResendRoute
   '/instructor/': typeof AuthenticatedInternalInstructorIndexRoute
   '/workspace/': typeof AuthenticatedInternalWorkspaceIndexRoute
+  '/workspace/crm/customers': typeof AuthenticatedInternalWorkspaceCrmCustomersRoute
   '/workspace/ecommerce/categories': typeof AuthenticatedInternalWorkspaceEcommerceCategoriesRoute
   '/workspace/ecommerce/coupons': typeof AuthenticatedInternalWorkspaceEcommerceCouponsRoute
   '/workspace/ecommerce/orders': typeof AuthenticatedInternalWorkspaceEcommerceOrdersRoute
@@ -420,6 +428,7 @@ export interface FileRoutesByTo {
   '/api/public/webhooks/resend': typeof ApiPublicWebhooksResendRoute
   '/instructor': typeof AuthenticatedInternalInstructorIndexRoute
   '/workspace': typeof AuthenticatedInternalWorkspaceIndexRoute
+  '/workspace/crm/customers': typeof AuthenticatedInternalWorkspaceCrmCustomersRoute
   '/workspace/ecommerce/categories': typeof AuthenticatedInternalWorkspaceEcommerceCategoriesRoute
   '/workspace/ecommerce/coupons': typeof AuthenticatedInternalWorkspaceEcommerceCouponsRoute
   '/workspace/ecommerce/orders': typeof AuthenticatedInternalWorkspaceEcommerceOrdersRoute
@@ -473,6 +482,7 @@ export interface FileRoutesById {
   '/api/public/webhooks/resend': typeof ApiPublicWebhooksResendRoute
   '/_authenticated/_internal/instructor/': typeof AuthenticatedInternalInstructorIndexRoute
   '/_authenticated/_internal/workspace/': typeof AuthenticatedInternalWorkspaceIndexRoute
+  '/_authenticated/_internal/workspace/crm/customers': typeof AuthenticatedInternalWorkspaceCrmCustomersRoute
   '/_authenticated/_internal/workspace/ecommerce/categories': typeof AuthenticatedInternalWorkspaceEcommerceCategoriesRoute
   '/_authenticated/_internal/workspace/ecommerce/coupons': typeof AuthenticatedInternalWorkspaceEcommerceCouponsRoute
   '/_authenticated/_internal/workspace/ecommerce/orders': typeof AuthenticatedInternalWorkspaceEcommerceOrdersRoute
@@ -525,6 +535,7 @@ export interface FileRouteTypes {
     | '/api/public/webhooks/resend'
     | '/instructor/'
     | '/workspace/'
+    | '/workspace/crm/customers'
     | '/workspace/ecommerce/categories'
     | '/workspace/ecommerce/coupons'
     | '/workspace/ecommerce/orders'
@@ -571,6 +582,7 @@ export interface FileRouteTypes {
     | '/api/public/webhooks/resend'
     | '/instructor'
     | '/workspace'
+    | '/workspace/crm/customers'
     | '/workspace/ecommerce/categories'
     | '/workspace/ecommerce/coupons'
     | '/workspace/ecommerce/orders'
@@ -623,6 +635,7 @@ export interface FileRouteTypes {
     | '/api/public/webhooks/resend'
     | '/_authenticated/_internal/instructor/'
     | '/_authenticated/_internal/workspace/'
+    | '/_authenticated/_internal/workspace/crm/customers'
     | '/_authenticated/_internal/workspace/ecommerce/categories'
     | '/_authenticated/_internal/workspace/ecommerce/coupons'
     | '/_authenticated/_internal/workspace/ecommerce/orders'
@@ -1003,6 +1016,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInternalWorkspaceEcommerceCategoriesRouteImport
       parentRoute: typeof AuthenticatedInternalWorkspaceRoute
     }
+    '/_authenticated/_internal/workspace/crm/customers': {
+      id: '/_authenticated/_internal/workspace/crm/customers'
+      path: '/customers'
+      fullPath: '/workspace/crm/customers'
+      preLoaderRoute: typeof AuthenticatedInternalWorkspaceCrmCustomersRouteImport
+      parentRoute: typeof AuthenticatedInternalWorkspaceCrmRoute
+    }
     '/_authenticated/_internal/workspace/lms-and-courses/curriculum/$subjectSlug': {
       id: '/_authenticated/_internal/workspace/lms-and-courses/curriculum/$subjectSlug'
       path: '/curriculum/$subjectSlug'
@@ -1039,11 +1059,14 @@ const AuthenticatedInternalInstructorRouteWithChildren =
   )
 
 interface AuthenticatedInternalWorkspaceCrmRouteChildren {
+  AuthenticatedInternalWorkspaceCrmCustomersRoute: typeof AuthenticatedInternalWorkspaceCrmCustomersRoute
   AuthenticatedInternalWorkspaceCrmIndexRoute: typeof AuthenticatedInternalWorkspaceCrmIndexRoute
 }
 
 const AuthenticatedInternalWorkspaceCrmRouteChildren: AuthenticatedInternalWorkspaceCrmRouteChildren =
   {
+    AuthenticatedInternalWorkspaceCrmCustomersRoute:
+      AuthenticatedInternalWorkspaceCrmCustomersRoute,
     AuthenticatedInternalWorkspaceCrmIndexRoute:
       AuthenticatedInternalWorkspaceCrmIndexRoute,
   }
