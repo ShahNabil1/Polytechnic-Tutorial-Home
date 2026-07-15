@@ -71,6 +71,61 @@ export const Route = createFileRoute("/api/public/webhooks/resend")({
           .maybeSingle();
 
         if (!delivery) {
+          // CRM manual email?
+          const { data: crm } = await supabaseAdmin
+            .from("crm_email_deliveries")
+            .select("id")
+            .eq("resend_email_id", emailId)
+            .limit(1)
+            .maybeSingle();
+
+          if (crm) {
+            const nowIsoC = new Date().toISOString();
+            const patchC: Record<string, unknown> = { provider_payload: payload };
+            switch (payload.type) {
+              case "email.sent":
+                patchC.status = "sent";
+                patchC.sent_at = payload.created_at ?? nowIsoC;
+                break;
+              case "email.delivered":
+                patchC.status = "delivered";
+                patchC.delivered_at = payload.created_at ?? nowIsoC;
+                break;
+              case "email.opened":
+                patchC.status = "opened";
+                patchC.opened_at = payload.created_at ?? nowIsoC;
+                break;
+              case "email.clicked":
+                patchC.status = "clicked";
+                patchC.clicked_at = payload.created_at ?? nowIsoC;
+                break;
+              case "email.bounced":
+                patchC.status = "bounced";
+                patchC.bounced_at = payload.created_at ?? nowIsoC;
+                patchC.bounce_type = payload.data.bounce?.type ?? null;
+                patchC.error_reason =
+                  payload.data.bounce?.message ?? payload.data.bounce?.type ?? "bounced";
+                break;
+              case "email.delivery_delayed":
+                patchC.status = "delayed";
+                patchC.error_reason = payload.data.reason ?? "delivery delayed";
+                break;
+              case "email.failed":
+                patchC.status = "failed";
+                patchC.error_reason =
+                  payload.data.failed?.reason ?? payload.data.reason ?? "failed";
+                break;
+              case "email.scheduled":
+                patchC.status = "scheduled";
+                break;
+            }
+            await supabaseAdmin
+              .from("crm_email_deliveries")
+              .update(patchC as never)
+              .eq("id", crm.id);
+            return new Response("ok");
+          }
+
           // Not an order email — check internal (welcome / staff) deliveries.
           const { data: internal } = await supabaseAdmin
             .from("internal_email_deliveries")
@@ -128,6 +183,7 @@ export const Route = createFileRoute("/api/public/webhooks/resend")({
             .eq("id", internal.id);
           return new Response("ok");
         }
+
 
         const nowIso = new Date().toISOString();
         const patch: Record<string, unknown> = { provider_payload: payload };
