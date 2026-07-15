@@ -25,6 +25,7 @@ export function ReauthDialogHost() {
 
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  useScrollLock(open);
 
   useEffect(() => {
     (async () => {
