@@ -44,6 +44,7 @@ export function SessionEnforcer() {
   const [choice, setChoice] = useState<ChoiceSession[] | null>(null);
   const [kicking, setKicking] = useState<string | null>(null);
   const registeredForSessionRef = useRef<string | null>(null);
+  useScrollLock(!!choice);
 
   useEffect(() => {
     let cancelled = false;
