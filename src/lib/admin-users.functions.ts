@@ -14,6 +14,13 @@ export type AdminUserRow = {
   mfa_enrolled: boolean;
 };
 
+function stripBDCountryCode(phone: string | null): string | null {
+  if (!phone) return phone;
+  const digits = String(phone).replace(/\D/g, "");
+  if (digits.startsWith("88") && digits.length > 11) return digits.slice(2);
+  return digits || null;
+}
+
 async function sha256Hex(value: string) {
   const encoded = new TextEncoder().encode(value);
   const digest = await globalThis.crypto.subtle.digest("SHA-256", encoded);
