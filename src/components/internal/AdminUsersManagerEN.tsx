@@ -54,6 +54,7 @@ export function AdminUsersManagerEN({ role }: { role: "employee" | "instructor" 
   const [showPw, setShowPw] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [logsFor, setLogsFor] = useState<AdminUserRow | null>(null);
 
   async function refresh() {
     setLoading(true);
