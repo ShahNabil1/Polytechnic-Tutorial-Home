@@ -847,7 +847,7 @@ export const adminGetTargetInternalProfile = createServerFn({ method: "POST" })
       .eq("user_id", data.user_id)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    return row as Record<string, unknown> | null;
+    return (row ?? null) as any;
   });
 
 export const adminUpdateTargetBasicProfile = createServerFn({ method: "POST" })
