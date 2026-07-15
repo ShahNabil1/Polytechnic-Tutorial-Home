@@ -208,7 +208,11 @@ export function RoleProfileFieldsEN({
           ? form.departments.split(",").map((s) => s.trim()).filter(Boolean)
           : [],
       };
-      await save({ data: payload });
+      if (isAdminMode) {
+        await saveAdmin({ data: { user_id: targetUserId!, ...payload } });
+      } else {
+        await saveSelf({ data: payload });
+      }
       const nextForm = { ...form, bank: cleanBank };
       setForm(nextForm);
       setSaved(nextForm);
