@@ -330,7 +330,7 @@ export type InternalUserDetail = {
   job_role: string | null;
   subjects: string[];
   departments: string[];
-  bank_details: Record<string, unknown> | null;
+  bank_details: any | null;
   auth: {
     created_at: string | null;
     last_sign_in_at: string | null;
