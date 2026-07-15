@@ -4,6 +4,7 @@
  * then renders the 2FA prompt inside the shared auth drawer.
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { retrySupabaseAuth, signOutSafely } from "@/lib/auth-reliability";
@@ -16,7 +17,7 @@ export function MfaChallengeGate({ children }: { children: ReactNode }) {
   const [checking, setChecking] = useState(true);
   const [checkError, setCheckError] = useState<string | null>(null);
   const checkingRef = useRef(false);
-  const verifyBypass = verifyImpersonationBypass;
+  const verifyBypass = useServerFn(verifyImpersonationBypass);
 
   async function check() {
     if (checkingRef.current) return;
