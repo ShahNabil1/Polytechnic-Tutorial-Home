@@ -18,6 +18,8 @@ import {
   LogOut,
   UserCog,
   RefreshCw,
+  Fingerprint,
+  Mail,
 } from "lucide-react";
 import {
   getInternalUserDetail,
@@ -32,6 +34,9 @@ import {
   deleteInternalUser,
   setInternalUserActive,
   revokeInternalRole,
+  adminListUserPasskeys,
+  adminDeleteUserPasskey,
+  adminResetUserPassword,
   type InternalUserDetail,
 } from "@/lib/admin-users.functions";
 import { InternalEmailLogsDialog } from "@/components/internal/InternalEmailLogsDialog";
@@ -54,9 +59,13 @@ export function InternalUserDetailPage({ userId, role }: Props) {
   const deleteUser = useServerFn(deleteInternalUser);
   const toggleActive = useServerFn(setInternalUserActive);
   const revokeRole = useServerFn(revokeInternalRole);
+  const listPasskeys = useServerFn(adminListUserPasskeys);
+  const deletePasskey = useServerFn(adminDeleteUserPasskey);
+  const resetPassword = useServerFn(adminResetUserPassword);
 
   const [detail, setDetail] = useState<InternalUserDetail | null>(null);
   const [sessions, setSessions] = useState<any[]>([]);
+  const [passkeys, setPasskeys] = useState<Array<{ id: string; device_name: string | null; created_at: string; last_used_at: string | null }>>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [showLogs, setShowLogs] = useState(false);
@@ -64,18 +73,20 @@ export function InternalUserDetailPage({ userId, role }: Props) {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const [d, s] = await Promise.all([
+      const [d, s, pk] = await Promise.all([
         getDetail({ data: { user_id: userId } }),
         listSessions({ data: { user_id: userId } }),
+        listPasskeys({ data: { user_id: userId } }).catch(() => []),
       ]);
       setDetail(d);
       setSessions(s ?? []);
+      setPasskeys((pk as any) ?? []);
     } catch (e) {
       toast.error("Load failed: " + (e instanceof Error ? e.message : String(e)));
     } finally {
       setLoading(false);
     }
-  }, [userId, getDetail, listSessions]);
+  }, [userId, getDetail, listSessions, listPasskeys]);
 
   useEffect(() => {
     refresh();
@@ -292,6 +303,62 @@ export function InternalUserDetailPage({ userId, role }: Props) {
     }
   }
 
+  async function handleDeletePasskey(id: string, name: string | null) {
+    if (
+      !(await confirmDialog({
+        variant: "danger",
+        title: "Remove passkey?",
+        description: `"${name || "Unnamed passkey"}" এই ব্যবহারকারীর একাউন্ট থেকে রিমুভ করবেন?`,
+      }))
+    )
+      return;
+    setBusy("pk-" + id);
+    try {
+      await deletePasskey({ data: { user_id: userId, id } });
+      toast.success("Passkey removed");
+      setPasskeys((prev) => prev.filter((p) => p.id !== id));
+    } catch (e) {
+      toast.error("Remove failed: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleResetPassword() {
+    if (!detail?.email) {
+      toast.error("No primary email on file — cannot email a new password");
+      return;
+    }
+    if (
+      !(await confirmDialog({
+        variant: "danger",
+        title: "Reset password & email new one?",
+        description: `একটি নতুন র‌্যান্ডম পাসওয়ার্ড তৈরি হবে ও ${detail.email}-এ পাঠানো হবে। সব ডিভাইস থেকে ইউজার সাইন আউট হয়ে যাবে।`,
+      }))
+    )
+      return;
+    setBusy("pwreset");
+    try {
+      const res = (await resetPassword({ data: { user_id: userId } })) as {
+        ok: boolean;
+        emailed?: boolean;
+        error?: string;
+      };
+      if (res?.emailed) {
+        toast.success("নতুন পাসওয়ার্ড ইমেইলে পাঠানো হয়েছে");
+      } else {
+        toast.warning(
+          "পাসওয়ার্ড রিসেট হয়েছে, কিন্তু ইমেইল পাঠাতে সমস্যা: " + (res?.error ?? "unknown"),
+        );
+      }
+      await refresh();
+    } catch (e) {
+      toast.error("Reset failed: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setBusy(null);
+    }
+  }
+
   if (loading || !detail) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
@@ -428,6 +495,20 @@ export function InternalUserDetailPage({ userId, role }: Props) {
                   <KeyRound className="size-3.5" />
                 )}
                 Reset 2FA
+              </button>
+              <button
+                type="button"
+                onClick={handleResetPassword}
+                disabled={busy === "pwreset"}
+                className="inline-flex items-center gap-1.5 rounded-md border border-orange-300 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-800 hover:bg-orange-100 disabled:opacity-60"
+                title="Generate a new random password and email it to the primary email"
+              >
+                {busy === "pwreset" ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Mail className="size-3.5" />
+                )}
+                Reset & email password
               </button>
             </div>
           </div>
@@ -618,6 +699,52 @@ export function InternalUserDetailPage({ userId, role }: Props) {
                     <LogOut className="size-3.5" />
                   )}
                   Sign out
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Passkeys */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-display text-base font-bold tracking-tight">
+            Passkeys <span className="text-slate-400">({passkeys.length})</span>
+          </h2>
+        </div>
+        {passkeys.length === 0 ? (
+          <div className="rounded-md border border-dashed border-slate-300 p-6 text-center text-sm font-medium text-slate-500">
+            এই ইউজারের কোনো Passkey এ্যাড করা নাই
+          </div>
+        ) : (
+          <ul className="divide-y divide-slate-200 rounded-lg border border-slate-200">
+            {passkeys.map((p) => (
+              <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
+                <div className="min-w-0 flex items-start gap-3">
+                  <Fingerprint className="mt-0.5 size-4 text-slate-500" />
+                  <div className="min-w-0">
+                    <div className="font-semibold text-slate-800">
+                      {p.device_name || "নামহীন Passkey"}
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      যোগ {new Date(p.created_at).toLocaleDateString()}
+                      {p.last_used_at && <> · সর্বশেষ {new Date(p.last_used_at).toLocaleDateString()}</>}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDeletePasskey(p.id, p.device_name)}
+                  disabled={busy === "pk-" + p.id}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-red-300 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
+                >
+                  {busy === "pk-" + p.id ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="size-3.5" />
+                  )}
+                  Remove
                 </button>
               </li>
             ))}
