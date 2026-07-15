@@ -105,7 +105,18 @@ export function RoleProfileFieldsEN({ role }: { role: AppRole }) {
     setForm((prev) => ({ ...prev, [k]: v }));
   }
   function ub<K extends keyof BankDetails>(k: K, v: BankDetails[K]) {
-    setForm((prev) => ({ ...prev, bank: { ...prev.bank, [k]: v } }));
+    setForm((prev) => {
+      // Switching payout method must clear fields that don't belong to the new method
+      // so ghost values (e.g. an old bank_name typed before switching to bKash) never get saved.
+      if (k === "method") {
+        const nextMethod = v as BankDetails["method"];
+        return {
+          ...prev,
+          bank: { method: nextMethod, account_name: prev.bank.account_name },
+        };
+      }
+      return { ...prev, bank: { ...prev.bank, [k]: v } };
+    });
   }
 
   async function handleCvPick(e: React.ChangeEvent<HTMLInputElement>) {
