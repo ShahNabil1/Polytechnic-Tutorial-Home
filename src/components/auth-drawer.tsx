@@ -333,7 +333,6 @@ export function AuthDrawer({
         setInfoMsg("Authenticator অ্যাপে QR স্ক্যান করে ৬-ডিজিট কোড দিন");
       } catch (error) {
         setFormError("2FA সেটআপ শুরু করা যায়নি। " + errMsg(error));
-        mfaEnrollmentStartedRef.current = false;
       } finally {
         setLoading(false);
       }
