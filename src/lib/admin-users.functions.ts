@@ -301,3 +301,239 @@ export const listInternalEmailDeliveries = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return rows ?? [];
   });
+
+async function ensureSuperAdmin(context: { supabase: any; userId: string }) {
+  const { data, error } = await context.supabase.rpc("has_role", {
+    _user_id: context.userId,
+    _role: "super_admin",
+  });
+  if (error) throw new Error(error.message);
+  if (data !== true) throw new Error("Forbidden: super_admin only");
+}
+
+export type InternalUserDetail = {
+  user_id: string;
+  full_name: string | null;
+  phone: string | null;
+  email: string | null;
+  avatar_url: string | null;
+  roles: string[];
+  primary_role: "employee" | "instructor" | "super_admin" | "student" | null;
+  display_id: string | null;
+  is_active: boolean;
+  mfa_enrolled: boolean;
+  mfa_factor_count: number;
+  address: string | null;
+  nid_number: string | null;
+  cv_r2_key: string | null;
+  workplace: string | null;
+  job_role: string | null;
+  subjects: string[];
+  departments: string[];
+  bank_details: Record<string, unknown> | null;
+  auth: {
+    created_at: string | null;
+    last_sign_in_at: string | null;
+    email_confirmed_at: string | null;
+    phone_confirmed_at: string | null;
+    providers: string[];
+  };
+};
+
+export const getInternalUserDetail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ user_id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }): Promise<InternalUserDetail> => {
+    await ensureSuperAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const [{ data: prof }, { data: internal }, { data: roles }, { data: authUser }, { data: factors }] =
+      await Promise.all([
+        supabaseAdmin.from("profiles").select("*").eq("id", data.user_id).maybeSingle(),
+        supabaseAdmin.from("internal_profiles").select("*").eq("user_id", data.user_id).maybeSingle(),
+        supabaseAdmin.from("user_roles").select("role").eq("user_id", data.user_id),
+        supabaseAdmin.auth.admin.getUserById(data.user_id),
+        supabaseAdmin.auth.admin.mfa.listFactors({ userId: data.user_id } as any).catch(() => ({ data: { factors: [] } })),
+      ]);
+    const roleList = (roles ?? []).map((r: any) => r.role as string);
+    const priority: Record<string, number> = { super_admin: 1, instructor: 2, employee: 3, student: 4 };
+    const primary = roleList.slice().sort((a, b) => (priority[a] ?? 9) - (priority[b] ?? 9))[0] ?? null;
+    const u: any = authUser?.user ?? {};
+    const p: any = prof ?? {};
+    const i: any = internal ?? {};
+    const factorList = (factors as any)?.data?.factors ?? (factors as any)?.factors ?? [];
+    const verifiedFactors = (factorList as any[]).filter((f) => f?.status === "verified");
+    const providers = ((u?.identities ?? []) as any[]).map((x) => x?.provider).filter(Boolean);
+    return {
+      user_id: data.user_id,
+      full_name: p.full_name ?? u.user_metadata?.full_name ?? null,
+      phone: p.phone ?? u.phone ?? null,
+      email: p.email ?? u.email ?? null,
+      avatar_url: p.avatar_url ?? null,
+      roles: roleList,
+      primary_role: primary as any,
+      display_id: i.display_id ?? null,
+      is_active: i.is_active ?? true,
+      mfa_enrolled: i.mfa_enrolled ?? false,
+      mfa_factor_count: verifiedFactors.length,
+      address: i.address ?? null,
+      nid_number: i.nid_number ?? null,
+      cv_r2_key: i.cv_r2_key ?? null,
+      workplace: i.workplace ?? null,
+      job_role: i.job_role ?? null,
+      subjects: i.subjects ?? [],
+      departments: i.departments ?? [],
+      bank_details: i.bank_details ?? null,
+      auth: {
+        created_at: u.created_at ?? null,
+        last_sign_in_at: u.last_sign_in_at ?? null,
+        email_confirmed_at: u.email_confirmed_at ?? null,
+        phone_confirmed_at: u.phone_confirmed_at ?? null,
+        providers,
+      },
+    };
+  });
+
+export const getUserCvSignedUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ user_id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureSuperAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row } = await supabaseAdmin
+      .from("internal_profiles")
+      .select("cv_r2_key")
+      .eq("user_id", data.user_id)
+      .maybeSingle();
+    const key = (row as any)?.cv_r2_key as string | null;
+    if (!key) throw new Error("No CV uploaded");
+    const { createPresignedGetUrl } = await import("@/lib/r2.server");
+    return createPresignedGetUrl({ key, expiresInSeconds: 300 });
+  });
+
+export const listUserSessionsAsAdmin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ user_id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureSuperAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
+      .from("user_sessions")
+      .select(
+        "id, device_label, ip, browser, os, device_type, country, region, city, created_at, last_seen_at",
+      )
+      .eq("user_id", data.user_id)
+      .order("last_seen_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+export const revokeUserSessionAsAdmin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ user_id: z.string().uuid(), session_id: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureSuperAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row } = await supabaseAdmin
+      .from("user_sessions")
+      .select("session_token_hash")
+      .eq("id", data.session_id)
+      .eq("user_id", data.user_id)
+      .maybeSingle();
+    if (row?.session_token_hash) {
+      try {
+        await supabaseAdmin.auth.admin.signOut(row.session_token_hash as string).catch(() => {});
+      } catch {}
+    }
+    await supabaseAdmin.from("user_sessions").delete().eq("id", data.session_id).eq("user_id", data.user_id);
+    return { ok: true };
+  });
+
+export const revokeAllUserSessionsAsAdmin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ user_id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureSuperAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Sign out all auth sessions for the user (global scope)
+    try {
+      await (supabaseAdmin.auth.admin as any).signOut(data.user_id, "global").catch(() => {});
+    } catch {}
+    // Nuke tracked rows
+    await supabaseAdmin.from("user_sessions").delete().eq("user_id", data.user_id);
+    return { ok: true };
+  });
+
+export const resetUserMfa = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ user_id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureSuperAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: list } = await (supabaseAdmin.auth.admin.mfa as any)
+      .listFactors({ userId: data.user_id })
+      .catch(() => ({ data: { factors: [] } }));
+    const factors = (list as any)?.factors ?? [];
+    for (const f of factors) {
+      try {
+        await (supabaseAdmin.auth.admin.mfa as any).deleteFactor({ userId: data.user_id, id: f.id });
+      } catch (e) {
+        console.error("[resetUserMfa] deleteFactor failed", e);
+      }
+    }
+    await supabaseAdmin
+      .from("internal_profiles")
+      .update({ mfa_enrolled: false } as never)
+      .eq("user_id", data.user_id);
+    return { ok: true, cleared: factors.length };
+  });
+
+export const deleteInternalUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ user_id: z.string().uuid(), confirm_email: z.string().email() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureSuperAdmin(context);
+    if (data.user_id === context.userId) throw new Error("You cannot delete your own account");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(data.user_id);
+    const actualEmail = String(authUser?.user?.email ?? "").trim().toLowerCase();
+    if (!actualEmail || actualEmail !== data.confirm_email.trim().toLowerCase()) {
+      throw new Error("Confirmation email does not match");
+    }
+    // Best-effort clean-up of dependent rows (FK cascades may already handle these)
+    await supabaseAdmin.from("user_sessions").delete().eq("user_id", data.user_id);
+    await supabaseAdmin.from("user_roles").delete().eq("user_id", data.user_id);
+    await supabaseAdmin.from("internal_profiles").delete().eq("user_id", data.user_id);
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.user_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const startImpersonation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ user_id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await ensureSuperAdmin(context);
+    if (data.user_id === context.userId) throw new Error("Cannot impersonate yourself");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(data.user_id);
+    const email = String(authUser?.user?.email ?? "").trim().toLowerCase();
+    if (!email) throw new Error("Target user has no email");
+    const { data: link, error } = await (supabaseAdmin.auth.admin as any).generateLink({
+      type: "magiclink",
+      email,
+    });
+    if (error) throw new Error(error.message);
+    const hashed_token = (link as any)?.properties?.hashed_token as string | undefined;
+    if (!hashed_token) throw new Error("Failed to create sign-in token");
+    // Also return target role for correct redirect
+    const { data: roles } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", data.user_id);
+    const roleList = (roles ?? []).map((r: any) => r.role as string);
+    const priority: Record<string, number> = { super_admin: 1, instructor: 2, employee: 3, student: 4 };
+    const primary = roleList.slice().sort((a, b) => (priority[a] ?? 9) - (priority[b] ?? 9))[0] ?? "student";
+    console.log("[impersonate] issued token for", data.user_id, "by admin", context.userId);
+    return { email, hashed_token, primary_role: primary };
+  });
