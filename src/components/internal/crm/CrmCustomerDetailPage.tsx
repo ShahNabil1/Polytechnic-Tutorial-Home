@@ -107,7 +107,7 @@ export function CrmCustomerDetailPage({ userId }: { userId: string }) {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-border">
-        {(["overview", "messages", "cart"] as const).map((t) => (
+        {(["overview", "messages", "cart", "coupons"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
