@@ -218,9 +218,11 @@ export function RoleProfileFieldsEN({
       setForm(nextForm);
       setSaved(nextForm);
       setEditMode(false);
-      toast.success("Saved");
+      toast.success("Profile saved", {
+        description: isAdminMode ? "Changes are reflected in the user's profile." : "Your changes have been saved.",
+      });
     } catch (err) {
-      toast.error("Save failed: " + (err as Error).message);
+      toast.error("Save failed", { description: (err as Error).message });
     } finally {
       setSaving(false);
     }
