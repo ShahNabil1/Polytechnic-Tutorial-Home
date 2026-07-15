@@ -248,7 +248,8 @@ async function handle(request: Request, action: string) {
 
     if (action === "revoke") {
       const body = z.object({ id: z.string().uuid() }).parse(await request.json());
-      const { error } = await ctx.supabase.from("user_sessions").delete().eq("id", body.id).eq("user_id", ctx.userId);
+      // RPC also revokes the underlying auth.sessions row so the token dies immediately.
+      const { error } = await ctx.supabase.rpc("revoke_user_session", { _tracked_id: body.id });
       if (error) throw new Error(error.message);
       return json({ ok: true });
     }
@@ -265,14 +266,11 @@ async function handle(request: Request, action: string) {
     }
 
     if (action === "revoke-others") {
-      const { data, error } = await ctx.supabase
-        .from("user_sessions")
-        .delete()
-        .eq("user_id", ctx.userId)
-        .neq("session_token_hash", ctx.sessionId)
-        .select("id");
+      const { data, error } = await ctx.supabase.rpc("revoke_other_user_sessions", {
+        _current_token_hash: ctx.sessionId,
+      });
       if (error) throw new Error(error.message);
-      return json({ ok: true, revoked: data?.length ?? 0 });
+      return json({ ok: true, revoked: typeof data === "number" ? data : 0 });
     }
 
     return errorJson("Unknown action", 404);
