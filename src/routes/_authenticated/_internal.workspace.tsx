@@ -72,7 +72,6 @@ function WorkspaceLayout() {
       id: "settings",
       label: "Settings",
       icon: Settings,
-      items: isSuperAdmin
       items: canManageUsers
         ? [
             { to: "/workspace/employees", label: "Employees", icon: Users },
