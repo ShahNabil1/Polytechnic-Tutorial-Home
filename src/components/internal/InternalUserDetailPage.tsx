@@ -806,6 +806,7 @@ export function InternalUserDetailPage({ userId, role }: Props) {
             {detail.is_active ? <ShieldOff className="size-3.5" /> : <ShieldCheck className="size-3.5" />}
             {detail.is_active ? "Deactivate" : "Activate"}
           </button>
+          {!isCustomer && (
           <button
             type="button"
             onClick={handleRevokeRole}
@@ -814,6 +815,7 @@ export function InternalUserDetailPage({ userId, role }: Props) {
           >
             <UserMinus className="size-3.5" /> Revoke {label} role
           </button>
+          )}
           <button
             type="button"
             onClick={handleDelete}
