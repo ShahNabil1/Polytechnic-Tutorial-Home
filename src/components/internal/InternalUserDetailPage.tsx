@@ -93,6 +93,63 @@ export function InternalUserDetailPage({ userId, role }: Props) {
     }
   }
 
+  async function handleOpenNid(side: "front" | "back", download: boolean) {
+    setBusy(`nid-${side}-${download ? "dl" : "view"}`);
+    try {
+      const res = await getNid({ data: { user_id: userId, side } });
+      const url = (res as { url: string }).url;
+      if (download) {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `nid-${side}-${detail?.display_id ?? userId}.jpg`;
+        a.target = "_blank";
+        a.rel = "noopener";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } else {
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
+    } catch (e) {
+      toast.error("NID open failed: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleRequestResubmit() {
+    const reason = window.prompt(
+      "Reason for resubmit request (visible to the user):",
+      "The photo is not clear enough. Please retake and upload again.",
+    );
+    if (!reason || !reason.trim()) return;
+    setBusy("nid-resubmit");
+    try {
+      await requestResubmit({ data: { user_id: userId, reason: reason.trim() } });
+      toast.success("Resubmit requested — user has been notified in their profile");
+      await refresh();
+    } catch (e) {
+      toast.error("Failed: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleCancelResubmit() {
+    setBusy("nid-cancel");
+    try {
+      await cancelResubmit({ data: { user_id: userId } });
+      toast.success("Resubmit request cancelled");
+      await refresh();
+    } catch (e) {
+      toast.error("Failed: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+
+
   async function handleImpersonate() {
     if (
       !(await confirmDialog({
