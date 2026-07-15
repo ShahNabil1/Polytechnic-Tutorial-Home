@@ -354,7 +354,6 @@ export function RoleProfileFieldsEN({
                   </button>
                 )}
               </div>
-              </div>
               {uploading && (
                 <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
                   <div
