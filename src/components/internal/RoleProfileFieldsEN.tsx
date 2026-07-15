@@ -237,31 +237,33 @@ export function RoleProfileFieldsEN({
 
   return (
     <>
-      {/* Role ID card */}
-      <section className="flex items-center gap-3 rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-4 shadow-sm">
-        <div className="grid size-11 place-items-center rounded-xl bg-gradient-to-br from-indigo-600 to-fuchsia-500 text-white shadow-md shadow-indigo-500/30">
-          <IdCard className="size-5" />
-        </div>
-        <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-            {ROLE_ID_LABEL[role]}
+      {/* Role ID card — hidden in admin mode (already shown in detail page header) */}
+      {!isAdminMode && (
+        <section className="flex items-center gap-3 rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-4 shadow-sm">
+          <div className="grid size-11 place-items-center rounded-xl bg-gradient-to-br from-indigo-600 to-fuchsia-500 text-white shadow-md shadow-indigo-500/30">
+            <IdCard className="size-5" />
           </div>
-          <div className="font-display text-xl font-bold tracking-wider text-slate-900">
-            #{profile?.display_id ?? "—"}
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+              {ROLE_ID_LABEL[role]}
+            </div>
+            <div className="font-display text-xl font-bold tracking-wider text-slate-900">
+              #{profile?.display_id ?? "—"}
+            </div>
           </div>
-        </div>
-        <div className="ml-auto flex items-center gap-2">
-          {profile?.mfa_enrolled ? (
-            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
-              <ShieldCheck className="size-3" /> 2FA ON
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700">
-              2FA Required
-            </span>
-          )}
-        </div>
-      </section>
+          <div className="ml-auto flex items-center gap-2">
+            {profile?.mfa_enrolled ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
+                <ShieldCheck className="size-3" /> 2FA ON
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700">
+                2FA Required
+              </span>
+            )}
+          </div>
+        </section>
+      )}
 
       {isSuperAdmin ? null : (
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
