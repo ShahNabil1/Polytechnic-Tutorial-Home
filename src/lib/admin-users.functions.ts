@@ -391,7 +391,7 @@ export const getInternalUserDetail = createServerFn({ method: "POST" })
     return {
       user_id: data.user_id,
       full_name: p.full_name ?? u.user_metadata?.full_name ?? null,
-      phone: p.phone ?? u.phone ?? null,
+      phone: stripBDCountryCode(p.phone ?? u.phone ?? null),
       email: p.email ?? u.email ?? null,
       avatar_url: p.avatar_url ?? null,
       roles: roleList,
