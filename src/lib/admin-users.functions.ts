@@ -516,20 +516,13 @@ export const revokeUserSessionAsAdmin = createServerFn({ method: "POST" })
     z.object({ user_id: z.string().uuid(), session_id: z.string().uuid() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: row } = await supabaseAdmin
-      .from("user_sessions")
-      .select("session_token_hash")
-      .eq("id", data.session_id)
-      .eq("user_id", data.user_id)
-      .maybeSingle();
-    if (row?.session_token_hash) {
-      try {
-        await supabaseAdmin.auth.admin.signOut(row.session_token_hash as string).catch(() => {});
-      } catch {}
-    }
-    await supabaseAdmin.from("user_sessions").delete().eq("id", data.session_id).eq("user_id", data.user_id);
+    await ensureManageableTarget(context, data.user_id);
+    const { data: ok, error } = await context.supabase.rpc("admin_revoke_user_session", {
+      _target_user_id: data.user_id,
+      _tracked_id: data.session_id,
+    } as never);
+    if (error) throw new Error(error.message);
+    if (ok !== true) throw new Error("Session not found or already signed out");
     return { ok: true };
   });
 
@@ -537,22 +530,19 @@ export const revokeAllUserSessionsAsAdmin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ user_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // Sign out all auth sessions for the user (global scope)
-    try {
-      await (supabaseAdmin.auth.admin as any).signOut(data.user_id, "global").catch(() => {});
-    } catch {}
-    // Nuke tracked rows
-    await supabaseAdmin.from("user_sessions").delete().eq("user_id", data.user_id);
-    return { ok: true };
+    await ensureManageableTarget(context, data.user_id);
+    const { data: revoked, error } = await context.supabase.rpc("admin_revoke_all_user_sessions", {
+      _target_user_id: data.user_id,
+    } as never);
+    if (error) throw new Error(error.message);
+    return { ok: true, revoked: revoked ?? 0 };
   });
 
 export const resetUserMfa = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ user_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
+    await ensureManageableTarget(context, data.user_id);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: list } = await (supabaseAdmin.auth.admin.mfa as any)
       .listFactors({ userId: data.user_id })
@@ -578,20 +568,47 @@ export const deleteInternalUser = createServerFn({ method: "POST" })
     z.object({ user_id: z.string().uuid(), confirm_email: z.string().email() }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
-    if (data.user_id === context.userId) throw new Error("You cannot delete your own account");
+    await ensureManageableTarget(context, data.user_id);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(data.user_id);
     const actualEmail = String(authUser?.user?.email ?? "").trim().toLowerCase();
     if (!actualEmail || actualEmail !== data.confirm_email.trim().toLowerCase()) {
       throw new Error("Confirmation email does not match");
     }
-    // Best-effort clean-up of dependent rows (FK cascades may already handle these)
-    await supabaseAdmin.from("user_sessions").delete().eq("user_id", data.user_id);
-    await supabaseAdmin.from("user_roles").delete().eq("user_id", data.user_id);
-    await supabaseAdmin.from("internal_profiles").delete().eq("user_id", data.user_id);
+    await revokeAllTargetSessions(context, data.user_id);
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.user_id);
     if (error) throw new Error(error.message);
+    await Promise.allSettled([
+      supabaseAdmin.from("user_sessions").delete().eq("user_id", data.user_id),
+      supabaseAdmin.from("user_roles").delete().eq("user_id", data.user_id),
+      supabaseAdmin.from("user_permissions").delete().eq("user_id", data.user_id),
+      supabaseAdmin.from("internal_profiles").delete().eq("user_id", data.user_id),
+      supabaseAdmin.from("profiles").delete().eq("id", data.user_id),
+    ]);
+    return { ok: true };
+  });
+
+export const verifyImpersonationBypass = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ target_user_id: z.string().uuid(), token: z.string().min(20).max(200) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    if (context.userId !== data.target_user_id) return { ok: false };
+    const tokenHash = await sha256Hex(data.token);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row, error } = await supabaseAdmin
+      .from("impersonation_sessions")
+      .select("id, expires_at")
+      .eq("target_user_id", data.target_user_id)
+      .eq("token_hash", tokenHash)
+      .gt("expires_at", new Date().toISOString())
+      .maybeSingle();
+    if (error || !row) return { ok: false };
+    await supabaseAdmin
+      .from("impersonation_sessions")
+      .update({ used_at: new Date().toISOString() } as never)
+      .eq("id", (row as any).id);
     return { ok: true };
   });
 
@@ -599,12 +616,17 @@ export const startImpersonation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ user_id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    await ensureSuperAdmin(context);
-    if (data.user_id === context.userId) throw new Error("Cannot impersonate yourself");
+    await ensureManageableTarget(context, data.user_id);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(data.user_id);
     const email = String(authUser?.user?.email ?? "").trim().toLowerCase();
     if (!email) throw new Error("Target user has no email");
+    const { data: internal } = await supabaseAdmin
+      .from("internal_profiles")
+      .select("is_active")
+      .eq("user_id", data.user_id)
+      .maybeSingle();
+    if ((internal as any)?.is_active === false) throw new Error("Target account is deactivated");
     const { data: link, error } = await (supabaseAdmin.auth.admin as any).generateLink({
       type: "magiclink",
       email,
@@ -617,6 +639,15 @@ export const startImpersonation = createServerFn({ method: "POST" })
     const roleList = (roles ?? []).map((r: any) => r.role as string);
     const priority: Record<string, number> = { super_admin: 1, instructor: 2, employee: 3, student: 4 };
     const primary = roleList.slice().sort((a, b) => (priority[a] ?? 9) - (priority[b] ?? 9))[0] ?? "student";
+    const bypassToken = `${globalThis.crypto.randomUUID()}.${globalThis.crypto.randomUUID()}`;
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    const { error: insertError } = await supabaseAdmin.from("impersonation_sessions").insert({
+      admin_user_id: context.userId,
+      target_user_id: data.user_id,
+      token_hash: await sha256Hex(bypassToken),
+      expires_at: expiresAt,
+    } as never);
+    if (insertError) throw new Error(insertError.message);
     console.log("[impersonate] issued token for", data.user_id, "by admin", context.userId);
-    return { email, hashed_token, primary_role: primary };
+    return { email, hashed_token, primary_role: primary, bypass_token: bypassToken, bypass_expires_at: expiresAt };
   });
