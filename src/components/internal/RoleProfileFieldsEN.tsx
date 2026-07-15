@@ -354,6 +354,15 @@ export function RoleProfileFieldsEN({
                   </button>
                 )}
               </div>
+              </div>
+              {uploading && (
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    className="h-full rounded-full bg-indigo-600 transition-all"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              )}
             </Field>
 
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 sm:col-span-2">
