@@ -38,9 +38,9 @@ import { Route as ApiPublicSessionsActionRouteImport } from './routes/api/public
 import { Route as ApiPublicHooksDeliverEbookBatchRouteImport } from './routes/api/public/hooks/deliver-ebook-batch'
 import { Route as AuthenticatedInternalWorkspaceProfileRouteImport } from './routes/_authenticated/_internal.workspace.profile'
 import { Route as AuthenticatedInternalWorkspaceLmsAndCoursesRouteImport } from './routes/_authenticated/_internal.workspace.lms-and-courses'
-import { Route as AuthenticatedInternalWorkspaceInstructorsRouteImport } from './routes/_authenticated/_internal.workspace.instructors'
-import { Route as AuthenticatedInternalWorkspaceEmployeesRouteImport } from './routes/_authenticated/_internal.workspace.employees'
 import { Route as AuthenticatedInternalInstructorProfileRouteImport } from './routes/_authenticated/_internal.instructor.profile'
+import { Route as AuthenticatedInternalWorkspaceInstructorsIndexRouteImport } from './routes/_authenticated/_internal.workspace.instructors.index'
+import { Route as AuthenticatedInternalWorkspaceEmployeesIndexRouteImport } from './routes/_authenticated/_internal.workspace.employees.index'
 import { Route as AuthenticatedInternalWorkspaceEcommerceIndexRouteImport } from './routes/_authenticated/_internal.workspace.ecommerce.index'
 import { Route as ApiPublicWebhooksSteadfastSecretRouteImport } from './routes/api/public/webhooks/steadfast.$secret'
 import { Route as AuthenticatedSdashCoursesDeptSlugSemSlugRouteImport } from './routes/_authenticated/sdash.courses.$deptSlug.$semSlug'
@@ -210,23 +210,23 @@ const AuthenticatedInternalWorkspaceLmsAndCoursesRoute =
     path: '/lms-and-courses',
     getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
   } as any)
-const AuthenticatedInternalWorkspaceInstructorsRoute =
-  AuthenticatedInternalWorkspaceInstructorsRouteImport.update({
-    id: '/instructors',
-    path: '/instructors',
-    getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
-  } as any)
-const AuthenticatedInternalWorkspaceEmployeesRoute =
-  AuthenticatedInternalWorkspaceEmployeesRouteImport.update({
-    id: '/employees',
-    path: '/employees',
-    getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
-  } as any)
 const AuthenticatedInternalInstructorProfileRoute =
   AuthenticatedInternalInstructorProfileRouteImport.update({
     id: '/profile',
     path: '/profile',
     getParentRoute: () => AuthenticatedInternalInstructorRoute,
+  } as any)
+const AuthenticatedInternalWorkspaceInstructorsIndexRoute =
+  AuthenticatedInternalWorkspaceInstructorsIndexRouteImport.update({
+    id: '/instructors/',
+    path: '/instructors/',
+    getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
+  } as any)
+const AuthenticatedInternalWorkspaceEmployeesIndexRoute =
+  AuthenticatedInternalWorkspaceEmployeesIndexRouteImport.update({
+    id: '/employees/',
+    path: '/employees/',
+    getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
   } as any)
 const AuthenticatedInternalWorkspaceEcommerceIndexRoute =
   AuthenticatedInternalWorkspaceEcommerceIndexRouteImport.update({
@@ -278,15 +278,15 @@ const AuthenticatedInternalWorkspaceLmsAndCoursesCoursesRoute =
   } as any)
 const AuthenticatedInternalWorkspaceInstructorsUserIdRoute =
   AuthenticatedInternalWorkspaceInstructorsUserIdRouteImport.update({
-    id: '/$userId',
-    path: '/$userId',
-    getParentRoute: () => AuthenticatedInternalWorkspaceInstructorsRoute,
+    id: '/instructors/$userId',
+    path: '/instructors/$userId',
+    getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
   } as any)
 const AuthenticatedInternalWorkspaceEmployeesUserIdRoute =
   AuthenticatedInternalWorkspaceEmployeesUserIdRouteImport.update({
-    id: '/$userId',
-    path: '/$userId',
-    getParentRoute: () => AuthenticatedInternalWorkspaceEmployeesRoute,
+    id: '/employees/$userId',
+    path: '/employees/$userId',
+    getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
   } as any)
 const AuthenticatedInternalWorkspaceEcommerceProductsRoute =
   AuthenticatedInternalWorkspaceEcommerceProductsRouteImport.update({
@@ -352,8 +352,6 @@ export interface FileRoutesByFullPath {
   '/courses/$deptSlug/$semSlug': typeof CoursesDeptSlugSemSlugRoute
   '/sdash/': typeof AuthenticatedSdashIndexRoute
   '/instructor/profile': typeof AuthenticatedInternalInstructorProfileRoute
-  '/workspace/employees': typeof AuthenticatedInternalWorkspaceEmployeesRouteWithChildren
-  '/workspace/instructors': typeof AuthenticatedInternalWorkspaceInstructorsRouteWithChildren
   '/workspace/lms-and-courses': typeof AuthenticatedInternalWorkspaceLmsAndCoursesRouteWithChildren
   '/workspace/profile': typeof AuthenticatedInternalWorkspaceProfileRoute
   '/api/public/hooks/deliver-ebook-batch': typeof ApiPublicHooksDeliverEbookBatchRoute
@@ -375,6 +373,8 @@ export interface FileRoutesByFullPath {
   '/sdash/courses/$deptSlug/$semSlug': typeof AuthenticatedSdashCoursesDeptSlugSemSlugRoute
   '/api/public/webhooks/steadfast/$secret': typeof ApiPublicWebhooksSteadfastSecretRoute
   '/workspace/ecommerce/': typeof AuthenticatedInternalWorkspaceEcommerceIndexRoute
+  '/workspace/employees/': typeof AuthenticatedInternalWorkspaceEmployeesIndexRoute
+  '/workspace/instructors/': typeof AuthenticatedInternalWorkspaceInstructorsIndexRoute
   '/workspace/lms-and-courses/curriculum/$subjectSlug': typeof AuthenticatedInternalWorkspaceLmsAndCoursesCurriculumSubjectSlugRoute
   '/workspace/lms-and-courses/courses/$deptSlug/$semSlug': typeof AuthenticatedInternalWorkspaceLmsAndCoursesCoursesDeptSlugSemSlugRoute
 }
@@ -397,8 +397,6 @@ export interface FileRoutesByTo {
   '/courses/$deptSlug/$semSlug': typeof CoursesDeptSlugSemSlugRoute
   '/sdash': typeof AuthenticatedSdashIndexRoute
   '/instructor/profile': typeof AuthenticatedInternalInstructorProfileRoute
-  '/workspace/employees': typeof AuthenticatedInternalWorkspaceEmployeesRouteWithChildren
-  '/workspace/instructors': typeof AuthenticatedInternalWorkspaceInstructorsRouteWithChildren
   '/workspace/lms-and-courses': typeof AuthenticatedInternalWorkspaceLmsAndCoursesRouteWithChildren
   '/workspace/profile': typeof AuthenticatedInternalWorkspaceProfileRoute
   '/api/public/hooks/deliver-ebook-batch': typeof ApiPublicHooksDeliverEbookBatchRoute
@@ -420,6 +418,8 @@ export interface FileRoutesByTo {
   '/sdash/courses/$deptSlug/$semSlug': typeof AuthenticatedSdashCoursesDeptSlugSemSlugRoute
   '/api/public/webhooks/steadfast/$secret': typeof ApiPublicWebhooksSteadfastSecretRoute
   '/workspace/ecommerce': typeof AuthenticatedInternalWorkspaceEcommerceIndexRoute
+  '/workspace/employees': typeof AuthenticatedInternalWorkspaceEmployeesIndexRoute
+  '/workspace/instructors': typeof AuthenticatedInternalWorkspaceInstructorsIndexRoute
   '/workspace/lms-and-courses/curriculum/$subjectSlug': typeof AuthenticatedInternalWorkspaceLmsAndCoursesCurriculumSubjectSlugRoute
   '/workspace/lms-and-courses/courses/$deptSlug/$semSlug': typeof AuthenticatedInternalWorkspaceLmsAndCoursesCoursesDeptSlugSemSlugRoute
 }
@@ -448,8 +448,6 @@ export interface FileRoutesById {
   '/courses/$deptSlug/$semSlug': typeof CoursesDeptSlugSemSlugRoute
   '/_authenticated/sdash/': typeof AuthenticatedSdashIndexRoute
   '/_authenticated/_internal/instructor/profile': typeof AuthenticatedInternalInstructorProfileRoute
-  '/_authenticated/_internal/workspace/employees': typeof AuthenticatedInternalWorkspaceEmployeesRouteWithChildren
-  '/_authenticated/_internal/workspace/instructors': typeof AuthenticatedInternalWorkspaceInstructorsRouteWithChildren
   '/_authenticated/_internal/workspace/lms-and-courses': typeof AuthenticatedInternalWorkspaceLmsAndCoursesRouteWithChildren
   '/_authenticated/_internal/workspace/profile': typeof AuthenticatedInternalWorkspaceProfileRoute
   '/api/public/hooks/deliver-ebook-batch': typeof ApiPublicHooksDeliverEbookBatchRoute
@@ -471,6 +469,8 @@ export interface FileRoutesById {
   '/_authenticated/sdash/courses/$deptSlug/$semSlug': typeof AuthenticatedSdashCoursesDeptSlugSemSlugRoute
   '/api/public/webhooks/steadfast/$secret': typeof ApiPublicWebhooksSteadfastSecretRoute
   '/_authenticated/_internal/workspace/ecommerce/': typeof AuthenticatedInternalWorkspaceEcommerceIndexRoute
+  '/_authenticated/_internal/workspace/employees/': typeof AuthenticatedInternalWorkspaceEmployeesIndexRoute
+  '/_authenticated/_internal/workspace/instructors/': typeof AuthenticatedInternalWorkspaceInstructorsIndexRoute
   '/_authenticated/_internal/workspace/lms-and-courses/curriculum/$subjectSlug': typeof AuthenticatedInternalWorkspaceLmsAndCoursesCurriculumSubjectSlugRoute
   '/_authenticated/_internal/workspace/lms-and-courses/courses/$deptSlug/$semSlug': typeof AuthenticatedInternalWorkspaceLmsAndCoursesCoursesDeptSlugSemSlugRoute
 }
@@ -498,8 +498,6 @@ export interface FileRouteTypes {
     | '/courses/$deptSlug/$semSlug'
     | '/sdash/'
     | '/instructor/profile'
-    | '/workspace/employees'
-    | '/workspace/instructors'
     | '/workspace/lms-and-courses'
     | '/workspace/profile'
     | '/api/public/hooks/deliver-ebook-batch'
@@ -521,6 +519,8 @@ export interface FileRouteTypes {
     | '/sdash/courses/$deptSlug/$semSlug'
     | '/api/public/webhooks/steadfast/$secret'
     | '/workspace/ecommerce/'
+    | '/workspace/employees/'
+    | '/workspace/instructors/'
     | '/workspace/lms-and-courses/curriculum/$subjectSlug'
     | '/workspace/lms-and-courses/courses/$deptSlug/$semSlug'
   fileRoutesByTo: FileRoutesByTo
@@ -543,8 +543,6 @@ export interface FileRouteTypes {
     | '/courses/$deptSlug/$semSlug'
     | '/sdash'
     | '/instructor/profile'
-    | '/workspace/employees'
-    | '/workspace/instructors'
     | '/workspace/lms-and-courses'
     | '/workspace/profile'
     | '/api/public/hooks/deliver-ebook-batch'
@@ -566,6 +564,8 @@ export interface FileRouteTypes {
     | '/sdash/courses/$deptSlug/$semSlug'
     | '/api/public/webhooks/steadfast/$secret'
     | '/workspace/ecommerce'
+    | '/workspace/employees'
+    | '/workspace/instructors'
     | '/workspace/lms-and-courses/curriculum/$subjectSlug'
     | '/workspace/lms-and-courses/courses/$deptSlug/$semSlug'
   id:
@@ -593,8 +593,6 @@ export interface FileRouteTypes {
     | '/courses/$deptSlug/$semSlug'
     | '/_authenticated/sdash/'
     | '/_authenticated/_internal/instructor/profile'
-    | '/_authenticated/_internal/workspace/employees'
-    | '/_authenticated/_internal/workspace/instructors'
     | '/_authenticated/_internal/workspace/lms-and-courses'
     | '/_authenticated/_internal/workspace/profile'
     | '/api/public/hooks/deliver-ebook-batch'
@@ -616,6 +614,8 @@ export interface FileRouteTypes {
     | '/_authenticated/sdash/courses/$deptSlug/$semSlug'
     | '/api/public/webhooks/steadfast/$secret'
     | '/_authenticated/_internal/workspace/ecommerce/'
+    | '/_authenticated/_internal/workspace/employees/'
+    | '/_authenticated/_internal/workspace/instructors/'
     | '/_authenticated/_internal/workspace/lms-and-courses/curriculum/$subjectSlug'
     | '/_authenticated/_internal/workspace/lms-and-courses/courses/$deptSlug/$semSlug'
   fileRoutesById: FileRoutesById
@@ -846,26 +846,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInternalWorkspaceLmsAndCoursesRouteImport
       parentRoute: typeof AuthenticatedInternalWorkspaceRoute
     }
-    '/_authenticated/_internal/workspace/instructors': {
-      id: '/_authenticated/_internal/workspace/instructors'
-      path: '/instructors'
-      fullPath: '/workspace/instructors'
-      preLoaderRoute: typeof AuthenticatedInternalWorkspaceInstructorsRouteImport
-      parentRoute: typeof AuthenticatedInternalWorkspaceRoute
-    }
-    '/_authenticated/_internal/workspace/employees': {
-      id: '/_authenticated/_internal/workspace/employees'
-      path: '/employees'
-      fullPath: '/workspace/employees'
-      preLoaderRoute: typeof AuthenticatedInternalWorkspaceEmployeesRouteImport
-      parentRoute: typeof AuthenticatedInternalWorkspaceRoute
-    }
     '/_authenticated/_internal/instructor/profile': {
       id: '/_authenticated/_internal/instructor/profile'
       path: '/profile'
       fullPath: '/instructor/profile'
       preLoaderRoute: typeof AuthenticatedInternalInstructorProfileRouteImport
       parentRoute: typeof AuthenticatedInternalInstructorRoute
+    }
+    '/_authenticated/_internal/workspace/instructors/': {
+      id: '/_authenticated/_internal/workspace/instructors/'
+      path: '/instructors'
+      fullPath: '/workspace/instructors/'
+      preLoaderRoute: typeof AuthenticatedInternalWorkspaceInstructorsIndexRouteImport
+      parentRoute: typeof AuthenticatedInternalWorkspaceRoute
+    }
+    '/_authenticated/_internal/workspace/employees/': {
+      id: '/_authenticated/_internal/workspace/employees/'
+      path: '/employees'
+      fullPath: '/workspace/employees/'
+      preLoaderRoute: typeof AuthenticatedInternalWorkspaceEmployeesIndexRouteImport
+      parentRoute: typeof AuthenticatedInternalWorkspaceRoute
     }
     '/_authenticated/_internal/workspace/ecommerce/': {
       id: '/_authenticated/_internal/workspace/ecommerce/'
@@ -925,17 +925,17 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/_internal/workspace/instructors/$userId': {
       id: '/_authenticated/_internal/workspace/instructors/$userId'
-      path: '/$userId'
+      path: '/instructors/$userId'
       fullPath: '/workspace/instructors/$userId'
       preLoaderRoute: typeof AuthenticatedInternalWorkspaceInstructorsUserIdRouteImport
-      parentRoute: typeof AuthenticatedInternalWorkspaceInstructorsRoute
+      parentRoute: typeof AuthenticatedInternalWorkspaceRoute
     }
     '/_authenticated/_internal/workspace/employees/$userId': {
       id: '/_authenticated/_internal/workspace/employees/$userId'
-      path: '/$userId'
+      path: '/employees/$userId'
       fullPath: '/workspace/employees/$userId'
       preLoaderRoute: typeof AuthenticatedInternalWorkspaceEmployeesUserIdRouteImport
-      parentRoute: typeof AuthenticatedInternalWorkspaceEmployeesRoute
+      parentRoute: typeof AuthenticatedInternalWorkspaceRoute
     }
     '/_authenticated/_internal/workspace/ecommerce/products': {
       id: '/_authenticated/_internal/workspace/ecommerce/products'
@@ -1000,36 +1000,6 @@ const AuthenticatedInternalInstructorRouteWithChildren =
     AuthenticatedInternalInstructorRouteChildren,
   )
 
-interface AuthenticatedInternalWorkspaceEmployeesRouteChildren {
-  AuthenticatedInternalWorkspaceEmployeesUserIdRoute: typeof AuthenticatedInternalWorkspaceEmployeesUserIdRoute
-}
-
-const AuthenticatedInternalWorkspaceEmployeesRouteChildren: AuthenticatedInternalWorkspaceEmployeesRouteChildren =
-  {
-    AuthenticatedInternalWorkspaceEmployeesUserIdRoute:
-      AuthenticatedInternalWorkspaceEmployeesUserIdRoute,
-  }
-
-const AuthenticatedInternalWorkspaceEmployeesRouteWithChildren =
-  AuthenticatedInternalWorkspaceEmployeesRoute._addFileChildren(
-    AuthenticatedInternalWorkspaceEmployeesRouteChildren,
-  )
-
-interface AuthenticatedInternalWorkspaceInstructorsRouteChildren {
-  AuthenticatedInternalWorkspaceInstructorsUserIdRoute: typeof AuthenticatedInternalWorkspaceInstructorsUserIdRoute
-}
-
-const AuthenticatedInternalWorkspaceInstructorsRouteChildren: AuthenticatedInternalWorkspaceInstructorsRouteChildren =
-  {
-    AuthenticatedInternalWorkspaceInstructorsUserIdRoute:
-      AuthenticatedInternalWorkspaceInstructorsUserIdRoute,
-  }
-
-const AuthenticatedInternalWorkspaceInstructorsRouteWithChildren =
-  AuthenticatedInternalWorkspaceInstructorsRoute._addFileChildren(
-    AuthenticatedInternalWorkspaceInstructorsRouteChildren,
-  )
-
 interface AuthenticatedInternalWorkspaceLmsAndCoursesCoursesRouteChildren {
   AuthenticatedInternalWorkspaceLmsAndCoursesCoursesDeptSlugSemSlugRoute: typeof AuthenticatedInternalWorkspaceLmsAndCoursesCoursesDeptSlugSemSlugRoute
 }
@@ -1070,8 +1040,6 @@ const AuthenticatedInternalWorkspaceLmsAndCoursesRouteWithChildren =
   )
 
 interface AuthenticatedInternalWorkspaceRouteChildren {
-  AuthenticatedInternalWorkspaceEmployeesRoute: typeof AuthenticatedInternalWorkspaceEmployeesRouteWithChildren
-  AuthenticatedInternalWorkspaceInstructorsRoute: typeof AuthenticatedInternalWorkspaceInstructorsRouteWithChildren
   AuthenticatedInternalWorkspaceLmsAndCoursesRoute: typeof AuthenticatedInternalWorkspaceLmsAndCoursesRouteWithChildren
   AuthenticatedInternalWorkspaceProfileRoute: typeof AuthenticatedInternalWorkspaceProfileRoute
   AuthenticatedInternalWorkspaceIndexRoute: typeof AuthenticatedInternalWorkspaceIndexRoute
@@ -1079,17 +1047,17 @@ interface AuthenticatedInternalWorkspaceRouteChildren {
   AuthenticatedInternalWorkspaceEcommerceCouponsRoute: typeof AuthenticatedInternalWorkspaceEcommerceCouponsRoute
   AuthenticatedInternalWorkspaceEcommerceOrdersRoute: typeof AuthenticatedInternalWorkspaceEcommerceOrdersRoute
   AuthenticatedInternalWorkspaceEcommerceProductsRoute: typeof AuthenticatedInternalWorkspaceEcommerceProductsRoute
+  AuthenticatedInternalWorkspaceEmployeesUserIdRoute: typeof AuthenticatedInternalWorkspaceEmployeesUserIdRoute
+  AuthenticatedInternalWorkspaceInstructorsUserIdRoute: typeof AuthenticatedInternalWorkspaceInstructorsUserIdRoute
   AuthenticatedInternalWorkspaceSettingsEmailTemplatesRoute: typeof AuthenticatedInternalWorkspaceSettingsEmailTemplatesRoute
   AuthenticatedInternalWorkspaceSettingsSmsTemplatesRoute: typeof AuthenticatedInternalWorkspaceSettingsSmsTemplatesRoute
   AuthenticatedInternalWorkspaceEcommerceIndexRoute: typeof AuthenticatedInternalWorkspaceEcommerceIndexRoute
+  AuthenticatedInternalWorkspaceEmployeesIndexRoute: typeof AuthenticatedInternalWorkspaceEmployeesIndexRoute
+  AuthenticatedInternalWorkspaceInstructorsIndexRoute: typeof AuthenticatedInternalWorkspaceInstructorsIndexRoute
 }
 
 const AuthenticatedInternalWorkspaceRouteChildren: AuthenticatedInternalWorkspaceRouteChildren =
   {
-    AuthenticatedInternalWorkspaceEmployeesRoute:
-      AuthenticatedInternalWorkspaceEmployeesRouteWithChildren,
-    AuthenticatedInternalWorkspaceInstructorsRoute:
-      AuthenticatedInternalWorkspaceInstructorsRouteWithChildren,
     AuthenticatedInternalWorkspaceLmsAndCoursesRoute:
       AuthenticatedInternalWorkspaceLmsAndCoursesRouteWithChildren,
     AuthenticatedInternalWorkspaceProfileRoute:
@@ -1104,12 +1072,20 @@ const AuthenticatedInternalWorkspaceRouteChildren: AuthenticatedInternalWorkspac
       AuthenticatedInternalWorkspaceEcommerceOrdersRoute,
     AuthenticatedInternalWorkspaceEcommerceProductsRoute:
       AuthenticatedInternalWorkspaceEcommerceProductsRoute,
+    AuthenticatedInternalWorkspaceEmployeesUserIdRoute:
+      AuthenticatedInternalWorkspaceEmployeesUserIdRoute,
+    AuthenticatedInternalWorkspaceInstructorsUserIdRoute:
+      AuthenticatedInternalWorkspaceInstructorsUserIdRoute,
     AuthenticatedInternalWorkspaceSettingsEmailTemplatesRoute:
       AuthenticatedInternalWorkspaceSettingsEmailTemplatesRoute,
     AuthenticatedInternalWorkspaceSettingsSmsTemplatesRoute:
       AuthenticatedInternalWorkspaceSettingsSmsTemplatesRoute,
     AuthenticatedInternalWorkspaceEcommerceIndexRoute:
       AuthenticatedInternalWorkspaceEcommerceIndexRoute,
+    AuthenticatedInternalWorkspaceEmployeesIndexRoute:
+      AuthenticatedInternalWorkspaceEmployeesIndexRoute,
+    AuthenticatedInternalWorkspaceInstructorsIndexRoute:
+      AuthenticatedInternalWorkspaceInstructorsIndexRoute,
   }
 
 const AuthenticatedInternalWorkspaceRouteWithChildren =
