@@ -13,7 +13,8 @@ import {
   BookOpen,
   MessageSquareText,
   Mail,
-
+  UserPlus,
+  AlertCircle,
 } from "lucide-react";
 import { useRole } from "@/hooks/use-role";
 import { InternalShell, type NavGroup } from "@/components/internal/InternalShell";

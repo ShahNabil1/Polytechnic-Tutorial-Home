@@ -61,6 +61,7 @@ import { Route as AuthenticatedInternalWorkspaceCrmSignedRouteImport } from './r
 import { Route as AuthenticatedInternalWorkspaceCrmIncompleteRouteImport } from './routes/_authenticated/_internal.workspace.crm.incomplete'
 import { Route as AuthenticatedInternalWorkspaceCrmGuestsRouteImport } from './routes/_authenticated/_internal.workspace.crm.guests'
 import { Route as AuthenticatedInternalWorkspaceCrmCustomersRouteImport } from './routes/_authenticated/_internal.workspace.crm.customers'
+import { Route as AuthenticatedInternalWorkspaceCrmIdRouteImport } from './routes/_authenticated/_internal.workspace.crm.$id'
 import { Route as AuthenticatedInternalWorkspaceLmsAndCoursesCurriculumSubjectSlugRouteImport } from './routes/_authenticated/_internal.workspace.lms-and-courses.curriculum.$subjectSlug'
 import { Route as AuthenticatedInternalWorkspaceLmsAndCoursesCoursesDeptSlugSemSlugRouteImport } from './routes/_authenticated/_internal.workspace.lms-and-courses.courses.$deptSlug.$semSlug'
 
@@ -354,6 +355,12 @@ const AuthenticatedInternalWorkspaceCrmCustomersRoute =
     path: '/customers',
     getParentRoute: () => AuthenticatedInternalWorkspaceCrmRoute,
   } as any)
+const AuthenticatedInternalWorkspaceCrmIdRoute =
+  AuthenticatedInternalWorkspaceCrmIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedInternalWorkspaceCrmRoute,
+  } as any)
 const AuthenticatedInternalWorkspaceLmsAndCoursesCurriculumSubjectSlugRoute =
   AuthenticatedInternalWorkspaceLmsAndCoursesCurriculumSubjectSlugRouteImport.update(
     {
@@ -402,6 +409,7 @@ export interface FileRoutesByFullPath {
   '/api/public/webhooks/resend': typeof ApiPublicWebhooksResendRoute
   '/instructor/': typeof AuthenticatedInternalInstructorIndexRoute
   '/workspace/': typeof AuthenticatedInternalWorkspaceIndexRoute
+  '/workspace/crm/$id': typeof AuthenticatedInternalWorkspaceCrmIdRoute
   '/workspace/crm/customers': typeof AuthenticatedInternalWorkspaceCrmCustomersRoute
   '/workspace/crm/guests': typeof AuthenticatedInternalWorkspaceCrmGuestsRoute
   '/workspace/crm/incomplete': typeof AuthenticatedInternalWorkspaceCrmIncompleteRoute
@@ -452,6 +460,7 @@ export interface FileRoutesByTo {
   '/api/public/webhooks/resend': typeof ApiPublicWebhooksResendRoute
   '/instructor': typeof AuthenticatedInternalInstructorIndexRoute
   '/workspace': typeof AuthenticatedInternalWorkspaceIndexRoute
+  '/workspace/crm/$id': typeof AuthenticatedInternalWorkspaceCrmIdRoute
   '/workspace/crm/customers': typeof AuthenticatedInternalWorkspaceCrmCustomersRoute
   '/workspace/crm/guests': typeof AuthenticatedInternalWorkspaceCrmGuestsRoute
   '/workspace/crm/incomplete': typeof AuthenticatedInternalWorkspaceCrmIncompleteRoute
@@ -509,6 +518,7 @@ export interface FileRoutesById {
   '/api/public/webhooks/resend': typeof ApiPublicWebhooksResendRoute
   '/_authenticated/_internal/instructor/': typeof AuthenticatedInternalInstructorIndexRoute
   '/_authenticated/_internal/workspace/': typeof AuthenticatedInternalWorkspaceIndexRoute
+  '/_authenticated/_internal/workspace/crm/$id': typeof AuthenticatedInternalWorkspaceCrmIdRoute
   '/_authenticated/_internal/workspace/crm/customers': typeof AuthenticatedInternalWorkspaceCrmCustomersRoute
   '/_authenticated/_internal/workspace/crm/guests': typeof AuthenticatedInternalWorkspaceCrmGuestsRoute
   '/_authenticated/_internal/workspace/crm/incomplete': typeof AuthenticatedInternalWorkspaceCrmIncompleteRoute
@@ -565,6 +575,7 @@ export interface FileRouteTypes {
     | '/api/public/webhooks/resend'
     | '/instructor/'
     | '/workspace/'
+    | '/workspace/crm/$id'
     | '/workspace/crm/customers'
     | '/workspace/crm/guests'
     | '/workspace/crm/incomplete'
@@ -615,6 +626,7 @@ export interface FileRouteTypes {
     | '/api/public/webhooks/resend'
     | '/instructor'
     | '/workspace'
+    | '/workspace/crm/$id'
     | '/workspace/crm/customers'
     | '/workspace/crm/guests'
     | '/workspace/crm/incomplete'
@@ -671,6 +683,7 @@ export interface FileRouteTypes {
     | '/api/public/webhooks/resend'
     | '/_authenticated/_internal/instructor/'
     | '/_authenticated/_internal/workspace/'
+    | '/_authenticated/_internal/workspace/crm/$id'
     | '/_authenticated/_internal/workspace/crm/customers'
     | '/_authenticated/_internal/workspace/crm/guests'
     | '/_authenticated/_internal/workspace/crm/incomplete'
@@ -1083,6 +1096,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInternalWorkspaceCrmCustomersRouteImport
       parentRoute: typeof AuthenticatedInternalWorkspaceCrmRoute
     }
+    '/_authenticated/_internal/workspace/crm/$id': {
+      id: '/_authenticated/_internal/workspace/crm/$id'
+      path: '/$id'
+      fullPath: '/workspace/crm/$id'
+      preLoaderRoute: typeof AuthenticatedInternalWorkspaceCrmIdRouteImport
+      parentRoute: typeof AuthenticatedInternalWorkspaceCrmRoute
+    }
     '/_authenticated/_internal/workspace/lms-and-courses/curriculum/$subjectSlug': {
       id: '/_authenticated/_internal/workspace/lms-and-courses/curriculum/$subjectSlug'
       path: '/curriculum/$subjectSlug'
@@ -1119,6 +1139,7 @@ const AuthenticatedInternalInstructorRouteWithChildren =
   )
 
 interface AuthenticatedInternalWorkspaceCrmRouteChildren {
+  AuthenticatedInternalWorkspaceCrmIdRoute: typeof AuthenticatedInternalWorkspaceCrmIdRoute
   AuthenticatedInternalWorkspaceCrmCustomersRoute: typeof AuthenticatedInternalWorkspaceCrmCustomersRoute
   AuthenticatedInternalWorkspaceCrmGuestsRoute: typeof AuthenticatedInternalWorkspaceCrmGuestsRoute
   AuthenticatedInternalWorkspaceCrmIncompleteRoute: typeof AuthenticatedInternalWorkspaceCrmIncompleteRoute
@@ -1128,6 +1149,8 @@ interface AuthenticatedInternalWorkspaceCrmRouteChildren {
 
 const AuthenticatedInternalWorkspaceCrmRouteChildren: AuthenticatedInternalWorkspaceCrmRouteChildren =
   {
+    AuthenticatedInternalWorkspaceCrmIdRoute:
+      AuthenticatedInternalWorkspaceCrmIdRoute,
     AuthenticatedInternalWorkspaceCrmCustomersRoute:
       AuthenticatedInternalWorkspaceCrmCustomersRoute,
     AuthenticatedInternalWorkspaceCrmGuestsRoute:
