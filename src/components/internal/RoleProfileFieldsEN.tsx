@@ -497,7 +497,7 @@ export function RoleProfileFieldsEN({
           </form>
         </section>
       )}
-      {!isSuperAdmin && <NidUploadCard />}
+      {!isSuperAdmin && !isAdminMode && <NidUploadCard />}
     </>
   );
 }
