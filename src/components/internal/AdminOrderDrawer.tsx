@@ -93,6 +93,7 @@ export function AdminOrderDrawer({
   const searchProducts = useServerFn(searchProductsForOrder);
   const retrySF = useServerFn(retrySteadfastDispatch);
   const [retryingSF, setRetryingSF] = useState(false);
+  useScrollLock(true);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["admin-order", orderId],
