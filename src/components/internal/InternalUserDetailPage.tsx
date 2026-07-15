@@ -77,8 +77,8 @@ export function InternalUserDetailPage({ userId, role }: Props) {
   async function handleDownloadCv() {
     setBusy("cv");
     try {
-      const url = await getCv({ data: { user_id: userId } });
-      window.open(url as string, "_blank", "noopener,noreferrer");
+      const res = await getCv({ data: { user_id: userId } });
+      window.open((res as { url: string }).url, "_blank", "noopener,noreferrer");
     } catch (e) {
       toast.error("CV download failed: " + (e instanceof Error ? e.message : String(e)));
     } finally {
