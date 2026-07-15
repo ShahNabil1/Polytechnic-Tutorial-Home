@@ -280,6 +280,39 @@ export type Database = {
           },
         ]
       }
+      crm_segments: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          filter: Json
+          id: string
+          kind: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          filter?: Json
+          id?: string
+          kind: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          filter?: Json
+          id?: string
+          kind?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       crm_sms_deliveries: {
         Row: {
           body: string
