@@ -706,6 +706,52 @@ export function InternalUserDetailPage({ userId, role }: Props) {
         )}
       </section>
 
+      {/* Passkeys */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-display text-base font-bold tracking-tight">
+            Passkeys <span className="text-slate-400">({passkeys.length})</span>
+          </h2>
+        </div>
+        {passkeys.length === 0 ? (
+          <div className="rounded-md border border-dashed border-slate-300 p-6 text-center text-sm font-medium text-slate-500">
+            এই ইউজারের কোনো Passkey এ্যাড করা নাই
+          </div>
+        ) : (
+          <ul className="divide-y divide-slate-200 rounded-lg border border-slate-200">
+            {passkeys.map((p) => (
+              <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
+                <div className="min-w-0 flex items-start gap-3">
+                  <Fingerprint className="mt-0.5 size-4 text-slate-500" />
+                  <div className="min-w-0">
+                    <div className="font-semibold text-slate-800">
+                      {p.device_name || "নামহীন Passkey"}
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      যোগ {new Date(p.created_at).toLocaleDateString()}
+                      {p.last_used_at && <> · সর্বশেষ {new Date(p.last_used_at).toLocaleDateString()}</>}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDeletePasskey(p.id, p.device_name)}
+                  disabled={busy === "pk-" + p.id}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-red-300 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-60"
+                >
+                  {busy === "pk-" + p.id ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="size-3.5" />
+                  )}
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       {/* Danger zone */}
       <section className="rounded-2xl border border-red-200 bg-red-50/40 p-6 shadow-sm">
         <h2 className="mb-1 font-display text-base font-bold tracking-tight text-red-900">Danger zone</h2>
