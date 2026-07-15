@@ -18,6 +18,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { Toaster } from "@/components/ui/sonner";
 import { BlocklistGate } from "@/components/BlocklistGate";
 import { ConfirmDialogHost } from "@/components/ui/confirm-dialog";
+import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 
 function NotFoundComponent() {
   return (
@@ -175,6 +176,7 @@ function RootComponent() {
     return (
       <QueryClientProvider client={queryClient}>
         <BlocklistGate>
+          <ImpersonationBanner />
           <Outlet />
         </BlocklistGate>
         <Toaster richColors position="top-center" />
@@ -187,6 +189,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <BlocklistGate>
         <div className="flex min-h-screen flex-col">
+          <ImpersonationBanner />
           <SiteHeader />
           <main className="flex-1">
             <Outlet />

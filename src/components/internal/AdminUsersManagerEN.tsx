@@ -1,24 +1,21 @@
 import { useEffect, useState } from "react";
-import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
+import { Link } from "@tanstack/react-router";
+
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   Loader2,
   UserPlus,
-  ShieldOff,
-  ShieldCheck,
-  UserMinus,
   IdCard,
   Eye,
   EyeOff,
   RefreshCw,
   ScrollText,
+  ExternalLink,
 } from "lucide-react";
 import {
   listInternalUsers,
   createInternalUser,
-  revokeInternalRole,
-  setInternalUserActive,
   type AdminUserRow,
 } from "@/lib/admin-users.functions";
 import { InternalEmailLogsDialog } from "@/components/internal/InternalEmailLogsDialog";
@@ -45,15 +42,12 @@ function generatePassword(len = 14) {
 export function AdminUsersManagerEN({ role }: { role: "employee" | "instructor" }) {
   const list = useServerFn(listInternalUsers);
   const createUser = useServerFn(createInternalUser);
-  const revoke = useServerFn(revokeInternalRole);
-  const setActive = useServerFn(setInternalUserActive);
 
   const [rows, setRows] = useState<AdminUserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [showPw, setShowPw] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [busyId, setBusyId] = useState<string | null>(null);
   const [logsFor, setLogsFor] = useState<AdminUserRow | null>(null);
 
   async function refresh() {
@@ -99,32 +93,6 @@ export function AdminUsersManagerEN({ role }: { role: "employee" | "instructor" 
     }
   }
 
-  async function revokeUser(userId: string) {
-    if (!(await confirmDialog({ variant: "danger", description: "Revoke this role?" }))) return;
-    setBusyId(userId);
-    try {
-      await revoke({ data: { user_id: userId, role } });
-      toast.success("Role revoked");
-      await refresh();
-    } catch (e) {
-      toast.error("Revoke failed: " + (e instanceof Error ? e.message : String(e)));
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  async function toggleActive(row: AdminUserRow) {
-    setBusyId(row.user_id);
-    try {
-      await setActive({ data: { user_id: row.user_id, is_active: !row.is_active } });
-      toast.success(row.is_active ? "Deactivated" : "Activated");
-      await refresh();
-    } catch (e) {
-      toast.error("Update failed: " + (e instanceof Error ? e.message : String(e)));
-    } finally {
-      setBusyId(null);
-    }
-  }
 
   const label = role === "employee" ? "Employee" : "Instructor";
   const labelPlural = role === "employee" ? "Employees" : "Instructors";
@@ -291,27 +259,14 @@ export function AdminUsersManagerEN({ role }: { role: "employee" | "instructor" 
                   >
                     <ScrollText className="size-3.5" /> Logs
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => toggleActive(r)}
-                    disabled={busyId === r.user_id}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold hover:bg-slate-50 disabled:opacity-60"
+                  <Link
+                    to={role === "employee" ? "/workspace/employees/$userId" : "/workspace/instructors/$userId"}
+                    params={{ userId: r.user_id }}
+                    className="inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-3 py-1.5 text-xs font-bold text-white hover:bg-slate-800"
+                    title="Open full details"
                   >
-                    {r.is_active ? (
-                      <ShieldOff className="size-3.5" />
-                    ) : (
-                      <ShieldCheck className="size-3.5" />
-                    )}
-                    {r.is_active ? "Deactivate" : "Activate"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => revokeUser(r.user_id)}
-                    disabled={busyId === r.user_id}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-100 disabled:opacity-60"
-                  >
-                    <UserMinus className="size-3.5" /> Revoke Role
-                  </button>
+                    <ExternalLink className="size-3.5" /> View
+                  </Link>
                 </div>
               </li>
             ))}
