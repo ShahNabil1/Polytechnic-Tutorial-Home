@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Search, User as UserIcon, Phone as PhoneIcon, Mail as MailIcon, ShoppingBag, GraduationCap, AlertCircle, MessageSquare, Mail as MailIcon2, ExternalLink, Receipt } from "lucide-react";
@@ -74,34 +75,27 @@ export function CrmListPage({ kind }: { kind: Kind }) {
   const listIncomplete = useServerFn(listCrmIncompleteLeads);
 
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [rows, setRows] = useState<any[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulk, setBulk] = useState<"sms" | "email" | null>(null);
   const [openOrderId, setOpenOrderId] = useState<string | null>(null);
 
+  const query = useQuery({
+    queryKey: ["admin", "crm", kind, search],
+    queryFn: async () => {
+      if (kind === "customers") return (await listCustomers({ data: { segment: "active", search } as any })) ?? [];
+      if (kind === "signed") return (await listCustomers({ data: { segment: "signed_no_purchase", search } as any })) ?? [];
+      if (kind === "guests") return (await listGuests({ data: { search } as any })) ?? [];
+      return (await listIncomplete({ data: { search } as any })) ?? [];
+    },
+    staleTime: 60_000,
+  });
+  const rows: any[] = (query.data as any[] | undefined) ?? [];
+  const loading = query.isLoading;
+  const setReloadTick = (_: any) => {
+    query.refetch();
+    setSelected(new Set());
+  };
 
-  const [reloadTick, setReloadTick] = useState(0);
-  useEffect(() => {
-    let cancel = false;
-    setLoading(true);
-    if (reloadTick === 0) setSelected(new Set());
-    (async () => {
-      try {
-        let data: any[] = [];
-        if (kind === "customers") data = await listCustomers({ data: { segment: "active", search } as any });
-        else if (kind === "signed") data = await listCustomers({ data: { segment: "signed_no_purchase", search } as any });
-        else if (kind === "guests") data = await listGuests({ data: { search } as any });
-        else data = await listIncomplete({ data: { search } as any });
-        if (!cancel) setRows(data ?? []);
-      } catch {
-        if (!cancel) setRows([]);
-      } finally {
-        if (!cancel) setLoading(false);
-      }
-    })();
-    return () => { cancel = true; };
-  }, [kind, search, reloadTick, listCustomers, listGuests, listIncomplete]);
 
 
   const meta = KIND_META[kind];
