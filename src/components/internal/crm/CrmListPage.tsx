@@ -196,6 +196,7 @@ export function CrmListPage({ kind }: { kind: Kind }) {
             allSelected={allSelected}
             onToggleAll={toggleAll}
             onToggleOne={(p) => toggleOne(`p:${p}`)}
+            onOpenOrder={setOpenOrderId}
           />
         ) : (
           <IncompleteTable
@@ -204,6 +205,7 @@ export function CrmListPage({ kind }: { kind: Kind }) {
             allSelected={allSelected}
             onToggleAll={toggleAll}
             onToggleOne={(id) => toggleOne(`i:${id}`)}
+            onOpenOrder={setOpenOrderId}
           />
         )}
       </div>
@@ -215,9 +217,18 @@ export function CrmListPage({ kind }: { kind: Kind }) {
           onClose={() => setBulk(null)}
         />
       )}
+
+      {openOrderId && (
+        <AdminOrderDrawer
+          orderId={openOrderId}
+          onClose={() => setOpenOrderId(null)}
+          onChanged={() => setReloadTick((n) => n + 1)}
+        />
+      )}
     </div>
   );
 }
+
 
 function Checkbox({ checked, onChange }: { checked: boolean; onChange: () => void }) {
   return (
