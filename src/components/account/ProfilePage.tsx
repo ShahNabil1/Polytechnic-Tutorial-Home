@@ -84,6 +84,16 @@ export function ProfilePage({ role }: { role: AppRole }) {
     enabled: !!user,
     staleTime: 10 * 60_000,
     gcTime: 30 * 60_000,
+    retry: (failureCount, error) => {
+      // Don't retry on auth failures — user must sign in again
+      const msg = (error as Error)?.message || "";
+      if (/unauthori[sz]ed|401|403/i.test(msg)) return false;
+      return failureCount < 5;
+    },
+    // Exponential backoff: 500ms, 1s, 2s, 4s, 8s (capped at 10s)
+    retryDelay: (attempt) => Math.min(500 * 2 ** attempt, 10_000),
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
   const loading = profileQuery.isLoading;
   const loadError = profileQuery.error ? (profileQuery.error as Error).message : null;
