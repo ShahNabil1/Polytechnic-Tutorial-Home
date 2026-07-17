@@ -63,6 +63,44 @@ function chipTone(status: string): string {
   }
 }
 
+function insertAtCursor(
+  el: HTMLTextAreaElement | HTMLInputElement | null,
+  value: string,
+  setValue: (v: string) => void,
+  token: string,
+) {
+  if (!el) {
+    setValue(value + token);
+    return;
+  }
+  const start = el.selectionStart ?? value.length;
+  const end = el.selectionEnd ?? value.length;
+  const next = value.slice(0, start) + token + value.slice(end);
+  setValue(next);
+  requestAnimationFrame(() => {
+    el.focus();
+    const pos = start + token.length;
+    try { el.setSelectionRange(pos, pos); } catch {}
+  });
+}
+
+function VarChips({ vars, onPick }: { vars: string[]; onPick: (v: string) => void }) {
+  return (
+    <div className="flex flex-wrap gap-1">
+      {vars.map((v) => (
+        <button
+          type="button"
+          key={v}
+          onClick={() => onPick(v)}
+          className="rounded-full border border-border bg-muted/40 px-2 py-0.5 font-mono text-[10px] text-muted-foreground hover:bg-primary/10 hover:text-primary"
+          title={`Insert {{${v}}}`}
+        >
+          {`{{${v}}}`}
+        </button>
+      ))}
+    </div>
+  );
+
 type Props = {
   vars: CrmVars;
   userId: string | null;
