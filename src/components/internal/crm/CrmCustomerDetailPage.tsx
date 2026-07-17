@@ -27,6 +27,9 @@ export function CrmCustomerDetailPage({ userId }: { userId: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("overview");
+  const [openOrderId, setOpenOrderId] = useState<string | null>(null);
+  const [reloadTick, setReloadTick] = useState(0);
+
 
   useEffect(() => {
     let cancel = false;
