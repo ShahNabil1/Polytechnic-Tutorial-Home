@@ -243,6 +243,7 @@ export const upsertBundle = createServerFn({ method: "POST" })
       .from("product_bundle_items")
       .insert(rows as never);
     if (insErr) throw new Error(insErr.message);
+    await invalidateBundleCaches();
     return { ok: true, id: bundleId };
   });
 
@@ -256,5 +257,6 @@ export const deleteBundle = createServerFn({ method: "POST" })
       .delete()
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+    await invalidateBundleCaches();
     return { ok: true };
   });
