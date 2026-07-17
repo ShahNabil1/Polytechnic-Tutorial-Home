@@ -15,17 +15,28 @@ const searchSchema = z.object({
   type: z.enum(["physical", "ebook", "suggestion"]).optional(),
 });
 
+import { getPageSeo } from "@/lib/cms.functions";
+
 export const Route = createFileRoute("/shop")({
-  head: () => ({
-    meta: [
-      { title: "সকল বই ও সাজেশন — Polytechnic Tutorial Home" },
-      {
-        name: "description",
-        content:
-          "ডিপার্টমেন্ট, সেমিস্টার এবং প্রোডাক্ট টাইপ অনুযায়ী পলিটেকনিকের বই, ই-বুক ও সুপার সাজেশন খুঁজুন।",
-      },
-    ],
-  }),
+  loader: () => getPageSeo({ data: { path: "/shop" } }),
+  head: ({ loaderData }) => {
+    const title = loaderData?.meta_title || "সকল বই ও সাজেশন — Polytechnic Tutorial Home";
+    const desc =
+      loaderData?.meta_description ||
+      "ডিপার্টমেন্ট, সেমিস্টার এবং প্রোডাক্ট টাইপ অনুযায়ী পলিটেকনিকের বই, ই-বুক ও সুপার সাজেশন খুঁজুন।";
+    const meta: Array<Record<string, string>> = [
+      { title },
+      { name: "description", content: desc },
+      { property: "og:title", content: title },
+      { property: "og:description", content: desc },
+      { property: "og:url", content: "https://polytechnictutorial.com/shop" },
+    ];
+    if (loaderData?.og_image_url) {
+      meta.push({ property: "og:image", content: loaderData.og_image_url });
+      meta.push({ name: "twitter:image", content: loaderData.og_image_url });
+    }
+    return { meta, links: [{ rel: "canonical", href: "https://polytechnictutorial.com/shop" }] };
+  },
   validateSearch: (search) => searchSchema.parse(search),
   component: ShopPage,
 });

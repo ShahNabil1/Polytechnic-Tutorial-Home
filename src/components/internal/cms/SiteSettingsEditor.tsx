@@ -1,0 +1,112 @@
+import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+import { getSiteSettings, saveSiteSettings } from "@/lib/cms.functions";
+import { DEFAULT_SITE_SETTINGS, type SiteSettings } from "@/lib/cms-types";
+import { Field, PageHeader, SaveButton, SectionCard, TextArea, TextInput } from "./FormPrimitives";
+
+export function SiteSettingsEditor() {
+  const load = useServerFn(getSiteSettings);
+  const save = useServerFn(saveSiteSettings);
+  const [s, setS] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    load(undefined as never).then((res) => res && setS(res as SiteSettings)).catch(() => {});
+  }, [load]);
+
+  async function onSave() {
+    setSaving(true);
+    try {
+      await save({ data: s });
+      toast.success("সাইট সেটিংস সেভ হয়েছে");
+    } catch (e: any) {
+      toast.error(e?.message || "সেভ করা যায়নি");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const upd = <K extends keyof SiteSettings>(key: K, val: SiteSettings[K]) => setS((p) => ({ ...p, [key]: val }));
+
+  return (
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow="Settings"
+        title="Site Settings"
+        description="ব্র্যান্ড নাম, যোগাযোগের তথ্য, সোশ্যাল লিংক এবং ফুটার কন্টেন্ট এখান থেকে পরিবর্তন করুন।"
+        action={<SaveButton saving={saving} onClick={onSave} />}
+      />
+
+      <SectionCard title="Brand" description="সাইটের নাম ও ট্যাগলাইন।">
+        <Field label="Brand name">
+          <TextInput value={s.brand.name} onChange={(e) => upd("brand", { ...s.brand, name: e.target.value })} />
+        </Field>
+        <Field label="Tagline">
+          <TextInput value={s.brand.tagline} onChange={(e) => upd("brand", { ...s.brand, tagline: e.target.value })} />
+        </Field>
+        <Field label="Short description" hint="ফুটার এবং SEO ডিফল্টে ব্যবহৃত হয়।">
+          <TextArea rows={3} value={s.brand.shortDescription} onChange={(e) => upd("brand", { ...s.brand, shortDescription: e.target.value })} />
+        </Field>
+      </SectionCard>
+
+      <SectionCard title="Contact" description="ফুটার ও যোগাযোগ পেজে দেখানো হবে।">
+        <Field label="Address">
+          <TextInput value={s.contact.address} onChange={(e) => upd("contact", { ...s.contact, address: e.target.value })} />
+        </Field>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Email">
+            <TextInput type="email" value={s.contact.email} onChange={(e) => upd("contact", { ...s.contact, email: e.target.value })} />
+          </Field>
+          <Field label="Phone">
+            <TextInput value={s.contact.phone} onChange={(e) => upd("contact", { ...s.contact, phone: e.target.value })} />
+          </Field>
+        </div>
+      </SectionCard>
+
+      <SectionCard title="Social links" description="সম্পূর্ণ URL দিন (https:// সহ)। খালি রাখলে আইকন লুকিয়ে থাকবে।">
+        <Field label="Facebook URL">
+          <TextInput placeholder="https://facebook.com/…" value={s.socials.facebook} onChange={(e) => upd("socials", { ...s.socials, facebook: e.target.value })} />
+        </Field>
+        <Field label="Instagram URL">
+          <TextInput placeholder="https://instagram.com/…" value={s.socials.instagram} onChange={(e) => upd("socials", { ...s.socials, instagram: e.target.value })} />
+        </Field>
+        <Field label="WhatsApp URL" hint="উদাহরণ: https://wa.me/8801XXXXXXXXX">
+          <TextInput placeholder="https://wa.me/…" value={s.socials.whatsapp} onChange={(e) => upd("socials", { ...s.socials, whatsapp: e.target.value })} />
+        </Field>
+      </SectionCard>
+
+      <SectionCard title="Footer">
+        <div className="grid gap-4 md:grid-cols-3">
+          <Field label="Shop heading">
+            <TextInput value={s.footer.shopHeading} onChange={(e) => upd("footer", { ...s.footer, shopHeading: e.target.value })} />
+          </Field>
+          <Field label="Support heading">
+            <TextInput value={s.footer.supportHeading} onChange={(e) => upd("footer", { ...s.footer, supportHeading: e.target.value })} />
+          </Field>
+          <Field label="Contact heading">
+            <TextInput value={s.footer.contactHeading} onChange={(e) => upd("footer", { ...s.footer, contactHeading: e.target.value })} />
+          </Field>
+        </div>
+        <Field label="Copyright">
+          <TextInput value={s.footer.copyright} onChange={(e) => upd("footer", { ...s.footer, copyright: e.target.value })} />
+        </Field>
+        <Field label="Made with tagline">
+          <TextInput value={s.footer.madeWith} onChange={(e) => upd("footer", { ...s.footer, madeWith: e.target.value })} />
+        </Field>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Developer name">
+            <TextInput value={s.footer.developerName} onChange={(e) => upd("footer", { ...s.footer, developerName: e.target.value })} />
+          </Field>
+          <Field label="Developer URL">
+            <TextInput value={s.footer.developerUrl} onChange={(e) => upd("footer", { ...s.footer, developerUrl: e.target.value })} />
+          </Field>
+        </div>
+      </SectionCard>
+
+      <div className="flex justify-end">
+        <SaveButton saving={saving} onClick={onSave} />
+      </div>
+    </div>
+  );
+}

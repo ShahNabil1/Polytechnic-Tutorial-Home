@@ -497,6 +497,24 @@ export type Database = {
         }
         Relationships: []
       }
+      homepage_content: {
+        Row: {
+          content: Json
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          content?: Json
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          content?: Json
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       impersonation_sessions: {
         Row: {
           admin_user_id: string
@@ -1618,6 +1636,30 @@ export type Database = {
         }
         Relationships: []
       }
+      page_seo: {
+        Row: {
+          meta_description: string
+          meta_title: string
+          og_image_url: string | null
+          path: string
+          updated_at: string
+        }
+        Insert: {
+          meta_description?: string
+          meta_title?: string
+          og_image_url?: string | null
+          path: string
+          updated_at?: string
+        }
+        Update: {
+          meta_description?: string
+          meta_title?: string
+          og_image_url?: string | null
+          path?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       product_bundle_items: {
         Row: {
           bundle_id: string
@@ -1912,6 +1954,33 @@ export type Database = {
         }
         Relationships: []
       }
+      site_settings: {
+        Row: {
+          brand: Json
+          contact: Json
+          footer: Json
+          id: string
+          socials: Json
+          updated_at: string
+        }
+        Insert: {
+          brand?: Json
+          contact?: Json
+          footer?: Json
+          id?: string
+          socials?: Json
+          updated_at?: string
+        }
+        Update: {
+          brand?: Json
+          contact?: Json
+          footer?: Json
+          id?: string
+          socials?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sms_templates: {
         Row: {
           body: string
@@ -1951,6 +2020,30 @@ export type Database = {
           name?: string
           updated_at?: string
           variables?: Json
+        }
+        Relationships: []
+      }
+      static_pages: {
+        Row: {
+          body_markdown: string
+          eyebrow: string
+          slug: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body_markdown?: string
+          eyebrow?: string
+          slug: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          body_markdown?: string
+          eyebrow?: string
+          slug?: string
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }
