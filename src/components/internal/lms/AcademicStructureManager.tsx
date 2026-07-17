@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Plus, Trash2, Save } from "lucide-react";
 import { toast } from "sonner";
@@ -28,27 +29,27 @@ export function AcademicStructureManager() {
   const listFn = useServerFn(listAcademicTaxonomy);
   const upsertFn = useServerFn(upsertAcademicTaxonomy);
   const deleteFn = useServerFn(deleteAcademicTaxonomy);
+  const qc = useQueryClient();
+
+  const query = useQuery({
+    queryKey: ["admin", "lms", "structure"],
+    queryFn: () => listFn(undefined as never) as Promise<AcademicCategory[]>,
+    staleTime: 10 * 60_000,
+  });
 
   const [rows, setRows] = useState<Draft[]>([]);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
-  
-
-  async function refetch() {
-    setLoading(true);
-    try {
-      const data = (await listFn(undefined as never)) as AcademicCategory[];
-      setRows(data.map((r) => ({ ...r })));
-    } catch (e: any) {
-      toast.error(e?.message ?? "Failed to load");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const loading = query.isLoading;
 
   useEffect(() => {
-    refetch();
-  }, []);
+    if (query.data) setRows(query.data.map((r) => ({ ...r })));
+  }, [query.data]);
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["admin", "lms"] });
+    qc.invalidateQueries({ queryKey: ["lms"] });
+  };
+
 
   function addRow(kind: AcademicKind) {
     setRows((prev) => [
