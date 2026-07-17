@@ -177,13 +177,10 @@ export function InternalProfilePage({ role }: { role: AppRole }) {
     setEditMode(false);
   }
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <Loader2 className="size-6 animate-spin text-slate-400" />
-      </div>
-    );
+  if (loading && !profileQuery.data) {
+    return <ProfileSkeleton variant="en" />;
   }
+
 
   if (loadError) {
     return (
