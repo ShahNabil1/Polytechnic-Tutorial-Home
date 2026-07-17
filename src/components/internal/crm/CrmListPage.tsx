@@ -216,7 +216,7 @@ export function CrmListPage({ kind }: { kind: Kind }) {
         <AdminOrderDrawer
           orderId={openOrderId}
           onClose={() => setOpenOrderId(null)}
-          onChanged={() => setReloadTick((n) => n + 1)}
+          onChanged={() => setReloadTick(0)}
         />
       )}
     </div>
