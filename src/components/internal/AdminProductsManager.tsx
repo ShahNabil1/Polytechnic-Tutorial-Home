@@ -99,8 +99,8 @@ export function AdminProductsManager() {
     staleTime: 10 * 60_000,
   });
 
-  const products = productsQ.data ?? [];
-  const cats = catsQ.data ?? [];
+  const products: Product[] = (productsQ.data as Product[] | undefined) ?? [];
+  const cats: CategoryRow[] = (catsQ.data as CategoryRow[] | undefined) ?? [];
   const loading = productsQ.isLoading || catsQ.isLoading;
 
   const [editorOpen, setEditorOpen] = useState(false);
