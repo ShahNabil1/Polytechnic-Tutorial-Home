@@ -171,6 +171,7 @@ function StudentDashboardLayout() {
           <SidebarContent
             displayName={displayName}
             initials={initials}
+            avatarUrl={avatarUrl}
             email={user?.email ?? user?.phone ?? ""}
             pathname={pathname}
             onSignOut={handleSignOut}
@@ -198,6 +199,7 @@ function StudentDashboardLayout() {
               <SidebarContent
                 displayName={displayName}
                 initials={initials}
+                avatarUrl={avatarUrl}
                 email={user?.email ?? user?.phone ?? ""}
                 pathname={pathname}
                 onSignOut={handleSignOut}
