@@ -96,6 +96,9 @@ function StudentDashboardLayout() {
   // Close mobile menu on route change
   useEffect(() => setMobileOpen(false), [pathname]);
 
+  // Lock background page scroll while the mobile drawer is open.
+  useBodyScrollLock(mobileOpen);
+
   const missing = getMissingProfileFields(profile);
   const onProfilePage = pathname === "/sdash/profile";
 
