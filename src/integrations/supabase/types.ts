@@ -2171,41 +2171,10 @@ export type Database = {
           last_outcome: string | null
           name: string | null
           phone: string | null
+          source: string | null
           subtotal_bdt: number | null
           thana: string | null
           total_bdt: number | null
-        }
-        Insert: {
-          attempt_count?: number | null
-          cart?: Json | null
-          district?: string | null
-          division?: string | null
-          email?: string | null
-          first_attempt_at?: string | null
-          id?: string | null
-          last_attempt_at?: string | null
-          last_outcome?: string | null
-          name?: string | null
-          phone?: string | null
-          subtotal_bdt?: number | null
-          thana?: string | null
-          total_bdt?: number | null
-        }
-        Update: {
-          attempt_count?: number | null
-          cart?: Json | null
-          district?: string | null
-          division?: string | null
-          email?: string | null
-          first_attempt_at?: string | null
-          id?: string | null
-          last_attempt_at?: string | null
-          last_outcome?: string | null
-          name?: string | null
-          phone?: string | null
-          subtotal_bdt?: number | null
-          thana?: string | null
-          total_bdt?: number | null
         }
         Relationships: []
       }
