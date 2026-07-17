@@ -44,10 +44,14 @@ export function CrmBulkSendDialog({
   );
 
   useEffect(() => {
+    const isManual = (t: any) => {
+      const cat = String(t?.category ?? "other").toLowerCase();
+      return cat !== "transactional" && cat !== "otp";
+    };
     if (channel === "sms") {
-      listSms().then((r: any) => setTemplates(r?.templates ?? [])).catch(() => {});
+      listSms().then((r: any) => setTemplates((r?.templates ?? []).filter(isManual))).catch(() => {});
     } else {
-      listEmail().then((r: any) => setTemplates(r?.templates ?? [])).catch(() => {});
+      listEmail().then((r: any) => setTemplates((r?.templates ?? []).filter(isManual))).catch(() => {});
     }
   }, [channel]);
 
