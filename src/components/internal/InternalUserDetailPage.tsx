@@ -20,6 +20,7 @@ import {
   RefreshCw,
   Fingerprint,
   Mail,
+  MessageSquare,
 } from "lucide-react";
 import {
   getInternalUserDetail,
