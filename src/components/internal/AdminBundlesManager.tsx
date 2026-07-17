@@ -73,7 +73,7 @@ export function AdminBundlesManager({ products }: { products: Product[] }) {
     queryFn: () => list({ data: undefined as never }) as Promise<Bundle[]>,
     staleTime: 2 * 60_000,
   });
-  const bundles = query.data ?? [];
+  const bundles: Bundle[] = (query.data as Bundle[] | undefined) ?? [];
   const loading = query.isLoading;
 
   const [editorOpen, setEditorOpen] = useState(false);
