@@ -39,7 +39,8 @@ export function CrmCustomerDetailPage({ userId }: { userId: string }) {
       .catch((e) => !cancel && setError(e instanceof Error ? e.message : String(e)))
       .finally(() => !cancel && setLoading(false));
     return () => { cancel = true; };
-  }, [userId, getFn]);
+  }, [userId, getFn, reloadTick]);
+
 
   const lastOrderNo = detail?.orders[0]?.order_no ?? null;
   const vars = detail
