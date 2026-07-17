@@ -476,7 +476,7 @@ function AvatarBadge({
   return (
     <div
       style={style}
-      className="grid place-items-center rounded-full bg-gradient-to-br from-brand to-emerald-700 text-white text-xs font-semibold shrink-0 ring-1 ring-black/5"
+      className="grid place-items-center rounded-full bg-gradient-to-br from-brand to-indigo-700 text-white text-xs font-semibold shrink-0 ring-1 ring-black/5"
     >
       {initials}
     </div>
