@@ -1217,3 +1217,142 @@ export const retryEbookDelivery = createServerFn({ method: "POST" })
     triggerEbookDelivery(data.id);
     return { ok: true };
   });
+
+// -------- ADMIN: e-commerce dashboard stats --------
+
+export type EcomDashboardRecentOrder = {
+  id: string;
+  order_no: string;
+  customer_name: string | null;
+  customer_phone: string | null;
+  total_bdt: number;
+  status: string;
+  created_at: string;
+};
+
+export type EcomDashboardStats = {
+  today_sales_bdt: number;
+  today_sales_delta_pct: number | null;
+  pending_orders: number;
+  pending_orders_new_today: number;
+  products_in_stock: number;
+  products_low_stock: number;
+  conversion_rate_pct: number;
+  conversion_rate_delta_pct: number | null;
+  recent_orders: EcomDashboardRecentOrder[];
+};
+
+export const getEcommerceDashboardStats = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<EcomDashboardStats> => {
+    await ensureStaff(context);
+
+    const now = new Date();
+    const startOfToday = new Date(now);
+    startOfToday.setHours(0, 0, 0, 0);
+    const startOfYesterday = new Date(startOfToday);
+    startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+    const start30 = new Date(startOfToday);
+    start30.setDate(start30.getDate() - 30);
+    const start60 = new Date(startOfToday);
+    start60.setDate(start60.getDate() - 60);
+
+    const REVENUE_STATUSES = ["processing", "ready_to_ship", "shipped", "delivered"];
+
+    const [
+      todayRes,
+      yestRes,
+      pendingRes,
+      pendingTodayRes,
+      productsRes,
+      recentRes,
+      conv30OrdersRes,
+      conv30IncompleteRes,
+      conv60OrdersRes,
+      conv60IncompleteRes,
+    ] = await Promise.all([
+      context.supabase
+        .from("orders")
+        .select("total_bdt")
+        .in("status", REVENUE_STATUSES)
+        .gte("created_at", startOfToday.toISOString()),
+      context.supabase
+        .from("orders")
+        .select("total_bdt")
+        .in("status", REVENUE_STATUSES)
+        .gte("created_at", startOfYesterday.toISOString())
+        .lt("created_at", startOfToday.toISOString()),
+      context.supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["processing", "ready_to_ship", "hold"]),
+      context.supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["processing", "ready_to_ship", "hold"])
+        .gte("created_at", startOfToday.toISOString()),
+      context.supabase.from("products").select("stock").eq("is_active", true),
+      context.supabase
+        .from("orders")
+        .select("id, order_no, customer_name, customer_phone, total_bdt, status, created_at")
+        .order("created_at", { ascending: false })
+        .limit(10),
+      context.supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .in("status", REVENUE_STATUSES)
+        .gte("created_at", start30.toISOString()),
+      context.supabase
+        .from("incomplete_checkouts")
+        .select("id", { count: "exact", head: true })
+        .gte("created_at", start30.toISOString()),
+      context.supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .in("status", REVENUE_STATUSES)
+        .gte("created_at", start60.toISOString())
+        .lt("created_at", start30.toISOString()),
+      context.supabase
+        .from("incomplete_checkouts")
+        .select("id", { count: "exact", head: true })
+        .gte("created_at", start60.toISOString())
+        .lt("created_at", start30.toISOString()),
+    ]);
+
+    const sum = (rows: any[] | null | undefined) =>
+      (rows ?? []).reduce((a, r) => a + Number(r?.total_bdt ?? 0), 0);
+    const today_sales = sum(todayRes.data);
+    const yest_sales = sum(yestRes.data);
+    const today_delta =
+      yest_sales > 0 ? ((today_sales - yest_sales) / yest_sales) * 100 : today_sales > 0 ? 100 : null;
+
+    const stockRows = (productsRes.data ?? []) as Array<{ stock: number | null }>;
+    const products_in_stock = stockRows.filter((p) => (p.stock ?? 0) > 0).length;
+    const products_low_stock = stockRows.filter(
+      (p) => (p.stock ?? 0) > 0 && (p.stock ?? 0) <= 5,
+    ).length;
+
+    const conv30Orders = conv30OrdersRes.count ?? 0;
+    const conv30Incomp = conv30IncompleteRes.count ?? 0;
+    const conv30Total = conv30Orders + conv30Incomp;
+    const conv30 = conv30Total > 0 ? (conv30Orders / conv30Total) * 100 : 0;
+
+    const conv60Orders = conv60OrdersRes.count ?? 0;
+    const conv60Incomp = conv60IncompleteRes.count ?? 0;
+    const conv60Total = conv60Orders + conv60Incomp;
+    const conv60 = conv60Total > 0 ? (conv60Orders / conv60Total) * 100 : 0;
+    const conv_delta = conv60Total > 0 ? conv30 - conv60 : null;
+
+    return {
+      today_sales_bdt: today_sales,
+      today_sales_delta_pct: today_delta,
+      pending_orders: pendingRes.count ?? 0,
+      pending_orders_new_today: pendingTodayRes.count ?? 0,
+      products_in_stock,
+      products_low_stock,
+      conversion_rate_pct: conv30,
+      conversion_rate_delta_pct: conv_delta,
+      recent_orders: (recentRes.data ?? []) as EcomDashboardRecentOrder[],
+    };
+  });
+
