@@ -11,6 +11,7 @@ import {
   Sparkles,
   BookOpen,
   Radio,
+  GraduationCap,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -240,7 +241,7 @@ function Hero({ c }: { c: HomepageContent["hero"] }) {
             <div className="absolute -bottom-6 -right-4 hidden rotate-[4deg] rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow-editorial)] md:block">
               <div className="flex items-center gap-3">
                 <div className="grid size-10 place-items-center rounded-full bg-brand/10 text-brand">
-                  <Sparkles className="size-5" />
+                  <GraduationCap className="size-5" />
                 </div>
                 <div>
                   <div className="font-display text-lg font-bold leading-tight">{fc.floatingTitle}</div>
