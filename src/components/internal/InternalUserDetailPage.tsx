@@ -73,6 +73,8 @@ export function InternalUserDetailPage({ userId, role }: Props) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [showLogs, setShowLogs] = useState(false);
+  const [showChannelPicker, setShowChannelPicker] = useState(false);
+
 
   const refresh = useCallback(async () => {
     setLoading(true);
