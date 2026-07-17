@@ -1,9 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
+import { useMemo } from "react";
+import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { ArrowLeft } from "lucide-react";
-import { listPublicCourses, type PublicCourseCard as PublicCourseCardData } from "@/lib/lms.functions";
+import {
+  listPublicCourses,
+  type PublicCourseCard as PublicCourseCardData,
+} from "@/lib/lms.functions";
+import { getPageSeo } from "@/lib/cms.functions";
 import { cn } from "@/lib/utils";
 import { PublicCourseCard } from "@/components/public-course-card";
 import { Pagination } from "@/components/internal/Pagination";
@@ -17,10 +21,28 @@ const searchSchema = z.object({
   pageSize: z.number().int().optional(),
 });
 
-import { getPageSeo } from "@/lib/cms.functions";
+const publicCoursesQueryOptions = () =>
+  queryOptions({
+    queryKey: ["public-courses"],
+    queryFn: () => listPublicCourses(),
+    staleTime: 5 * 60 * 1000, // 5 min fresh in-browser
+    gcTime: 30 * 60 * 1000, // keep 30 min after unmount
+  });
+
+const coursesSeoQueryOptions = () =>
+  queryOptions({
+    queryKey: ["page-seo", "/courses"],
+    queryFn: () => getPageSeo({ data: { path: "/courses" } }),
+    staleTime: 10 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+  });
 
 export const Route = createFileRoute("/courses/")({
-  loader: () => getPageSeo({ data: { path: "/courses" } }),
+  loader: async ({ context }) => {
+    // Prime both caches; only SEO blocks (head needs it).
+    context.queryClient.prefetchQuery(publicCoursesQueryOptions());
+    return context.queryClient.ensureQueryData(coursesSeoQueryOptions());
+  },
   head: ({ loaderData }) => {
     const title = loaderData?.meta_title || "সকল কোর্স — Polytechnic Tutorial Home";
     const desc =
@@ -48,38 +70,29 @@ function CoursesPage() {
   const { department, semester, page, pageSize } = Route.useSearch();
   const currentPage = page ?? 1;
   const currentSize = pageSize ?? 20;
-  const fetchCourses = useServerFn(listPublicCourses);
-  const [courses, setCourses] = useState<PublicCourseCardData[]>([]);
-  const [loading, setLoading] = useState(true);
+  const navigate = Route.useNavigate();
 
-  useEffect(() => {
-    let mounted = true;
-    fetchCourses(undefined as never)
-      .then((rows) => {
-        if (!mounted) return;
-        setCourses(rows ?? []);
-      })
-      .finally(() => mounted && setLoading(false));
-    return () => {
-      mounted = false;
-    };
-  }, [fetchCourses]);
+  const { data: courses } = useSuspenseQuery(publicCoursesQueryOptions());
 
   const departments = useMemo(() => {
     const map = new Map<string, { slug: string; name: string }>();
-    courses.forEach((c) => map.set(c.department_slug, { slug: c.department_slug, name: c.department_name }));
+    courses.forEach((c: PublicCourseCardData) =>
+      map.set(c.department_slug, { slug: c.department_slug, name: c.department_name }),
+    );
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [courses]);
 
   const semesters = useMemo(() => {
     const map = new Map<string, { slug: string; name: string }>();
-    courses.forEach((c) => map.set(c.semester_slug, { slug: c.semester_slug, name: c.semester_name }));
+    courses.forEach((c: PublicCourseCardData) =>
+      map.set(c.semester_slug, { slug: c.semester_slug, name: c.semester_name }),
+    );
     return Array.from(map.values()).sort((a, b) => a.slug.localeCompare(b.slug));
   }, [courses]);
 
   const filtered = useMemo(
     () =>
-      courses.filter((c) => {
+      courses.filter((c: PublicCourseCardData) => {
         if (department && c.department_slug !== department) return false;
         if (semester && c.semester_slug !== semester) return false;
         return true;
@@ -91,8 +104,6 @@ function CoursesPage() {
   const totalPages = Math.max(1, Math.ceil(total / currentSize));
   const clampedPage = Math.min(Math.max(1, currentPage), totalPages);
   const paged = filtered.slice((clampedPage - 1) * currentSize, clampedPage * currentSize);
-
-  const navigate = Route.useNavigate();
 
   return (
     <div className="px-4 py-10 md:px-6 md:py-14">
@@ -146,17 +157,7 @@ function CoursesPage() {
           </FilterRow>
         </div>
 
-        {loading ? (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="animate-pulse">
-                <div className="aspect-video w-full rounded-xl bg-slate-200" />
-                <div className="mt-3 h-5 w-3/4 rounded bg-slate-200" />
-                <div className="mt-2 h-4 w-1/2 rounded bg-slate-200" />
-              </div>
-            ))}
-          </div>
-        ) : filtered.length === 0 ? (
+        {filtered.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-surface p-16 text-center">
             <p className="text-lg font-extrabold">কোনো কোর্স পাওয়া যায়নি</p>
             <p className="mt-2 text-sm font-medium text-muted-foreground">
@@ -173,7 +174,7 @@ function CoursesPage() {
         ) : (
           <>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {paged.map((c) => (
+              {paged.map((c: PublicCourseCardData) => (
                 <PublicCourseCard key={c.id} course={c} />
               ))}
             </div>
@@ -183,10 +184,18 @@ function CoursesPage() {
                 pageSize={currentSize}
                 total={total}
                 onPageChange={(p) =>
-                  navigate({ search: (prev: Record<string, unknown>) => ({ ...prev, page: p }) })
+                  navigate({
+                    search: (prev: Record<string, unknown>) => ({ ...prev, page: p }),
+                  })
                 }
                 onPageSizeChange={(n) =>
-                  navigate({ search: (prev: Record<string, unknown>) => ({ ...prev, pageSize: n, page: 1 }) })
+                  navigate({
+                    search: (prev: Record<string, unknown>) => ({
+                      ...prev,
+                      pageSize: n,
+                      page: 1,
+                    }),
+                  })
                 }
               />
             </div>
