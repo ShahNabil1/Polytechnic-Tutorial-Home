@@ -190,12 +190,58 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_bulk_campaigns: {
+        Row: {
+          body: string
+          channel: string
+          created_at: string
+          failed: number
+          id: string
+          sender_user_id: string | null
+          sent: number
+          skipped_no_contact: number
+          subject: string | null
+          template_id: string | null
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          channel: string
+          created_at?: string
+          failed?: number
+          id?: string
+          sender_user_id?: string | null
+          sent?: number
+          skipped_no_contact?: number
+          subject?: string | null
+          template_id?: string | null
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          channel?: string
+          created_at?: string
+          failed?: number
+          id?: string
+          sender_user_id?: string | null
+          sent?: number
+          skipped_no_contact?: number
+          subject?: string | null
+          template_id?: string | null
+          total?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       crm_email_deliveries: {
         Row: {
           attempt_no: number
-          body_html: string
+          body_html: string | null
           bounce_type: string | null
           bounced_at: string | null
+          campaign_id: string | null
           clicked_at: string | null
           created_at: string
           delivered_at: string | null
@@ -209,17 +255,18 @@ export type Database = {
           sender_user_id: string | null
           sent_at: string | null
           status: Database["public"]["Enums"]["email_delivery_status"]
-          subject: string
+          subject: string | null
           template_id: string | null
-          to_email: string
+          to_email: string | null
           updated_at: string
           user_id: string | null
         }
         Insert: {
           attempt_no?: number
-          body_html: string
+          body_html?: string | null
           bounce_type?: string | null
           bounced_at?: string | null
+          campaign_id?: string | null
           clicked_at?: string | null
           created_at?: string
           delivered_at?: string | null
@@ -233,17 +280,18 @@ export type Database = {
           sender_user_id?: string | null
           sent_at?: string | null
           status?: Database["public"]["Enums"]["email_delivery_status"]
-          subject: string
+          subject?: string | null
           template_id?: string | null
-          to_email: string
+          to_email?: string | null
           updated_at?: string
           user_id?: string | null
         }
         Update: {
           attempt_no?: number
-          body_html?: string
+          body_html?: string | null
           bounce_type?: string | null
           bounced_at?: string | null
+          campaign_id?: string | null
           clicked_at?: string | null
           created_at?: string
           delivered_at?: string | null
@@ -257,13 +305,20 @@ export type Database = {
           sender_user_id?: string | null
           sent_at?: string | null
           status?: Database["public"]["Enums"]["email_delivery_status"]
-          subject?: string
+          subject?: string | null
           template_id?: string | null
-          to_email?: string
+          to_email?: string | null
           updated_at?: string
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "crm_email_deliveries_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "crm_bulk_campaigns"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "crm_email_deliveries_parent_delivery_id_fkey"
             columns: ["parent_delivery_id"]
@@ -315,57 +370,73 @@ export type Database = {
       }
       crm_sms_deliveries: {
         Row: {
+          attempt_no: number
           body: string
+          campaign_id: string | null
           created_at: string
           error_reason: string | null
           id: string
           is_unicode: boolean | null
           kind: string
+          parent_delivery_id: string | null
           provider_response: string | null
           provider_status: number | null
           sender_user_id: string | null
           sms_count: number | null
           status: string
           template_id: string | null
-          to_phone: string
+          to_phone: string | null
           updated_at: string
           user_id: string | null
         }
         Insert: {
+          attempt_no?: number
           body: string
+          campaign_id?: string | null
           created_at?: string
           error_reason?: string | null
           id?: string
           is_unicode?: boolean | null
           kind?: string
+          parent_delivery_id?: string | null
           provider_response?: string | null
           provider_status?: number | null
           sender_user_id?: string | null
           sms_count?: number | null
           status?: string
           template_id?: string | null
-          to_phone: string
+          to_phone?: string | null
           updated_at?: string
           user_id?: string | null
         }
         Update: {
+          attempt_no?: number
           body?: string
+          campaign_id?: string | null
           created_at?: string
           error_reason?: string | null
           id?: string
           is_unicode?: boolean | null
           kind?: string
+          parent_delivery_id?: string | null
           provider_response?: string | null
           provider_status?: number | null
           sender_user_id?: string | null
           sms_count?: number | null
           status?: string
           template_id?: string | null
-          to_phone?: string
+          to_phone?: string | null
           updated_at?: string
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "crm_sms_deliveries_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "crm_bulk_campaigns"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "crm_sms_deliveries_template_id_fkey"
             columns: ["template_id"]
@@ -2310,6 +2381,7 @@ export type Database = {
         | "opened"
         | "clicked"
         | "scheduled"
+        | "skipped"
       physical_fulfillment_status:
         | "not_applicable"
         | "pending"
@@ -2490,6 +2562,7 @@ export const Constants = {
         "opened",
         "clicked",
         "scheduled",
+        "skipped",
       ],
       physical_fulfillment_status: [
         "not_applicable",

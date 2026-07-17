@@ -218,3 +218,37 @@ export async function sendBulksmsbdMany(opts: {
     })),
   };
 }
+
+/**
+ * Fetch current bulksmsbd balance (in BDT).
+ * Endpoint: GET https://bulksmsbd.net/api/getBalanceApi?api_key=XXX
+ * Response is JSON like `{"response_code":202,"balance":"1234.5000","success_message":"..."}`.
+ */
+export async function fetchBulksmsbdBalance(): Promise<{
+  ok: boolean;
+  balance: number | null;
+  response_code: number | null;
+  message: string;
+}> {
+  const apiKey = process.env.BULKSMSBD_API_KEY;
+  if (!apiKey) return { ok: false, balance: null, response_code: null, message: "BULKSMSBD_API_KEY not configured" };
+  const url = `https://bulksmsbd.net/api/getBalanceApi?api_key=${encodeURIComponent(apiKey)}`;
+  try {
+    const res = await fetch(url, { method: "GET" });
+    const text = await res.text();
+    let balance: number | null = null;
+    let responseCode: number | null = null;
+    let message = "";
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed?.balance != null) balance = Number(parsed.balance);
+      if (parsed?.response_code != null) responseCode = Number(parsed.response_code);
+      message = String(parsed?.success_message ?? parsed?.error_message ?? parsed?.message ?? "");
+    } catch {
+      message = text.slice(0, 200);
+    }
+    return { ok: res.ok && balance != null, balance, response_code: responseCode, message };
+  } catch (e: any) {
+    return { ok: false, balance: null, response_code: null, message: String(e?.message ?? e) };
+  }
+}
