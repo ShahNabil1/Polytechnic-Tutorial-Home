@@ -38,6 +38,33 @@ export function CrmBulkSendDialog({
   const [subject, setSubject] = useState("");
   const [sending, setSending] = useState(false);
   useScrollLock(true);
+  const subjectRef = useRef<HTMLInputElement | null>(null);
+  const bodyRef = useRef<HTMLTextAreaElement | null>(null);
+  const VARS = channel === "sms"
+    ? ["name", "phone", "email", "last_order_no", "ltv"]
+    : ["name", "email", "phone", "last_order_no", "ltv"];
+
+  function insertVar(v: string) {
+    const token = `{{${v}}}`;
+    const active = document.activeElement;
+    const targetEl =
+      active === subjectRef.current ? subjectRef.current : bodyRef.current;
+    const isSubject = targetEl === subjectRef.current;
+    const currentValue = isSubject ? subject : body;
+    const setValue = isSubject ? setSubject : setBody;
+    if (!targetEl) {
+      setValue(currentValue + token);
+      return;
+    }
+    const start = targetEl.selectionStart ?? currentValue.length;
+    const end = targetEl.selectionEnd ?? currentValue.length;
+    setValue(currentValue.slice(0, start) + token + currentValue.slice(end));
+    requestAnimationFrame(() => {
+      targetEl.focus();
+      const pos = start + token.length;
+      try { targetEl.setSelectionRange(pos, pos); } catch {}
+    });
+  }
 
   const eligible = recipients.filter((r) =>
     channel === "sms" ? !!r.phone : !!r.email,
