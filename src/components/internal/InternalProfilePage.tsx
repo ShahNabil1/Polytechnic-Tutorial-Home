@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { PasskeysCard } from "@/components/account/PasskeysCard";
+import { ProfileSkeleton } from "@/components/account/ProfileSkeleton";
 import { LinkedAccountsCard } from "@/components/account/LinkedAccountsCard";
 import { PasswordCard } from "@/components/account/PasswordCard";
 import { SessionsCard } from "@/components/account/SessionsCard";
