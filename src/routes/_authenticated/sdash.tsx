@@ -11,6 +11,8 @@ import {
   X,
   ShoppingCart,
   Home,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
