@@ -1348,6 +1348,11 @@ export const getPublicCourseByPair = createServerFn({ method: "GET" })
     z.object({ dept_slug: z.string().min(1), sem_slug: z.string().min(1) }).parse(i),
   )
   .handler(async ({ data }): Promise<PublicCourseDetail | null> => {
+    const { withCache } = await import("./cache.server");
+    return withCache<PublicCourseDetail | null>(
+      `lms:public:course:${data.dept_slug}:${data.sem_slug}`,
+      LMS_PUBLIC_TTL,
+      async () => {
     const sb = serverPublic();
     const [depRes, semRes] = await Promise.all([
       sb.from("lms_departments").select("id, name, slug").eq("slug", data.dept_slug).maybeSingle(),
