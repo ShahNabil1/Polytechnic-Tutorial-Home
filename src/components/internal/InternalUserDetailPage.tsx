@@ -46,6 +46,7 @@ import { AdminContactChangeCard } from "@/components/internal/AdminContactChange
 import { RoleProfileFieldsEN } from "@/components/internal/RoleProfileFieldsEN";
 import { beginImpersonation } from "@/lib/impersonation";
 import { ExternalLink, AlertTriangle } from "lucide-react";
+import { isSyntheticEmail, visibleEmail } from "@/lib/synthetic-email";
 
 type Props = { userId: string; role: "employee" | "instructor" | "customer" };
 
