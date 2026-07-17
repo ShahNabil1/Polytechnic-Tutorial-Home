@@ -128,6 +128,11 @@ function StudentDashboardLayout() {
     );
   }, [profile, user]);
 
+  const contactLine = useMemo(() => {
+    return visibleEmail(user?.email) ?? user?.phone ?? "";
+  }, [user]);
+
+
   const pageTitle = useMemo(() => {
     if (pathname === "/sdash") return "ড্যাশবোর্ড";
     if (pathname.startsWith("/sdash/courses")) return "কোর্স";
