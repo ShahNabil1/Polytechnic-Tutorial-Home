@@ -78,6 +78,8 @@ export function CrmListPage({ kind }: { kind: Kind }) {
   const [rows, setRows] = useState<any[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulk, setBulk] = useState<"sms" | "email" | null>(null);
+  const [openOrderId, setOpenOrderId] = useState<string | null>(null);
+
 
   useEffect(() => {
     let cancel = false;
