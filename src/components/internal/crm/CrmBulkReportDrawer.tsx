@@ -24,7 +24,12 @@ type Row = {
   error_reason: string | null;
   attempt_no?: number;
   created_at?: string;
+  delivered_at?: string | null;
+  opened_at?: string | null;
+  clicked_at?: string | null;
+  bounced_at?: string | null;
 };
+
 
 export function CrmBulkReportDrawer({
   campaignId,
