@@ -230,14 +230,21 @@ export function LinkedAccountsCard() {
           <div className="flex min-w-0 items-center gap-3">
             <Mail className="size-5 shrink-0 text-muted-foreground" />
             <div className="min-w-0">
-              <div className="text-sm font-medium">
-                {googleIdentity ? "Google" : emailIdentity ? "Email" : "Email / Google"}
-              </div>
-              <div className="truncate text-xs text-muted-foreground">
-                {googleIdentity?.identity_data?.email ||
-                  emailIdentity?.identity_data?.email ||
-                  "কোনো ইমেইল লিংক করা নেই"}
-              </div>
+              {(() => {
+                const g = googleIdentity?.identity_data?.email as string | undefined;
+                const e = emailIdentity?.identity_data?.email as string | undefined;
+                const gVisible = g && !isSyntheticEmail(g) ? g : null;
+                const eVisible = e && !isSyntheticEmail(e) ? e : null;
+                const label = gVisible ? "Google" : eVisible ? "Email" : "Email / Google";
+                const value = gVisible || eVisible || "কোনো ইমেইল লিংক করা নেই";
+                return (
+                  <>
+                    <div className="text-sm font-medium">{label}</div>
+                    <div className="truncate text-xs text-muted-foreground">{value}</div>
+                  </>
+                );
+              })()}
+
             </div>
           </div>
           {googleIdentity ? (
