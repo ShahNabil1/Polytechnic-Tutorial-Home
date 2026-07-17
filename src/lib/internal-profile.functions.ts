@@ -35,13 +35,21 @@ export type InternalProfile = {
 export const getMyInternalProfile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("internal_profiles")
-      .select("*")
-      .eq("user_id", context.userId)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    return (data as InternalProfile | null) ?? null;
+    const { withCache } = await import("@/lib/cache.server");
+    const { internalProfileCacheKey } = await import("@/lib/profile-cache.server");
+    return withCache<InternalProfile | null>(
+      internalProfileCacheKey(context.userId),
+      10 * 60,
+      async () => {
+        const { data, error } = await context.supabase
+          .from("internal_profiles")
+          .select("*")
+          .eq("user_id", context.userId)
+          .maybeSingle();
+        if (error) throw new Error(error.message);
+        return (data as InternalProfile | null) ?? null;
+      },
+    );
   });
 
 export const syncMyPrimaryAuthEmail = createServerFn({ method: "POST" })
