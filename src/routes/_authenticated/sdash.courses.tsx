@@ -38,11 +38,18 @@ function CoursesPage() {
     const base = tab === "mine" ? enrolled : items;
     if (!query.trim()) return base;
     const q = query.toLowerCase();
-    return base.filter(
-      (c) =>
-        c.title?.toLowerCase().includes(q) ||
-        c.department_name?.toLowerCase().includes(q) ||
-        c.semester_name?.toLowerCase().includes(q),
+    return base.filter((c) =>
+      [
+        c.title,
+        c.slug,
+        c.department_name,
+        c.department_slug,
+        c.semester_name,
+        c.semester_slug,
+        c.description,
+      ]
+        .filter(Boolean)
+        .some((v: string) => String(v).toLowerCase().includes(q)),
     );
   }, [tab, enrolled, items, query]);
 
