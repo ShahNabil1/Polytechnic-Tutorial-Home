@@ -791,14 +791,27 @@ function generateStrongPassword(): string {
 
 export const adminResetUserPassword = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => z.object({ user_id: z.string().uuid() }).parse(input))
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        user_id: z.string().uuid(),
+        channel: z.enum(["email", "sms"]).optional(),
+      })
+      .parse(input),
+  )
   .handler(async ({ data, context }) => {
     await ensureManageableTarget(context, data.user_id);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(data.user_id);
     const email = String(authUser?.user?.email ?? "").trim().toLowerCase();
-    if (!email) throw new Error("Target has no primary email on file");
+    const phone = String(authUser?.user?.phone ?? "").trim();
+
+    const channel: "email" | "sms" =
+      data.channel ?? (email ? "email" : phone ? "sms" : "email");
+
+    if (channel === "email" && !email) throw new Error("Target has no primary email on file");
+    if (channel === "sms" && !phone) throw new Error("Target has no phone number on file");
 
     const { data: prof } = await supabaseAdmin
       .from("profiles")
@@ -817,11 +830,43 @@ export const adminResetUserPassword = createServerFn({ method: "POST" })
     // Kill all existing sessions so old devices must sign in with the new password.
     await revokeAllTargetSessions(context, data.user_id);
 
+    const { SITE_URL } = await import("@/lib/site-url");
+
+    if (channel === "sms") {
+      const { sendBulksmsbd, estimateSmsCount, isUnicodeMessage } = await import(
+        "@/lib/sms.server"
+      );
+      const message = `নমস্কার ${fullName}, আপনার পাসওয়ার্ড রিসেট করা হয়েছে। নতুন পাসওয়ার্ড: ${newPassword} । লগইন: ${SITE_URL}/auth`;
+      const isUnicode = isUnicodeMessage(message);
+      const smsCount = estimateSmsCount(message);
+      const res = await sendBulksmsbd({ to: phone, message });
+      try {
+        await supabaseAdmin.from("crm_sms_deliveries").insert({
+          user_id: data.user_id,
+          to_phone: phone,
+          body: message,
+          kind: "internal_password_reset",
+          sender_user_id: context.userId,
+          status: res.ok ? "sent" : "failed",
+          sms_count: smsCount,
+          is_unicode: isUnicode,
+          provider_status: res.response_code,
+          provider_response: res.response?.slice(0, 500) ?? null,
+          error_reason: res.ok ? null : res.code_label ?? res.response?.slice(0, 500) ?? null,
+        } as never);
+      } catch (logErr) {
+        console.error("[adminResetUserPassword] sms log failed", logErr);
+      }
+      if (!res.ok) {
+        return { ok: true, channel, sent: false, error: res.code_label ?? "sms failed" };
+      }
+      return { ok: true, channel, sent: true };
+    }
+
     // Send email using the same helper/log path as internal_welcome.
     try {
       const { renderEmailTemplate } = await import("@/lib/email-templates.server");
       const { sendEbookEmail } = await import("@/lib/ebook-delivery.server");
-      const { SITE_URL } = await import("@/lib/site-url");
 
       const { data: tpl } = await supabaseAdmin
         .from("email_templates")
@@ -874,15 +919,16 @@ export const adminResetUserPassword = createServerFn({ method: "POST" })
       }
 
       if (!res.ok) {
-        return { ok: true, emailed: false, error: (res as any).error ?? "email failed" };
+        return { ok: true, channel, sent: false, emailed: false, error: (res as any).error ?? "email failed" };
       }
     } catch (err) {
       console.error("[adminResetUserPassword] email dispatch failed", err);
-      return { ok: true, emailed: false, error: err instanceof Error ? err.message : String(err) };
+      return { ok: true, channel, sent: false, emailed: false, error: err instanceof Error ? err.message : String(err) };
     }
 
-    return { ok: true, emailed: true };
+    return { ok: true, channel, sent: true, emailed: true };
   });
+
 
 // ============================================================================
 // Admin editable profile — mirrors what a user can edit on their own profile.
