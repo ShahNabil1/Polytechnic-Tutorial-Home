@@ -24,6 +24,7 @@ import { CartDrawer } from "@/components/cart-drawer";
 import { useCartDrawer } from "@/lib/cart-drawer-store";
 import { useCart } from "@/lib/cart-store";
 import { supabase } from "@/integrations/supabase/client";
+import { visibleEmail } from "@/lib/synthetic-email";
 import logoAsset from "@/assets/pth-logo.jpg.asset.json";
 
 export const Route = createFileRoute("/_authenticated/sdash")({
