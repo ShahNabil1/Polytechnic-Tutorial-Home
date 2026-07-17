@@ -308,6 +308,7 @@ export const upsertProduct = createServerFn({ method: "POST" })
         .insert(rows as never);
       if (insErr) throw new Error(insErr.message);
     }
+    await invalidateProductCaches();
     return { ok: true, id: productId };
   });
 
@@ -318,5 +319,6 @@ export const deleteProduct = createServerFn({ method: "POST" })
     await ensureCanManage(context);
     const { error } = await context.supabase.from("products").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    await invalidateProductCaches();
     return { ok: true };
   });
