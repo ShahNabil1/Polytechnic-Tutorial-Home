@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getMyProfile, updateMyProfile } from "@/lib/profile.functions";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -43,50 +45,54 @@ const ROLE_LABEL: Record<AppRole, string> = {
 
 export function InternalProfilePage({ role }: { role: AppRole }) {
   const { user } = useAuth();
+  const qc = useQueryClient();
+  const fetchProfile = useServerFn(getMyProfile);
+  const saveProfile = useServerFn(updateMyProfile);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [savedForm, setSavedForm] = useState<FormState>(EMPTY_FORM);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadPct, setUploadPct] = useState(0);
   const [editMode, setEditMode] = useState(false);
   const [pickedFile, setPickedFile] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const profileQuery = useQuery({
+    queryKey: ["me", "profile", user?.id],
+    queryFn: () => fetchProfile(undefined as never) as Promise<ProfileRow | null>,
+    enabled: !!user,
+    staleTime: 10 * 60_000,
+    gcTime: 30 * 60_000,
+  });
+  const loading = profileQuery.isLoading;
+  const loadError = profileQuery.error ? (profileQuery.error as Error).message : null;
+
   useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-    (async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle<ProfileRow>();
-      if (cancelled) return;
-      if (error) {
-        setLoadError(error.message);
-        setLoading(false);
-        return;
-      }
-      if (data) {
-        const next: FormState = {
-          full_name: data.full_name ?? "",
-          avatar_url: data.avatar_url ?? "",
-        };
-        setForm(next);
-        setSavedForm(next);
-        setEditMode(!data.full_name);
-      } else {
-        setEditMode(true);
-      }
-      setLoadError(null);
-      setLoading(false);
-    })();
-    return () => {
-      cancelled = true;
+    const data = profileQuery.data;
+    if (!data) {
+      if (profileQuery.isSuccess && !data) setEditMode(true);
+      return;
+    }
+    const next: FormState = {
+      full_name: data.full_name ?? "",
+      avatar_url: data.avatar_url ?? "",
     };
-  }, [user]);
+    setForm(next);
+    setSavedForm(next);
+    setEditMode(!data.full_name);
+  }, [profileQuery.data, profileQuery.isSuccess]);
+
+  const saveMutation = useMutation({
+    mutationFn: (payload: Record<string, string | null>) =>
+      saveProfile({ data: payload } as never),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["me", "profile", user?.id] });
+      toast.success("Profile saved");
+    },
+    onError: (err: unknown) => {
+      toast.error("Failed to save: " + (err instanceof Error ? err.message : "unknown"));
+    },
+  });
+  const saving = saveMutation.isPending;
 
   const isComplete = useMemo(() => !!form.full_name.trim(), [form]);
 
@@ -127,25 +133,22 @@ export function InternalProfilePage({ role }: { role: AppRole }) {
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
-    setSaving(true);
     const nextForm: FormState = {
       full_name: form.full_name.trim(),
       avatar_url: form.avatar_url.trim(),
     };
-    const payload = {
+    const payload: Record<string, string | null> = {
       full_name: nextForm.full_name || null,
       avatar_url: nextForm.avatar_url || null,
-    } as never;
-    const { error } = await supabase.from("profiles").update(payload).eq("id", user.id);
-    setSaving(false);
-    if (error) {
-      toast.error("Failed to save: " + error.message);
-      return;
+    };
+    try {
+      await saveMutation.mutateAsync(payload);
+      setForm(nextForm);
+      setSavedForm(nextForm);
+      if (isComplete) setEditMode(false);
+    } catch {
+      /* handled in onError */
     }
-    setForm(nextForm);
-    setSavedForm(nextForm);
-    toast.success("Profile saved");
-    if (isComplete) setEditMode(false);
   }
 
   function handleCancelEdit() {

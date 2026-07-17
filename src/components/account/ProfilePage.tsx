@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getMyProfile, updateMyProfile } from "@/lib/profile.functions";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -62,62 +64,53 @@ const ROLE_LABEL: Record<AppRole, string> = {
 export function ProfilePage({ role }: { role: AppRole }) {
   const isStudent = role === "student";
   const { user } = useAuth();
+  const qc = useQueryClient();
+  const fetchProfile = useServerFn(getMyProfile);
+  const saveProfile = useServerFn(updateMyProfile);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [savedForm, setSavedForm] = useState<FormState>(EMPTY_FORM);
   const [studentId, setStudentId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [editMode, setEditMode] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadPct, setUploadPct] = useState(0);
-  const [editMode, setEditMode] = useState(false);
   const [pickedFile, setPickedFile] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const profileQuery = useQuery({
+    queryKey: ["me", "profile", user?.id],
+    queryFn: () => fetchProfile(undefined as never) as Promise<ProfileRow | null>,
+    enabled: !!user,
+    staleTime: 10 * 60_000,
+    gcTime: 30 * 60_000,
+  });
+  const loading = profileQuery.isLoading;
+  const loadError = profileQuery.error ? (profileQuery.error as Error).message : null;
+
   useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-    (async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle<ProfileRow>();
-      if (cancelled) return;
-      if (error) {
-        setLoadError(error.message);
-        setLoading(false);
-        return;
-      }
-      if (data) {
-        const next: FormState = {
-          full_name: data.full_name ?? "",
-          avatar_url: data.avatar_url ?? "",
-          institute_name: (data as { institute_name?: string | null }).institute_name ?? "",
-          department_name: (data as { department_name?: string | null }).department_name ?? "",
-          current_semester: (data as { current_semester?: string | null }).current_semester ?? "",
-          board_roll: (data as { board_roll?: string | null }).board_roll ?? "",
-          registration_no: (data as { registration_no?: string | null }).registration_no ?? "",
-        };
-        setForm(next);
-        setSavedForm(next);
-        setStudentId((data as { student_id?: number | null }).student_id ?? null);
-        if (isStudent) {
-          const missing = getMissingProfileFields(data);
-          setEditMode(missing.length > 0);
-        } else {
-          setEditMode(!data.full_name);
-        }
-      } else {
-        setEditMode(true);
-      }
-      setLoadError(null);
-      setLoading(false);
-    })();
-    return () => {
-      cancelled = true;
+    const data = profileQuery.data;
+    if (!data) {
+      if (profileQuery.isSuccess && !data) setEditMode(true);
+      return;
+    }
+    const next: FormState = {
+      full_name: data.full_name ?? "",
+      avatar_url: data.avatar_url ?? "",
+      institute_name: (data as { institute_name?: string | null }).institute_name ?? "",
+      department_name: (data as { department_name?: string | null }).department_name ?? "",
+      current_semester: (data as { current_semester?: string | null }).current_semester ?? "",
+      board_roll: (data as { board_roll?: string | null }).board_roll ?? "",
+      registration_no: (data as { registration_no?: string | null }).registration_no ?? "",
     };
-  }, [user, isStudent]);
+    setForm(next);
+    setSavedForm(next);
+    setStudentId((data as { student_id?: number | null }).student_id ?? null);
+    if (isStudent) {
+      const missing = getMissingProfileFields(data);
+      setEditMode(missing.length > 0);
+    } else {
+      setEditMode(!data.full_name);
+    }
+  }, [profileQuery.data, profileQuery.isSuccess, isStudent]);
 
   const isComplete = useMemo(() => {
     if (!isStudent) return !!form.full_name.trim();
@@ -167,10 +160,22 @@ export function ProfilePage({ role }: { role: AppRole }) {
     }
   }
 
+  const saveMutation = useMutation({
+    mutationFn: (payload: Record<string, string | null>) =>
+      saveProfile({ data: payload } as never),
+    onSuccess: (_res, _payload, _ctx) => {
+      qc.invalidateQueries({ queryKey: ["me", "profile", user?.id] });
+      toast.success("প্রোফাইল সেভ হয়েছে");
+    },
+    onError: (err: unknown) => {
+      toast.error("সেভ করা যায়নি: " + (err instanceof Error ? err.message : "unknown"));
+    },
+  });
+  const saving = saveMutation.isPending;
+
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
-    setSaving(true);
     const nextForm: FormState = {
       full_name: form.full_name.trim(),
       avatar_url: form.avatar_url.trim(),
@@ -180,8 +185,8 @@ export function ProfilePage({ role }: { role: AppRole }) {
       board_roll: form.board_roll.trim(),
       registration_no: form.registration_no.trim(),
     };
-    const payload = isStudent
-      ? ({
+    const payload: Record<string, string | null> = isStudent
+      ? {
           full_name: nextForm.full_name || null,
           avatar_url: nextForm.avatar_url || null,
           institute_name: nextForm.institute_name || null,
@@ -189,21 +194,19 @@ export function ProfilePage({ role }: { role: AppRole }) {
           current_semester: nextForm.current_semester || null,
           board_roll: nextForm.board_roll || null,
           registration_no: nextForm.registration_no || null,
-        } as never)
-      : ({
+        }
+      : {
           full_name: nextForm.full_name || null,
           avatar_url: nextForm.avatar_url || null,
-        } as never);
-    const { error } = await supabase.from("profiles").update(payload).eq("id", user.id);
-    setSaving(false);
-    if (error) {
-      toast.error("সেভ করা যায়নি: " + error.message);
-      return;
+        };
+    try {
+      await saveMutation.mutateAsync(payload);
+      setForm(nextForm);
+      setSavedForm(nextForm);
+      if (isComplete) setEditMode(false);
+    } catch {
+      /* handled in onError */
     }
-    setForm(nextForm);
-    setSavedForm(nextForm);
-    toast.success("প্রোফাইল সেভ হয়েছে");
-    if (isComplete) setEditMode(false);
   }
 
   function handleCancelEdit() {

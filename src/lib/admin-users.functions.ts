@@ -1035,6 +1035,8 @@ export const adminUpdateTargetBasicProfile = createServerFn({ method: "POST" })
       .update(payload as never)
       .eq("id", data.user_id);
     if (error) throw new Error(error.message);
+    const { invalidateProfileCache } = await import("@/lib/profile-cache.server");
+    await invalidateProfileCache(data.user_id);
     return { ok: true };
   });
 
@@ -1050,6 +1052,8 @@ export const adminUpdateTargetInternalProfile = createServerFn({ method: "POST" 
       .update(rest as never)
       .eq("user_id", user_id);
     if (error) throw new Error(error.message);
+    const { invalidateProfileCache } = await import("@/lib/profile-cache.server");
+    await invalidateProfileCache(user_id);
     return { ok: true };
   });
 
@@ -1208,6 +1212,9 @@ export const adminChangeTargetContact = createServerFn({ method: "POST" })
     if (Object.keys(authPayload).length > 0) {
       await revokeAllTargetSessions(context, data.user_id);
     }
+
+    const { invalidateProfileCache } = await import("@/lib/profile-cache.server");
+    await invalidateProfileCache(data.user_id);
 
     return { ok: true, email: newEmail, phone: newPhoneRaw, unlinked };
   });
