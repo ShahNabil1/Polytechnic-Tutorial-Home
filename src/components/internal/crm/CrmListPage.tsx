@@ -256,9 +256,17 @@ function SignedTable({
               <td className="px-3 py-3"><Checkbox checked={selected.has(`u:${r.user_id}`)} onChange={() => onToggleOne(r.user_id)} /></td>
               <td className="px-4 py-3">
                 <Link to="/workspace/crm/$id" params={{ id: r.user_id }} className="flex items-center gap-2 font-medium text-foreground hover:text-primary">
-                  <span className="grid size-8 place-items-center rounded-full bg-primary/10 text-primary">
-                    <UserIcon className="size-4" />
-                  </span>
+                  {r.avatar_url ? (
+                    <img
+                      src={r.avatar_url}
+                      alt=""
+                      className="size-8 rounded-full object-cover ring-1 ring-primary/20"
+                    />
+                  ) : (
+                    <span className="grid size-8 place-items-center rounded-full bg-primary/10 text-primary">
+                      <UserIcon className="size-4" />
+                    </span>
+                  )}
                   <span className="truncate">{r.full_name || "Unnamed"}</span>
                 </Link>
               </td>

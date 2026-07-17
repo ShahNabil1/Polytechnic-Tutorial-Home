@@ -542,11 +542,18 @@ export function InternalUserDetailPage({ userId, role }: Props) {
         </div>
       </section>
 
-      {/* Editable personal info (avatar + name) */}
+      {/* Editable personal info (avatar + name; student fields for customers) */}
       <AdminBasicProfileForm
         userId={userId}
         initialFullName={detail.full_name}
         initialAvatarUrl={detail.avatar_url}
+        studentFields={isCustomer ? {
+          institute_name: detail.student_profile?.institute_name ?? null,
+          department_name: detail.student_profile?.department_name ?? null,
+          current_semester: detail.student_profile?.current_semester ?? null,
+          board_roll: detail.student_profile?.board_roll ?? null,
+          registration_no: detail.student_profile?.registration_no ?? null,
+        } : null}
         onSaved={() => refresh()}
       />
 
