@@ -54,75 +54,93 @@ function DashboardHome() {
   const enrolled = useMemo(() => courses.filter((c) => c.has_access), [courses]);
   const available = useMemo(() => courses.filter((c) => !c.has_access).slice(0, 6), [courses]);
 
+  const firstName = String(name).split(/\s+/)[0];
+  const greeting = useMemo(() => {
+    // Static greeting to avoid SSR hydration mismatch.
+    return "শুভেচ্ছা";
+  }, []);
+  const toBn = (n: number) =>
+    String(n).replace(/\d/g, (d) => "০১২৩৪৫৬৭৮৯"[Number(d)]);
+
   return (
-    <div className="space-y-8">
-      {/* Hero */}
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand to-emerald-700 text-white p-6 md:p-8">
-        <div className="relative z-10 flex flex-wrap items-center gap-6 justify-between">
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur">
-              <Sparkles className="size-3.5" /> Learning Portal
+    <div className="space-y-10">
+      {/* Editorial hero */}
+      <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white">
+        <div className="grid gap-0 md:grid-cols-[1.4fr_1fr]">
+          <div className="relative p-6 md:p-10">
+            <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-500">
+              {greeting} · শিক্ষার্থী পোর্টাল
             </div>
-            <h1 className="mt-3 text-2xl md:text-3xl font-bold tracking-tight">
-              স্বাগতম, {name} 👋
+            <h1 className="mt-3 font-display text-3xl md:text-4xl font-bold leading-[1.15] tracking-tight text-slate-900">
+              স্বাগতম,
+              <br />
+              <span className="text-brand">{firstName}</span>
+              <span className="text-slate-900">.</span>
             </h1>
-            <p className="mt-2 text-sm md:text-base text-white/85 max-w-xl">
-              আপনার লার্নিং জার্নি এক জায়গায়। কোর্স ব্রাউজ করুন, বই কিনুন, প্রগ্রেস ট্র্যাক করুন।
+            <p className="mt-4 max-w-md text-sm md:text-[15px] leading-relaxed text-slate-600">
+              আজকের লক্ষ্য একটাই — একটা লেসন শেষ করা। কোর্স ব্রাউজ করুন, নোট নিন,
+              প্রয়োজনীয় বই কিনুন। সব কিছু এক জায়গায়।
             </p>
-            <div className="mt-5 flex flex-wrap gap-2">
+            <div className="mt-6 flex flex-wrap items-center gap-3">
               <Link
                 to="/sdash/courses"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-brand hover:bg-white/90"
+                className="inline-flex items-center gap-1.5 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-800 transition-colors"
               >
-                কোর্স ব্রাউজ করুন <ArrowRight className="size-4" />
+                কোর্স ব্রাউজ করুন
+                <ArrowRight className="size-4" />
               </Link>
               <Link
                 to="/sdash/shop"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-4 py-2 text-sm font-semibold text-white backdrop-blur hover:bg-white/25"
+                className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-800 hover:bg-slate-50 transition-colors"
               >
-                শপে যান <ShoppingBag className="size-4" />
+                শপে যান
               </Link>
             </div>
           </div>
-          <div className="hidden md:grid size-40 place-items-center rounded-full bg-white/10 backdrop-blur">
-            <GraduationCap className="size-20 text-white/80" />
+
+          {/* Right rail — quiet decorative panel with real content */}
+          <div className="relative border-t border-slate-200 md:border-l md:border-t-0 bg-[radial-gradient(circle_at_top_right,theme(colors.brand/0.08),transparent_60%),radial-gradient(circle_at_bottom_left,theme(colors.amber.100/0.6),transparent_55%)] p-6 md:p-8">
+            <div className="flex h-full flex-col justify-between gap-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-slate-500">
+                    আজকের সারাংশ
+                  </div>
+                  <div className="mt-2 flex items-baseline gap-1.5">
+                    <span className="font-display text-5xl font-bold text-slate-900 tabular-nums">
+                      {loading ? "—" : toBn(enrolled.length)}
+                    </span>
+                    <span className="text-sm text-slate-500">এনরোল্ড কোর্স</span>
+                  </div>
+                </div>
+                <div className="grid size-11 place-items-center rounded-full bg-white ring-1 ring-slate-200">
+                  <GraduationCap className="size-5 text-brand" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 divide-x divide-slate-200 border-t border-slate-200 pt-4">
+                <div className="pr-4">
+                  <div className="text-[11px] uppercase tracking-wider text-slate-500">
+                    ক্যাটালগ
+                  </div>
+                  <div className="mt-0.5 font-display text-xl font-semibold text-slate-900 tabular-nums">
+                    {loading ? "—" : toBn(courses.length)}
+                  </div>
+                </div>
+                <div className="pl-4">
+                  <div className="text-[11px] uppercase tracking-wider text-slate-500">
+                    ফিচার্ড
+                  </div>
+                  <div className="mt-0.5 font-display text-xl font-semibold text-slate-900 tabular-nums">
+                    {loading ? "—" : toBn(featured.length)}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        <div className="absolute -right-16 -top-16 size-64 rounded-full bg-white/5 blur-2xl" />
-        <div className="absolute -left-10 -bottom-10 size-48 rounded-full bg-white/5 blur-2xl" />
       </section>
 
-      {/* Stats */}
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          icon={BookOpen}
-          label="এনরোল্ড কোর্স"
-          value={loading ? "—" : String(enrolled.length)}
-          tone="brand"
-          hint="আপনি যেসব কোর্সে এ্যাক্সেস পেয়েছেন"
-        />
-        <StatCard
-          icon={TrendingUp}
-          label="উপলব্ধ কোর্স"
-          value={loading ? "—" : String(courses.length)}
-          tone="sky"
-          hint="মোট কোর্স ক্যাটালগ"
-        />
-        <StatCard
-          icon={Package}
-          label="শপ প্রোডাক্ট"
-          value={loading ? "—" : `${featured.length}+`}
-          tone="amber"
-          hint="ফিচার্ড বই ও সাজেশন"
-        />
-        <StatCard
-          icon={CheckCircle2}
-          label="একাউন্ট"
-          value="Active"
-          tone="emerald"
-          hint="প্রোফাইল আপডেট রাখুন"
-        />
-      </section>
 
       {/* Continue learning */}
       <section>
