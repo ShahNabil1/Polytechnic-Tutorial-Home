@@ -270,12 +270,14 @@ function StudentDashboardLayout() {
 function SidebarContent({
   displayName,
   initials,
+  avatarUrl,
   email,
   pathname,
   onSignOut,
 }: {
   displayName: string;
   initials: string;
+  avatarUrl: string | null;
   email: string;
   pathname: string;
   onSignOut: () => void;
