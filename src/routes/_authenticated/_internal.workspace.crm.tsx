@@ -2,6 +2,7 @@ import { createFileRoute, Link, Outlet, redirect, useRouterState } from "@tansta
 import { useRole } from "@/hooks/use-role";
 import { Users, UserPlus, ShoppingBag, AlertCircle, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SmsBalanceAlert, useSmsGatewayHealth, classifyBalance } from "@/components/internal/crm/SmsBalanceAlert";
 
 export const Route = createFileRoute("/_authenticated/_internal/workspace/crm")({
   head: () => ({
@@ -21,6 +22,8 @@ const TABS = [
 function CrmLayout() {
   const { loading, has } = useRole();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { sms } = useSmsGatewayHealth();
+  const level = classifyBalance(sms);
   if (loading) return null;
   if (!has("manage_users")) {
     throw redirect({ to: "/workspace" });
@@ -37,12 +40,13 @@ function CrmLayout() {
               {TABS.map((t) => {
                 const active = pathname.startsWith(t.to);
                 const Icon = t.icon;
+                const showDot = t.to === "/workspace/crm/campaigns" && (level === "warn" || level === "critical");
                 return (
                   <Link
                     key={t.to}
                     to={t.to}
                     className={cn(
-                      "flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                      "relative flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                       active
                         ? "bg-primary text-primary-foreground shadow-sm"
                         : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -50,6 +54,15 @@ function CrmLayout() {
                   >
                     <Icon className="size-4" />
                     {t.label}
+                    {showDot && (
+                      <span
+                        className={cn(
+                          "ml-1 inline-block size-2 rounded-full",
+                          level === "critical" ? "bg-red-500" : "bg-amber-500",
+                        )}
+                        title={level === "critical" ? "SMS balance critically low" : "SMS balance low"}
+                      />
+                    )}
                   </Link>
                 );
               })}
@@ -57,6 +70,7 @@ function CrmLayout() {
           </div>
         </div>
       )}
+      {!isDetail && <SmsBalanceAlert />}
       <Outlet />
     </div>
   );
