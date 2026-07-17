@@ -1734,9 +1734,10 @@ function CustomerSmsSection({
     queryKey: ["sms-templates"],
     queryFn: () => fetchTpls(undefined as never),
   });
-  const templates = (tplData?.templates ?? []).filter(
-    (t: any) => t.key !== "signup_otp" && t.key !== "reset_otp",
-  );
+  const templates = (tplData?.templates ?? []).filter((t: any) => {
+    const cat = String(t.category ?? "other").toLowerCase();
+    return cat !== "transactional" && cat !== "otp";
+  });
 
   const [selectedId, setSelectedId] = useState<string>("");
   const [message, setMessage] = useState("");
