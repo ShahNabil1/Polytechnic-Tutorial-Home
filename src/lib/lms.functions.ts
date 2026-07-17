@@ -30,6 +30,13 @@ async function ensureCanManage(context: { supabase: any; userId: string }) {
   if (data !== true) throw new Error("Forbidden: manage_lms required");
 }
 
+const LMS_PUBLIC_TTL = 30 * 60; // 30 min
+
+async function invalidateLmsCaches() {
+  const { cacheDelPrefix } = await import("./cache.server");
+  await cacheDelPrefix("lms:public:");
+}
+
 function slugify(input: string): string {
   return input
     .toLowerCase()
