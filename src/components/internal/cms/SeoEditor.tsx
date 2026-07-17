@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { listPageSeo, savePageSeo } from "@/lib/cms.functions";
@@ -11,44 +12,52 @@ type Row = PageSeo;
 export function SeoEditor() {
   const load = useServerFn(listPageSeo);
   const save = useServerFn(savePageSeo);
+  const qc = useQueryClient();
+
+  const { data } = useQuery({
+    queryKey: ["admin", "cms", "seo"],
+    queryFn: () => load(undefined as never),
+    staleTime: 10 * 60_000,
+  });
+
   const [rows, setRows] = useState<Row[]>([]);
+  useEffect(() => {
+    const list = data ?? [];
+    const byPath = new Map<string, Row>(list.map((r) => [r.path, r as Row]));
+    const combined: Row[] = KNOWN_SEO_PATHS.map(({ path }) =>
+      byPath.get(path) ?? { path, meta_title: "", meta_description: "", og_image_url: null },
+    );
+    for (const r of list) if (!combined.find((c) => c.path === r.path)) combined.push(r as Row);
+    setRows(combined);
+  }, [data]);
+
   const [saving, setSaving] = useState<string | null>(null);
 
-  useEffect(() => {
-    load(undefined as never)
-      .then((res) => {
-        const byPath = new Map<string, Row>((res ?? []).map((r) => [r.path, r as Row]));
-        const combined: Row[] = KNOWN_SEO_PATHS.map(({ path }) =>
-          byPath.get(path) ?? { path, meta_title: "", meta_description: "", og_image_url: null },
-        );
-        // Also include any DB rows for paths not in KNOWN list
-        for (const r of res ?? []) if (!combined.find((c) => c.path === r.path)) combined.push(r as Row);
-        setRows(combined);
-      })
-      .catch(() => setRows(KNOWN_SEO_PATHS.map(({ path }) => ({ path, meta_title: "", meta_description: "", og_image_url: null }))));
-  }, [load]);
-
-  function setAt(i: number, v: Row) {
-    setRows((prev) => prev.map((r, k) => (k === i ? v : r)));
-  }
-
-  async function onSave(row: Row) {
-    setSaving(row.path);
-    try {
-      await save({
+  const mutation = useMutation({
+    mutationFn: (row: Row) =>
+      save({
         data: {
           path: row.path,
           meta_title: row.meta_title,
           meta_description: row.meta_description,
           og_image_url: row.og_image_url || null,
         },
-      });
+      }),
+    onSuccess: (_d, row) => {
+      qc.invalidateQueries({ queryKey: ["admin", "cms", "seo"] });
+      qc.invalidateQueries({ queryKey: ["page-seo", row.path] });
       toast.success(`SEO সেভ হয়েছে (${row.path})`);
-    } catch (e: any) {
-      toast.error(e?.message || "সেভ করা যায়নি");
-    } finally {
-      setSaving(null);
-    }
+    },
+    onError: (e: any) => toast.error(e?.message || "সেভ করা যায়নি"),
+    onSettled: () => setSaving(null),
+  });
+
+  function setAt(i: number, v: Row) {
+    setRows((prev) => prev.map((r, k) => (k === i ? v : r)));
+  }
+  function onSave(row: Row) {
+    setSaving(row.path);
+    mutation.mutate(row);
   }
 
   return (

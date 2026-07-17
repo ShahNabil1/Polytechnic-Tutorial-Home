@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { getStaticPage, saveStaticPage } from "@/lib/cms.functions";
@@ -9,27 +10,32 @@ import { cn } from "@/lib/utils";
 export function StaticPagesEditor() {
   const load = useServerFn(getStaticPage);
   const save = useServerFn(saveStaticPage);
+  const qc = useQueryClient();
   const [slug, setSlug] = useState<string>(EDITABLE_STATIC_PAGES[0].slug);
+
+  const { data } = useQuery({
+    queryKey: ["admin", "cms", "page", slug],
+    queryFn: () => load({ data: { slug } }),
+    staleTime: 10 * 60_000,
+  });
+
   const [page, setPage] = useState<StaticPage>({ slug, title: "", eyebrow: "", body_markdown: "" });
-  const [saving, setSaving] = useState(false);
-
   useEffect(() => {
-    load({ data: { slug } })
-      .then((res) => setPage((res as StaticPage) ?? { slug, title: "", eyebrow: "", body_markdown: "" }))
-      .catch(() => setPage({ slug, title: "", eyebrow: "", body_markdown: "" }));
-  }, [slug, load]);
+    setPage((data as StaticPage) ?? { slug, title: "", eyebrow: "", body_markdown: "" });
+  }, [data, slug]);
 
-  async function onSave() {
-    setSaving(true);
-    try {
-      await save({ data: page });
+  const mutation = useMutation({
+    mutationFn: (payload: StaticPage) => save({ data: payload }),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["admin", "cms", "page", vars.slug] });
+      qc.invalidateQueries({ queryKey: ["static-page", vars.slug] });
       toast.success("পেইজ সেভ হয়েছে");
-    } catch (e: any) {
-      toast.error(e?.message || "সেভ করা যায়নি");
-    } finally {
-      setSaving(false);
-    }
-  }
+    },
+    onError: (e: any) => toast.error(e?.message || "সেভ করা যায়নি"),
+  });
+
+  const onSave = () => mutation.mutate(page);
+  const saving = mutation.isPending;
 
   return (
     <div className="space-y-8">
