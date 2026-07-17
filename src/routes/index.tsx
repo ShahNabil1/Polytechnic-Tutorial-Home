@@ -187,11 +187,18 @@ function Hero() {
           <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
             <div className="flex items-center gap-3">
               <div className="flex -space-x-2">
-                {[0, 1, 2, 3].map((i) => (
-                  <div
+                {[
+                  "https://i.pravatar.cc/64?img=32",
+                  "https://i.pravatar.cc/64?img=68",
+                  "https://i.pravatar.cc/64?img=47",
+                  "https://i.pravatar.cc/64?img=15",
+                ].map((src, i) => (
+                  <img
                     key={i}
-                    className="size-8 rounded-full border-2 border-background bg-editorial-gradient"
-                    style={{ opacity: 0.6 + i * 0.1 }}
+                    src={src}
+                    alt={`শিক্ষার্থী ${i + 1}`}
+                    loading="lazy"
+                    className="size-8 rounded-full border-2 border-background object-cover shadow-sm"
                   />
                 ))}
               </div>
