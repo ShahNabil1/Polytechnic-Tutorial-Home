@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Send, X } from "lucide-react";
+import { Loader2, Send, X, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-import { sendCrmBulkSms, sendCrmBulkEmail } from "@/lib/crm-bulk.functions";
+import { sendCrmBulkSms, sendCrmBulkEmail, getGatewayHealth, type BulkBreakdownRow } from "@/lib/crm-bulk.functions";
 import { listSmsTemplates } from "@/lib/sms.functions";
 import { listEmailTemplates } from "@/lib/email-templates.functions";
 import { useScrollLock } from "@/hooks/use-scroll-lock";
+import { CrmBulkReportDrawer } from "./CrmBulkReportDrawer";
 
 export type BulkRecipient = {
   user_id?: string | null;
@@ -17,6 +18,16 @@ export type BulkRecipient = {
 };
 
 type Channel = "sms" | "email";
+
+type ReportState = {
+  campaign_id: string;
+  sent: number;
+  failed: number;
+  skipped: number;
+  total: number;
+  breakdown: BulkBreakdownRow[];
+  channel: Channel;
+};
 
 export function CrmBulkSendDialog({
   channel,
@@ -31,12 +42,15 @@ export function CrmBulkSendDialog({
   const sendEmail = useServerFn(sendCrmBulkEmail);
   const listSms = useServerFn(listSmsTemplates);
   const listEmail = useServerFn(listEmailTemplates);
+  const health = useServerFn(getGatewayHealth);
 
   const [templates, setTemplates] = useState<any[]>([]);
   const [tplId, setTplId] = useState<string | null>(null);
   const [body, setBody] = useState("");
   const [subject, setSubject] = useState("");
   const [sending, setSending] = useState(false);
+  const [gateway, setGateway] = useState<{ sms: { balance_bdt: number | null; ok: boolean; message: string }; email: { last_24h: number } } | null>(null);
+  const [report, setReport] = useState<ReportState | null>(null);
   useScrollLock(true);
   const subjectRef = useRef<HTMLInputElement | null>(null);
   const bodyRef = useRef<HTMLTextAreaElement | null>(null);
@@ -47,8 +61,7 @@ export function CrmBulkSendDialog({
   function insertVar(v: string) {
     const token = `{{${v}}}`;
     const active = document.activeElement;
-    const targetEl =
-      active === subjectRef.current ? subjectRef.current : bodyRef.current;
+    const targetEl = active === subjectRef.current ? subjectRef.current : bodyRef.current;
     const isSubject = targetEl === subjectRef.current;
     const currentValue = isSubject ? subject : body;
     const setValue = isSubject ? setSubject : setBody;
@@ -62,13 +75,12 @@ export function CrmBulkSendDialog({
     requestAnimationFrame(() => {
       targetEl.focus();
       const pos = start + token.length;
-      try { targetEl.setSelectionRange(pos, pos); } catch {}
+      try { targetEl.setSelectionRange(pos, pos); } catch { /* noop */ }
     });
   }
 
-  const eligible = recipients.filter((r) =>
-    channel === "sms" ? !!r.phone : !!r.email,
-  );
+  const withContact = recipients.filter((r) => (channel === "sms" ? !!r.phone : !!r.email));
+  const missing = recipients.length - withContact.length;
 
   useEffect(() => {
     const isManual = (t: any) => {
@@ -76,10 +88,11 @@ export function CrmBulkSendDialog({
       return cat !== "transactional" && cat !== "otp";
     };
     if (channel === "sms") {
-      listSms().then((r: any) => setTemplates((r?.templates ?? []).filter(isManual))).catch(() => {});
+      listSms().then((r: any) => setTemplates((r?.templates ?? []).filter(isManual))).catch(() => { /* noop */ });
     } else {
-      listEmail().then((r: any) => setTemplates((r?.templates ?? []).filter(isManual))).catch(() => {});
+      listEmail().then((r: any) => setTemplates((r?.templates ?? []).filter(isManual))).catch(() => { /* noop */ });
     }
+    health().then((h: any) => setGateway(h)).catch(() => { /* noop */ });
   }, [channel]);
 
   function applyTemplate(id: string) {
@@ -97,60 +110,76 @@ export function CrmBulkSendDialog({
     }
   }
 
+  // Rough SMS segment estimate for balance warning: 0.35 BDT per segment as a defensive floor;
+  // real cost varies by masking/non-masking. Use `sms_count` heuristic: unicode >70 = 2+ segments.
+  const estUnicode = /[^\x00-\x7F]/.test(body);
+  const estSegments = channel === "sms" && body
+    ? Math.max(1, Math.ceil(body.length / (estUnicode ? 67 : 153)))
+    : 0;
+  const estCost = channel === "sms" ? withContact.length * estSegments * 0.35 : 0;
+  const smsBalanceLow = channel === "sms" && gateway?.sms.balance_bdt != null && gateway.sms.balance_bdt < estCost;
+
   async function handleSend() {
-    if (!eligible.length) return toast.error(`No recipients with ${channel === "sms" ? "phone" : "email"}`);
+    if (!recipients.length) return toast.error("No recipients selected");
     if (!body.trim()) return toast.error("Body is empty");
     if (channel === "email" && !subject.trim()) return toast.error("Subject required");
     setSending(true);
     try {
       if (channel === "sms") {
-        const res = await sendSms({
+        const res: any = await sendSms({
           data: {
-            recipients: eligible
-              .filter((r) => r.phone)
-              .map((r) => ({
-                user_id: r.user_id ?? null,
-                phone: r.phone!,
-                vars: {
-                  name: r.name ?? null,
-                  email: r.email ?? null,
-                  last_order_no: r.last_order_no ?? null,
-                  ltv: r.ltv ?? null,
-                },
-              })),
+            recipients: recipients.map((r) => ({
+              user_id: r.user_id ?? null,
+              phone: r.phone ?? null,
+              vars: {
+                name: r.name ?? null,
+                email: r.email ?? null,
+                last_order_no: r.last_order_no ?? null,
+                ltv: r.ltv ?? null,
+              },
+            })),
             body: body.trim(),
             template_id: tplId,
           },
         });
-        toast.success(`SMS: ${res.sent} sent · ${res.failed} failed`);
+        toast.success(`SMS: ${res.sent} sent · ${res.failed} failed · ${res.skipped} skipped`);
+        setReport({ ...res, channel: "sms" });
       } else {
-        const res = await sendEmail({
+        const res: any = await sendEmail({
           data: {
-            recipients: eligible
-              .filter((r) => r.email)
-              .map((r) => ({
-                user_id: r.user_id ?? null,
-                email: r.email!,
-                vars: {
-                  name: r.name ?? null,
-                  phone: r.phone ?? null,
-                  last_order_no: r.last_order_no ?? null,
-                  ltv: r.ltv ?? null,
-                },
-              })),
+            recipients: recipients.map((r) => ({
+              user_id: r.user_id ?? null,
+              email: r.email ?? null,
+              vars: {
+                name: r.name ?? null,
+                phone: r.phone ?? null,
+                last_order_no: r.last_order_no ?? null,
+                ltv: r.ltv ?? null,
+              },
+            })),
             subject: subject.trim(),
             body_html: body,
             template_id: tplId,
           },
         });
-        toast.success(`Email: ${res.sent} sent · ${res.failed} failed`);
+        toast.success(`Email: ${res.sent} sent · ${res.failed} failed · ${res.skipped} skipped`);
+        setReport({ ...res, channel: "email" });
       }
-      onClose();
     } catch (e: any) {
       toast.error(e?.message ?? "Send failed");
     } finally {
       setSending(false);
     }
+  }
+
+  if (report) {
+    return (
+      <CrmBulkReportDrawer
+        campaignId={report.campaign_id}
+        initial={report}
+        onClose={onClose}
+      />
+    );
   }
 
   return (
@@ -159,12 +188,15 @@ export function CrmBulkSendDialog({
         <header className="flex items-center justify-between border-b border-border px-5 py-3">
           <div>
             <h2 className="font-semibold">
-              Bulk {channel === "sms" ? "SMS" : "Email"} — {eligible.length} recipient
-              {eligible.length === 1 ? "" : "s"}
+              Bulk {channel === "sms" ? "SMS" : "Email"} — {recipients.length} recipient
+              {recipients.length === 1 ? "" : "s"}
             </h2>
             <p className="text-xs text-muted-foreground">
-              {recipients.length - eligible.length > 0 &&
-                `${recipients.length - eligible.length} skipped (no ${channel === "sms" ? "phone" : "email"}) · `}
+              {missing > 0 && (
+                <span className="text-amber-600">
+                  {missing} without {channel === "sms" ? "phone" : "email"} will be marked skipped ·{" "}
+                </span>
+              )}
               Vars: {"{{name}}"}, {"{{last_order_no}}"}, {"{{ltv}}"}
             </p>
           </div>
@@ -172,6 +204,38 @@ export function CrmBulkSendDialog({
             <X className="size-4" />
           </button>
         </header>
+
+        {/* Gateway health */}
+        <div className="border-b border-border bg-muted/30 px-5 py-2 text-xs">
+          {channel === "sms" ? (
+            gateway ? (
+              <div className="flex items-center justify-between gap-4">
+                <span>
+                  SMS gateway balance:{" "}
+                  <span className={gateway.sms.balance_bdt != null && gateway.sms.balance_bdt < 100 ? "font-semibold text-destructive" : "font-semibold text-foreground"}>
+                    {gateway.sms.balance_bdt != null ? `৳${gateway.sms.balance_bdt.toFixed(2)}` : "unknown"}
+                  </span>
+                </span>
+                <span className="text-muted-foreground">
+                  Est: {withContact.length} × {estSegments || 1} seg ≈ ৳{estCost.toFixed(2)}
+                </span>
+              </div>
+            ) : (
+              <span className="text-muted-foreground">Checking SMS gateway…</span>
+            )
+          ) : gateway ? (
+            <div>Emails sent (last 24h): <span className="font-semibold text-foreground">{gateway.email.last_24h}</span></div>
+          ) : (
+            <span className="text-muted-foreground">Checking email usage…</span>
+          )}
+          {smsBalanceLow && (
+            <div className="mt-1 flex items-center gap-1.5 rounded-md bg-destructive/10 px-2 py-1 text-destructive">
+              <AlertTriangle className="size-3.5" />
+              Balance below estimated cost. Recharge bulksmsbd before sending.
+            </div>
+          )}
+        </div>
+
         <div className="space-y-3 p-5">
           {templates.length > 0 && (
             <div>
@@ -240,11 +304,11 @@ export function CrmBulkSendDialog({
           </button>
           <button
             onClick={handleSend}
-            disabled={sending || !eligible.length}
+            disabled={sending || !recipients.length}
             className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
             {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-            Send to {eligible.length}
+            Send to {recipients.length}
           </button>
         </footer>
       </div>

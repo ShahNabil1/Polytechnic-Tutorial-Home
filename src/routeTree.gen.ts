@@ -61,6 +61,7 @@ import { Route as AuthenticatedInternalWorkspaceCrmSignedRouteImport } from './r
 import { Route as AuthenticatedInternalWorkspaceCrmIncompleteRouteImport } from './routes/_authenticated/_internal.workspace.crm.incomplete'
 import { Route as AuthenticatedInternalWorkspaceCrmGuestsRouteImport } from './routes/_authenticated/_internal.workspace.crm.guests'
 import { Route as AuthenticatedInternalWorkspaceCrmCustomersRouteImport } from './routes/_authenticated/_internal.workspace.crm.customers'
+import { Route as AuthenticatedInternalWorkspaceCrmCampaignsRouteImport } from './routes/_authenticated/_internal.workspace.crm.campaigns'
 import { Route as AuthenticatedInternalWorkspaceCrmIdRouteImport } from './routes/_authenticated/_internal.workspace.crm.$id'
 import { Route as AuthenticatedInternalWorkspaceLmsAndCoursesCurriculumSubjectSlugRouteImport } from './routes/_authenticated/_internal.workspace.lms-and-courses.curriculum.$subjectSlug'
 import { Route as AuthenticatedInternalWorkspaceLmsAndCoursesCoursesDeptSlugSemSlugRouteImport } from './routes/_authenticated/_internal.workspace.lms-and-courses.courses.$deptSlug.$semSlug'
@@ -355,6 +356,12 @@ const AuthenticatedInternalWorkspaceCrmCustomersRoute =
     path: '/customers',
     getParentRoute: () => AuthenticatedInternalWorkspaceCrmRoute,
   } as any)
+const AuthenticatedInternalWorkspaceCrmCampaignsRoute =
+  AuthenticatedInternalWorkspaceCrmCampaignsRouteImport.update({
+    id: '/campaigns',
+    path: '/campaigns',
+    getParentRoute: () => AuthenticatedInternalWorkspaceCrmRoute,
+  } as any)
 const AuthenticatedInternalWorkspaceCrmIdRoute =
   AuthenticatedInternalWorkspaceCrmIdRouteImport.update({
     id: '/$id',
@@ -410,6 +417,7 @@ export interface FileRoutesByFullPath {
   '/instructor/': typeof AuthenticatedInternalInstructorIndexRoute
   '/workspace/': typeof AuthenticatedInternalWorkspaceIndexRoute
   '/workspace/crm/$id': typeof AuthenticatedInternalWorkspaceCrmIdRoute
+  '/workspace/crm/campaigns': typeof AuthenticatedInternalWorkspaceCrmCampaignsRoute
   '/workspace/crm/customers': typeof AuthenticatedInternalWorkspaceCrmCustomersRoute
   '/workspace/crm/guests': typeof AuthenticatedInternalWorkspaceCrmGuestsRoute
   '/workspace/crm/incomplete': typeof AuthenticatedInternalWorkspaceCrmIncompleteRoute
@@ -461,6 +469,7 @@ export interface FileRoutesByTo {
   '/instructor': typeof AuthenticatedInternalInstructorIndexRoute
   '/workspace': typeof AuthenticatedInternalWorkspaceIndexRoute
   '/workspace/crm/$id': typeof AuthenticatedInternalWorkspaceCrmIdRoute
+  '/workspace/crm/campaigns': typeof AuthenticatedInternalWorkspaceCrmCampaignsRoute
   '/workspace/crm/customers': typeof AuthenticatedInternalWorkspaceCrmCustomersRoute
   '/workspace/crm/guests': typeof AuthenticatedInternalWorkspaceCrmGuestsRoute
   '/workspace/crm/incomplete': typeof AuthenticatedInternalWorkspaceCrmIncompleteRoute
@@ -519,6 +528,7 @@ export interface FileRoutesById {
   '/_authenticated/_internal/instructor/': typeof AuthenticatedInternalInstructorIndexRoute
   '/_authenticated/_internal/workspace/': typeof AuthenticatedInternalWorkspaceIndexRoute
   '/_authenticated/_internal/workspace/crm/$id': typeof AuthenticatedInternalWorkspaceCrmIdRoute
+  '/_authenticated/_internal/workspace/crm/campaigns': typeof AuthenticatedInternalWorkspaceCrmCampaignsRoute
   '/_authenticated/_internal/workspace/crm/customers': typeof AuthenticatedInternalWorkspaceCrmCustomersRoute
   '/_authenticated/_internal/workspace/crm/guests': typeof AuthenticatedInternalWorkspaceCrmGuestsRoute
   '/_authenticated/_internal/workspace/crm/incomplete': typeof AuthenticatedInternalWorkspaceCrmIncompleteRoute
@@ -576,6 +586,7 @@ export interface FileRouteTypes {
     | '/instructor/'
     | '/workspace/'
     | '/workspace/crm/$id'
+    | '/workspace/crm/campaigns'
     | '/workspace/crm/customers'
     | '/workspace/crm/guests'
     | '/workspace/crm/incomplete'
@@ -627,6 +638,7 @@ export interface FileRouteTypes {
     | '/instructor'
     | '/workspace'
     | '/workspace/crm/$id'
+    | '/workspace/crm/campaigns'
     | '/workspace/crm/customers'
     | '/workspace/crm/guests'
     | '/workspace/crm/incomplete'
@@ -684,6 +696,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_internal/instructor/'
     | '/_authenticated/_internal/workspace/'
     | '/_authenticated/_internal/workspace/crm/$id'
+    | '/_authenticated/_internal/workspace/crm/campaigns'
     | '/_authenticated/_internal/workspace/crm/customers'
     | '/_authenticated/_internal/workspace/crm/guests'
     | '/_authenticated/_internal/workspace/crm/incomplete'
@@ -1096,6 +1109,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInternalWorkspaceCrmCustomersRouteImport
       parentRoute: typeof AuthenticatedInternalWorkspaceCrmRoute
     }
+    '/_authenticated/_internal/workspace/crm/campaigns': {
+      id: '/_authenticated/_internal/workspace/crm/campaigns'
+      path: '/campaigns'
+      fullPath: '/workspace/crm/campaigns'
+      preLoaderRoute: typeof AuthenticatedInternalWorkspaceCrmCampaignsRouteImport
+      parentRoute: typeof AuthenticatedInternalWorkspaceCrmRoute
+    }
     '/_authenticated/_internal/workspace/crm/$id': {
       id: '/_authenticated/_internal/workspace/crm/$id'
       path: '/$id'
@@ -1140,6 +1160,7 @@ const AuthenticatedInternalInstructorRouteWithChildren =
 
 interface AuthenticatedInternalWorkspaceCrmRouteChildren {
   AuthenticatedInternalWorkspaceCrmIdRoute: typeof AuthenticatedInternalWorkspaceCrmIdRoute
+  AuthenticatedInternalWorkspaceCrmCampaignsRoute: typeof AuthenticatedInternalWorkspaceCrmCampaignsRoute
   AuthenticatedInternalWorkspaceCrmCustomersRoute: typeof AuthenticatedInternalWorkspaceCrmCustomersRoute
   AuthenticatedInternalWorkspaceCrmGuestsRoute: typeof AuthenticatedInternalWorkspaceCrmGuestsRoute
   AuthenticatedInternalWorkspaceCrmIncompleteRoute: typeof AuthenticatedInternalWorkspaceCrmIncompleteRoute
@@ -1151,6 +1172,8 @@ const AuthenticatedInternalWorkspaceCrmRouteChildren: AuthenticatedInternalWorks
   {
     AuthenticatedInternalWorkspaceCrmIdRoute:
       AuthenticatedInternalWorkspaceCrmIdRoute,
+    AuthenticatedInternalWorkspaceCrmCampaignsRoute:
+      AuthenticatedInternalWorkspaceCrmCampaignsRoute,
     AuthenticatedInternalWorkspaceCrmCustomersRoute:
       AuthenticatedInternalWorkspaceCrmCustomersRoute,
     AuthenticatedInternalWorkspaceCrmGuestsRoute:

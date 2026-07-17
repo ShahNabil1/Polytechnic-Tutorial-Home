@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect, useRouterState } from "@tanstack/react-router";
 import { useRole } from "@/hooks/use-role";
-import { Users, UserPlus, ShoppingBag, AlertCircle } from "lucide-react";
+import { Users, UserPlus, ShoppingBag, AlertCircle, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/_internal/workspace/crm")({
@@ -15,6 +15,7 @@ const TABS = [
   { to: "/workspace/crm/signed", label: "Signed · No purchase", icon: UserPlus },
   { to: "/workspace/crm/guests", label: "Guest purchases", icon: ShoppingBag },
   { to: "/workspace/crm/incomplete", label: "Incomplete leads", icon: AlertCircle },
+  { to: "/workspace/crm/campaigns", label: "Campaigns", icon: Send },
 ] as const;
 
 function CrmLayout() {
