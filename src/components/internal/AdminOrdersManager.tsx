@@ -80,6 +80,7 @@ export function AdminOrdersManager() {
       fetchOrders({
         data: { status: tab, search: search || undefined, limit: pageSize, offset },
       }),
+    staleTime: 30_000,
   });
 
   // Counts fetched independently so badges stay accurate on every tab, including Incomplete.
@@ -87,6 +88,7 @@ export function AdminOrdersManager() {
     queryKey: ["admin-order-counts"],
     queryFn: () => fetchCounts(),
     refetchOnWindowFocus: true,
+    staleTime: 30_000,
   });
 
   // Realtime: any change in orders or incomplete_checkouts refreshes the visible list and counts.
