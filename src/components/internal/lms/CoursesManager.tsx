@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useNavigate } from "@tanstack/react-router";
@@ -132,15 +132,21 @@ export function CoursesManager() {
 
   async function handleToggleFeatured(c: LmsCourse, next: boolean) {
     // optimistic
-    setCourses((prev) => prev.map((x) => (x.id === c.id ? { ...x, is_featured: next } : x)));
+    qc.setQueryData<LmsCourse[]>(["admin", "lms", "courses"], (prev) =>
+      (prev ?? []).map((x) => (x.id === c.id ? { ...x, is_featured: next } : x)),
+    );
     try {
       await featuredFn({ data: { id: c.id, is_featured: next } } as never);
       toast.success(next ? "Marked as featured" : "Removed from featured");
+      refetch();
     } catch (e: any) {
-      setCourses((prev) => prev.map((x) => (x.id === c.id ? { ...x, is_featured: !next } : x)));
+      qc.setQueryData<LmsCourse[]>(["admin", "lms", "courses"], (prev) =>
+        (prev ?? []).map((x) => (x.id === c.id ? { ...x, is_featured: !next } : x)),
+      );
       toast.error(e?.message ?? "Failed to update");
     }
   }
+
 
   return (
     <div className="space-y-6">
