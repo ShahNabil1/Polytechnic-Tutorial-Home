@@ -240,14 +240,15 @@ function StudentDashboardLayout() {
                   </span>
                 )}
               </button>
-              <div className="ml-1 flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5">
-                <div className="grid size-7 place-items-center rounded-full bg-brand/10 text-brand text-xs font-semibold">
-                  {initials}
-                </div>
-                <div className="text-sm font-medium text-slate-800 max-w-[180px] truncate">
+              <Link
+                to="/sdash/profile"
+                className="ml-1 flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1.5 hover:bg-slate-50 transition-colors"
+              >
+                <AvatarBadge url={avatarUrl} initials={initials} size={28} />
+                <div className="pr-1 text-sm font-medium text-slate-800 max-w-[160px] truncate">
                   {displayName}
                 </div>
-              </div>
+              </Link>
             </div>
           </header>
 
