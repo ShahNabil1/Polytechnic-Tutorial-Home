@@ -306,6 +306,7 @@ function SidebarContent({
   email,
   pathname,
   onSignOut,
+  onCollapse,
 }: {
   displayName: string;
   initials: string;
@@ -313,23 +314,36 @@ function SidebarContent({
   email: string;
   pathname: string;
   onSignOut: () => void;
+  onCollapse?: () => void;
 }) {
   const isActive = (to: string, exact?: boolean) =>
     exact ? pathname === to : pathname === to || pathname.startsWith(to + "/");
 
   return (
     <>
-      <Link to="/sdash" className="flex items-center gap-2.5 px-5 py-5 border-b border-slate-200">
-        <img src={logoAsset.url} alt="" className="size-9 rounded-lg shrink-0" />
-        <div className="min-w-0">
-          <div className="text-sm font-bold tracking-tight text-slate-900 truncate">
-            Polytechnic Tutorial
+      <div className="flex items-center gap-2.5 px-5 py-5 border-b border-slate-200">
+        <Link to="/sdash" className="flex items-center gap-2.5 min-w-0 flex-1">
+          <img src={logoAsset.url} alt="" className="size-9 rounded-lg shrink-0" />
+          <div className="min-w-0">
+            <div className="text-sm font-bold tracking-tight text-slate-900 truncate">
+              Polytechnic Tutorial
+            </div>
+            <div className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+              Student Portal
+            </div>
           </div>
-          <div className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
-            Student Portal
-          </div>
-        </div>
-      </Link>
+        </Link>
+        {onCollapse && (
+          <button
+            onClick={onCollapse}
+            aria-label="সাইডবার বন্ধ করুন"
+            title="সাইডবার বন্ধ করুন"
+            className="hidden lg:grid size-8 place-items-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-800 shrink-0"
+          >
+            <PanelLeftClose className="size-4" />
+          </button>
+        )}
+      </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
         <div>
