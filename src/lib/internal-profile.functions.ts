@@ -136,6 +136,8 @@ export const updateMyInternalProfile = createServerFn({ method: "POST" })
       .update(payload as never)
       .eq("user_id", context.userId);
     if (error) throw new Error(error.message);
+    const { invalidateProfileCache } = await import("@/lib/profile-cache.server");
+    await invalidateProfileCache(context.userId);
     return { ok: true };
   });
 
@@ -182,5 +184,7 @@ export const completeInternalFirstLogin = createServerFn({ method: "POST" })
       .update({ first_login_completed: true } as never)
       .eq("user_id", context.userId);
     if (error) throw new Error(error.message);
+    const { invalidateProfileCache } = await import("@/lib/profile-cache.server");
+    await invalidateProfileCache(context.userId);
     return { ok: true };
   });
