@@ -886,6 +886,55 @@ export function InternalUserDetailPage({ userId, role }: Props) {
           onClose={() => setShowLogs(false)}
         />
       )}
+
+      {showChannelPicker && (
+        <div
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
+          onClick={() => setShowChannelPicker(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base font-bold text-slate-900">
+              পাসওয়ার্ড কোথায় পাঠাবেন?
+            </h3>
+            <p className="mt-1 text-xs text-slate-500">
+              নতুন পাসওয়ার্ড তৈরি করে ইমেইল অথবা SMS-এ পাঠানো হবে।
+            </p>
+            <div className="mt-4 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => handleResetPassword("email")}
+                className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+              >
+                <Mail className="size-4 text-indigo-600" />
+                <span className="flex-1 text-left">Email</span>
+                <span className="truncate text-xs font-normal text-slate-500">{detail.email}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleResetPassword("sms")}
+                className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+              >
+                <MessageSquare className="size-4 text-emerald-600" />
+                <span className="flex-1 text-left">SMS</span>
+                <span className="truncate text-xs font-normal text-slate-500">{detail.phone}</span>
+              </button>
+            </div>
+            <div className="mt-4 text-right">
+              <button
+                type="button"
+                onClick={() => setShowChannelPicker(false)}
+                className="rounded-md px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
