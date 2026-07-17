@@ -1213,5 +1213,8 @@ export const adminChangeTargetContact = createServerFn({ method: "POST" })
       await revokeAllTargetSessions(context, data.user_id);
     }
 
+    const { invalidateProfileCache } = await import("@/lib/profile-cache.server");
+    await invalidateProfileCache(data.user_id);
+
     return { ok: true, email: newEmail, phone: newPhoneRaw, unlinked };
   });
