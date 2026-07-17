@@ -133,25 +133,22 @@ export function InternalProfilePage({ role }: { role: AppRole }) {
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
-    setSaving(true);
     const nextForm: FormState = {
       full_name: form.full_name.trim(),
       avatar_url: form.avatar_url.trim(),
     };
-    const payload = {
+    const payload: Record<string, string | null> = {
       full_name: nextForm.full_name || null,
       avatar_url: nextForm.avatar_url || null,
-    } as never;
-    const { error } = await supabase.from("profiles").update(payload).eq("id", user.id);
-    setSaving(false);
-    if (error) {
-      toast.error("Failed to save: " + error.message);
-      return;
+    };
+    try {
+      await saveMutation.mutateAsync(payload);
+      setForm(nextForm);
+      setSavedForm(nextForm);
+      if (isComplete) setEditMode(false);
+    } catch {
+      /* handled in onError */
     }
-    setForm(nextForm);
-    setSavedForm(nextForm);
-    toast.success("Profile saved");
-    if (isComplete) setEditMode(false);
   }
 
   function handleCancelEdit() {
