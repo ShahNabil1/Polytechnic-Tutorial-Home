@@ -1465,4 +1465,6 @@ export const getPublicCourseByPair = createServerFn({ method: "GET" })
       },
       subjects: subjectsOut,
     };
+      },
+    );
   });
