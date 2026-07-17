@@ -99,6 +99,19 @@ function StudentDashboardLayout() {
     return parts.map((p) => p[0]?.toUpperCase() ?? "").join("") || "S";
   }, [displayName]);
 
+  const avatarUrl = useMemo(() => {
+    const meta = (user?.user_metadata ?? {}) as {
+      avatar_url?: string;
+      picture?: string;
+    };
+    return (
+      (profile as unknown as { avatar_url?: string | null })?.avatar_url ||
+      meta.avatar_url ||
+      meta.picture ||
+      null
+    );
+  }, [profile, user]);
+
   const pageTitle = useMemo(() => {
     if (pathname === "/sdash") return "ড্যাশবোর্ড";
     if (pathname.startsWith("/sdash/courses")) return "কোর্স";
@@ -158,6 +171,7 @@ function StudentDashboardLayout() {
           <SidebarContent
             displayName={displayName}
             initials={initials}
+            avatarUrl={avatarUrl}
             email={user?.email ?? user?.phone ?? ""}
             pathname={pathname}
             onSignOut={handleSignOut}
@@ -185,6 +199,7 @@ function StudentDashboardLayout() {
               <SidebarContent
                 displayName={displayName}
                 initials={initials}
+                avatarUrl={avatarUrl}
                 email={user?.email ?? user?.phone ?? ""}
                 pathname={pathname}
                 onSignOut={handleSignOut}
@@ -225,14 +240,15 @@ function StudentDashboardLayout() {
                   </span>
                 )}
               </button>
-              <div className="ml-1 flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5">
-                <div className="grid size-7 place-items-center rounded-full bg-brand/10 text-brand text-xs font-semibold">
-                  {initials}
-                </div>
-                <div className="text-sm font-medium text-slate-800 max-w-[180px] truncate">
+              <Link
+                to="/sdash/profile"
+                className="ml-1 flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1.5 hover:bg-slate-50 transition-colors"
+              >
+                <AvatarBadge url={avatarUrl} initials={initials} size={28} />
+                <div className="pr-1 text-sm font-medium text-slate-800 max-w-[160px] truncate">
                   {displayName}
                 </div>
-              </div>
+              </Link>
             </div>
           </header>
 
@@ -254,12 +270,14 @@ function StudentDashboardLayout() {
 function SidebarContent({
   displayName,
   initials,
+  avatarUrl,
   email,
   pathname,
   onSignOut,
 }: {
   displayName: string;
   initials: string;
+  avatarUrl: string | null;
   email: string;
   pathname: string;
   onSignOut: () => void;
@@ -361,9 +379,7 @@ function SidebarContent({
           to="/sdash/profile"
           className="flex items-center gap-3 rounded-lg px-2.5 py-2 hover:bg-slate-100"
         >
-          <div className="grid size-9 place-items-center rounded-full bg-brand/10 text-brand text-sm font-semibold shrink-0">
-            {initials}
-          </div>
+          <AvatarBadge url={avatarUrl} initials={initials} size={36} />
           <div className="min-w-0">
             <div className="text-sm font-semibold text-slate-900 truncate">{displayName}</div>
             <div className="text-xs text-slate-500 truncate">{email || "শিক্ষার্থী"}</div>
@@ -378,5 +394,38 @@ function SidebarContent({
         </button>
       </div>
     </>
+  );
+}
+
+function AvatarBadge({
+  url,
+  initials,
+  size,
+}: {
+  url: string | null;
+  initials: string;
+  size: number;
+}) {
+  const style = { width: size, height: size };
+  if (url) {
+    return (
+      <img
+        src={url}
+        alt=""
+        style={style}
+        className="rounded-full object-cover shrink-0 ring-1 ring-slate-200"
+        onError={(e) => {
+          (e.currentTarget as HTMLImageElement).style.display = "none";
+        }}
+      />
+    );
+  }
+  return (
+    <div
+      style={style}
+      className="grid place-items-center rounded-full bg-gradient-to-br from-brand to-emerald-700 text-white text-xs font-semibold shrink-0 ring-1 ring-black/5"
+    >
+      {initials}
+    </div>
   );
 }
