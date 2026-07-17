@@ -571,7 +571,16 @@ export function InternalUserDetailPage({ userId, role }: Props) {
         <dl className="grid gap-4 sm:grid-cols-2">
           <Info label="Email (primary ID)" value={detail.email} />
           <Info label="Phone" value={detail.phone} />
-          <Info label="Display ID" value={detail.display_id} />
+          <Info
+            label={isCustomer ? "Student ID" : "Display ID"}
+            value={
+              isCustomer
+                ? (detail.student_profile.student_id != null
+                    ? String(detail.student_profile.student_id).padStart(4, "0")
+                    : null)
+                : detail.display_id
+            }
+          />
           <Info label="Roles" value={detail.roles.join(", ") || "(none)"} />
           <Info label="Providers" value={detail.auth.providers.join(", ") || "email"} />
           <Info
