@@ -190,7 +190,7 @@ function Hero() {
                 {[0, 1, 2, 3].map((i) => (
                   <div
                     key={i}
-                    className="size-8 rounded-full border-2 border-background bg-[var(--gradient-editorial)]"
+                    className="size-8 rounded-full border-2 border-background bg-editorial-gradient"
                     style={{ opacity: 0.6 + i * 0.1 }}
                   />
                 ))}
