@@ -29,10 +29,17 @@ export type CrmGuestRow = {
   total_spent: number;
   first_order_at: string;
   last_order_at: string;
+  latest_order_id: string | null;
+  latest_order_no: string | null;
+  order_ids: string[] | null;
+  order_nos: string[] | null;
 };
 
 export type CrmIncompleteRow = {
   id: string;
+  order_id: string | null;
+  order_no: string | null;
+  source: "checkout" | "order";
   phone: string;
   email: string | null;
   name: string | null;
@@ -47,6 +54,7 @@ export type CrmIncompleteRow = {
   last_attempt_at: string;
   cart: any;
 };
+
 
 export type CrmCustomerDetail = {
   user_id: string;

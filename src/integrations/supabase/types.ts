@@ -2151,8 +2151,12 @@ export type Database = {
           email: string | null
           first_order_at: string | null
           last_order_at: string | null
+          latest_order_id: string | null
+          latest_order_no: string | null
           name: string | null
           order_count: number | null
+          order_ids: string[] | null
+          order_nos: string[] | null
           phone: string | null
           total_spent: number | null
         }
@@ -2170,6 +2174,8 @@ export type Database = {
           last_attempt_at: string | null
           last_outcome: string | null
           name: string | null
+          order_id: string | null
+          order_no: string | null
           phone: string | null
           source: string | null
           subtotal_bdt: number | null
