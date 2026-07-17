@@ -534,7 +534,7 @@ export const getCrmCampaign = createServerFn({ method: "GET" })
     if (channel === "sms") {
       const { data: r } = await supabaseAdmin
         .from("crm_sms_deliveries")
-        .select("id, user_id, to_phone, status, provider_status, error_reason, attempt_no, created_at")
+        .select("id, user_id, to_phone, status, provider_status, error_reason, attempt_no, created_at, delivered_at")
         .eq("campaign_id", data.id)
         .order("created_at", { ascending: false })
         .limit(2000);
@@ -542,7 +542,7 @@ export const getCrmCampaign = createServerFn({ method: "GET" })
     } else {
       const { data: r } = await supabaseAdmin
         .from("crm_email_deliveries")
-        .select("id, user_id, to_email, status, error_reason, attempt_no, created_at")
+        .select("id, user_id, to_email, status, error_reason, attempt_no, created_at, delivered_at, opened_at, clicked_at, bounced_at")
         .eq("campaign_id", data.id)
         .order("created_at", { ascending: false })
         .limit(2000);
@@ -573,9 +573,14 @@ export const getCrmCampaign = createServerFn({ method: "GET" })
         error_reason: r.error_reason ?? null,
         attempt_no: r.attempt_no ?? 1,
         created_at: r.created_at,
+        delivered_at: r.delivered_at ?? null,
+        opened_at: r.opened_at ?? null,
+        clicked_at: r.clicked_at ?? null,
+        bounced_at: r.bounced_at ?? null,
       })),
     };
   });
+
 
 /** Retry only rows classified as retryable (transient / balance / gateway errors). */
 export const retryCrmCampaignFailed = createServerFn({ method: "POST" })

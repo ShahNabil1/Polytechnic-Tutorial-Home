@@ -24,7 +24,12 @@ type Row = {
   error_reason: string | null;
   attempt_no?: number;
   created_at?: string;
+  delivered_at?: string | null;
+  opened_at?: string | null;
+  clicked_at?: string | null;
+  bounced_at?: string | null;
 };
+
 
 export function CrmBulkReportDrawer({
   campaignId,
@@ -264,7 +269,10 @@ export function CrmBulkReportDrawer({
                       <div className="font-medium">{r.name ?? "—"}</div>
                       <div className="text-xs text-muted-foreground">{r.contact ?? <span className="italic">no contact</span>}</div>
                     </td>
-                    <td className="px-4 py-2"><StatusChip status={r.status} /></td>
+                    <td className="px-4 py-2">
+                      <StatusChip status={r.status} />
+                      <EventTimeline row={r} />
+                    </td>
                     <td className="px-4 py-2 text-xs text-muted-foreground">
                       {humanizeReason(channel, r.status, r.provider_code, r.error_reason)}
                       {r.attempt_no && r.attempt_no > 1 ? (
@@ -321,3 +329,31 @@ function StatusChip({ status }: { status: string }) {
   }
   return <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{status}</span>;
 }
+
+function fmtTime(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+function EventTimeline({ row }: { row: Row }) {
+  const events: Array<{ label: string; at: string }> = [];
+  const d = fmtTime(row.delivered_at);
+  const o = fmtTime(row.opened_at);
+  const c = fmtTime(row.clicked_at);
+  const b = fmtTime(row.bounced_at);
+  if (d) events.push({ label: "delivered", at: d });
+  if (o) events.push({ label: "opened", at: o });
+  if (c) events.push({ label: "clicked", at: c });
+  if (b) events.push({ label: "bounced", at: b });
+  if (!events.length) return null;
+  return (
+    <div className="mt-1 space-y-0.5 text-[10px] text-muted-foreground">
+      {events.map((e) => (
+        <div key={e.label}>· {e.label} {e.at}</div>
+      ))}
+    </div>
+  );
+}
+

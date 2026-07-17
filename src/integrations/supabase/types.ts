@@ -374,11 +374,13 @@ export type Database = {
           body: string
           campaign_id: string | null
           created_at: string
+          delivered_at: string | null
           error_reason: string | null
           id: string
           is_unicode: boolean | null
           kind: string
           parent_delivery_id: string | null
+          provider_message_id: string | null
           provider_response: string | null
           provider_status: number | null
           sender_user_id: string | null
@@ -394,11 +396,13 @@ export type Database = {
           body: string
           campaign_id?: string | null
           created_at?: string
+          delivered_at?: string | null
           error_reason?: string | null
           id?: string
           is_unicode?: boolean | null
           kind?: string
           parent_delivery_id?: string | null
+          provider_message_id?: string | null
           provider_response?: string | null
           provider_status?: number | null
           sender_user_id?: string | null
@@ -414,11 +418,13 @@ export type Database = {
           body?: string
           campaign_id?: string | null
           created_at?: string
+          delivered_at?: string | null
           error_reason?: string | null
           id?: string
           is_unicode?: boolean | null
           kind?: string
           parent_delivery_id?: string | null
+          provider_message_id?: string | null
           provider_response?: string | null
           provider_status?: number | null
           sender_user_id?: string | null
