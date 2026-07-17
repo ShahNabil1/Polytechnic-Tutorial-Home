@@ -17,6 +17,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock";
 import { useRole, primaryHome } from "@/hooks/use-role";
 import { fetchMyProfile, getMissingProfileFields, type ProfileRow } from "@/lib/profile";
 import { ProfileCompletenessBanner } from "@/components/account/ProfileCompletenessBanner";
