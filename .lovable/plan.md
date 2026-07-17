@@ -1,104 +1,134 @@
-# Full CMS for Homepage, Static Pages & SEO
 
-আপনি অনেক বড় একটা কাজ চাচ্ছেন। আমি এটাকে একটা পূর্ণাঙ্গ CMS হিসেবে বানাবো যাতে ভবিষ্যতেও নতুন পেইজ/সেকশন যোগ করা সহজ হয়।
+# Caching Plan — Upstash Redis + Cloudflare Edge + Browser
 
-## Scope
+লক্ষ্য: Supabase DB এ read load কমানো, page load fast করা, strict invalidation (admin save → instant update)।
 
-### 1. Homepage — সম্পূর্ণ ডায়নামিক
-`/workspace/settings/homepage` এ ট্যাব/সেকশন আকারে সব কিছু এডিট করা যাবে:
-- **Hero** — eyebrow, title (with highlight portion), subtitle, দুইটা CTA বাটনের টেক্সট + লিংক, featured card (badge, eyebrow, title, features list, price, footnote)
-- **Stats bar** — ৪টা stat (value + label)
-- **Courses section** — eyebrow, title (highlight), description, "সব কোর্স দেখুন" বাটন টেক্সট
-- **Shop section** — eyebrow, title (highlight), description, বাটন টেক্সট
-- **About section** — eyebrow, title (highlight), দুই paragraph, badge টেক্সট, তিনটা feature card (title + description)
-- **Testimonials** — eyebrow, title (highlight), প্রতিটা রিভিউ (rating, text, নাম, ভূমিকা) — add/remove/reorder
-- **FAQ** — eyebrow, title (highlight), description, প্রতিটা প্রশ্ন-উত্তর — add/remove/reorder
-- **Final CTA** — badge, title (highlight), description, দুইটা বাটন
+---
 
-### 2. Site-wide Settings — `/workspace/settings/site`
-- Brand name, tagline, logo
-- **Contact** — address, email, phone
-- **Social links** — Facebook, Instagram, WhatsApp (real brand SVG icons; user paste করবে full URL, empty হলে icon hide)
-- Footer copyright text, description
+## Phase 1 — Foundation
 
-### 3. Static Pages — `/workspace/settings/pages`
-এডিটেবল পেইজ: `about`, `terms-of-service`, `privacy-policy`
-- Rich text content (markdown or simple HTML editor)
-- Per-page SEO override
+**Secrets add করব:**
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`
 
-### 4. SEO Manager — `/workspace/settings/seo`
-সব public পেইজের জন্য meta title, meta description, OG image:
-- `/` (home), `/about`, `/shop`, `/courses`, `/terms-of-service`, `/privacy-policy`
-- OG image upload (R2 bucket ইতিমধ্যে আছে)
-- Head tag routes থেকে DB-এ শিফট করবো — SSR-safe loader দিয়ে fetch হবে যাতে crawlers ঠিকমতো পায়
+**নতুন ফাইল: `src/lib/cache.server.ts`**
+- `@upstash/redis` package install
+- Helper functions:
+  - `cacheGet<T>(key)` — Redis miss হলে null
+  - `cacheSet(key, value, ttlSec)`
+  - `cacheDel(key | key[])`
+  - `cacheDelPrefix(prefix)` — SCAN + DEL, admin invalidation এর জন্য
+  - `withCache<T>(key, ttl, loader)` — cache-aside wrapper
+- Fail-open design: Redis down হলে সরাসরি DB fallback, throw করবে না
 
-Shop/course product & category-এর নিজস্ব meta ইতিমধ্যে DB-তে থাকে (products table এ metaTitle/metaDescription/ogImage আছে); ওই ফর্মগুলোতে ঠিকমতো wired আছে কিনা verify করে দরকার হলে ঠিক করবো।
+---
 
-## Technical Plan
+## Phase 2 — CMS + Site Settings Cache (Redis)
 
-```text
-DB migrations (supabase migration):
-  - site_settings           singleton row, JSONB (brand, contact, socials, footer)
-  - homepage_content        singleton row, JSONB per section (hero, stats, courses,
-                            shop, about, testimonials[], faq[], final_cta)
-  - static_pages            slug PK, JSONB body + title
-  - page_seo                path PK, meta_title, meta_description, og_image_url
+**Files edit:** `src/lib/cms.functions.ts`
 
-RLS:
-  - anon: SELECT on all four (public content)
-  - authenticated with role admin/super_admin: full write via has_role()
-  - GRANTs per public-schema rule
+Cache-wrapped read functions:
+| Function | Cache key | TTL |
+|---|---|---|
+| `getSiteSettings` | `cms:site_settings` | 1 hour |
+| `getHomepageContent` | `cms:homepage` | 1 hour |
+| `getStaticPage(slug)` | `cms:page:{slug}` | 1 hour |
+| `getPageSeo(path)` | `cms:seo:{path}` | 1 hour |
 
-Server fns (src/lib/cms.functions.ts):
-  - getHomepageContent, getSiteSettings, getStaticPage(slug), getPageSeo(path)
-    → public read via server publishable client (SSR-safe, cached)
-  - saveHomepageContent, saveSiteSettings, saveStaticPage, savePageSeo
-    → requireSupabaseAuth + admin role check
+**Strict invalidation** — প্রতিটি `save*` function এ save success এর পর:
+- `saveSiteSettings` → `cacheDel("cms:site_settings")`
+- `saveHomepageContent` → `cacheDel("cms:homepage")`
+- `saveStaticPage(slug)` → `cacheDel("cms:page:" + slug)`
+- `savePageSeo(path)` → `cacheDel("cms:seo:" + path)`
 
-Homepage refactor (src/routes/index.tsx):
-  - loader: ensureQueryData for homepage_content + site_settings + page_seo('/')
-  - head(): derive title/description/og from loaderData
-  - component: read via useSuspenseQuery, render every string/link from data
-  - fallback defaults inline so first-run before migration still works
+Result: admin save করা মাত্রই next request এ fresh data।
 
-Static page routes (about, terms, privacy):
-  - loader fetches static_pages row by slug + page_seo
-  - head() from loader data
-  - render body
+---
 
-Shared SEO helper:
-  - buildRouteHead(loaderData) — consistent title/desc/og/twitter/canonical
+## Phase 3 — HTTP Edge Cache Headers (Cloudflare)
 
-Footer:
-  - Read site_settings; render Facebook/Instagram/WhatsApp icons only when URL set
-  - Real brand SVGs (inline, currentColor) — Facebook 'f', Instagram camera outline, WhatsApp phone
+**Files edit:** public route loaders / server functions যেগুলো anon traffic serve করে।
 
-Workspace admin UI (new routes under _authenticated/_internal.workspace.settings.*):
-  - site.tsx           — brand + contact + socials + footer editor
-  - homepage.tsx       — tabbed section editor with add/remove for testimonials & faq
-  - pages.$slug.tsx    — static page + its SEO
-  - seo.tsx            — table of all public paths with editable meta + OG upload
-  - Sidebar nav updated in _internal.workspace.tsx
+Cloudflare এ automatic edge cache — `s-maxage` respect করে। Redis এর আগের layer, free।
 
-Image uploads for OG:
-  - Reuse existing uploads.functions.ts + R2 helper
+Target routes (public, anon-safe):
+- `/` (homepage)
+- `/shop`
+- `/courses`
+- `/about`, `/privacy-policy`, `/terms-of-service`
+- `/sitemap.xml`
+- `/product/$slug`, `/bundle/$slug`
+
+Server function handler এ:
+```ts
+setResponseHeader(
+  "Cache-Control",
+  "public, s-maxage=300, stale-while-revalidate=3600"
+);
 ```
 
-## Non-Goals (out of scope for this pass)
+**Purge on update:** admin save এ Cloudflare purge কল করব না (complexity বাড়ে) — বরং `s-maxage` short (5 min) রাখব, আর `Vary: Cookie` দিব যাতে logged-in users bypass করে। User-specific pages (checkout, sdash/*, workspace/*) এ cache header দিব না।
 
-- WYSIWYG rich-text editor with images inline in static pages — will use a simple textarea with markdown (rendered via existing markdown pipeline if present, otherwise `react-markdown`). Can upgrade later.
-- Multi-language content editing UI (Bangla stays as-is; single locale).
-- Course/product SEO form changes — those already have fields; only fix if broken during verify.
-- Reordering via drag-drop — will use up/down arrows for simplicity.
+---
 
-## Delivery order
+## Phase 4 — Product Catalog Cache (Redis)
 
-1. Migration (tables, RLS, GRANTs, seed rows mirroring current hardcoded content so nothing visually changes on deploy)
-2. Server functions (read + write)
-3. Homepage refactor to consume DB
-4. Footer social icons + contact
-5. Static pages (about/terms/privacy) refactor
-6. Workspace settings UI (site → homepage → pages → seo)
-7. Wire SEO into every listed route's `head()`
+**Files edit:** `src/lib/products.functions.ts`, `src/lib/bundles.functions.ts`, `src/lib/lms.functions.ts` (public reads)
 
-চালিয়ে যাবো?
+| Function | Cache key | TTL |
+|---|---|---|
+| `listPublicProducts` | `products:list:public` | 10 min |
+| `getProductBySlug(slug)` | `products:slug:{slug}` | 10 min |
+| `listPublicBundles` | `bundles:list:public` | 10 min |
+| `getBundleBySlug(slug)` | `bundles:slug:{slug}` | 10 min |
+| `listPublicCategories` | `categories:public` | 1 hour |
+| Public LMS structure (dept/sem/subject listings) | `lms:structure:*` | 30 min |
+
+**Strict invalidation** — admin CRUD এ:
+- Product save/delete → `cacheDelPrefix("products:")`
+- Bundle save/delete → `cacheDelPrefix("bundles:")`
+- Category change → `cacheDelPrefix("categories:")` + `cacheDelPrefix("products:")` (products carry category names)
+- LMS structure change → `cacheDelPrefix("lms:")`
+
+---
+
+## Phase 5 — Browser cache tuning (low risk, quick)
+
+**File edit:** `src/router.tsx`
+- `defaultPreloadStaleTime: 0` → রাখব (Query controls freshness)
+- Public data queries এ `staleTime: 5 * 60_000` add করব যেখানে relevant
+
+**File edit:** `src/lib/upload-client.ts` / R2 upload
+- R2 uploaded images এ `Cache-Control: public, max-age=31536000, immutable` set (filename hash-based, already unique)
+
+---
+
+## Technical notes
+
+- **Redis package:** `@upstash/redis` (REST-based, Worker-compatible, no TCP)
+- **Fail-open:** সব cache read try/catch এ, Redis error হলে DB fallback + console.warn
+- **Key namespace:** `cms:*`, `products:*`, `bundles:*`, `categories:*`, `lms:*`
+- **No cache for authenticated/user-specific data** — orders, cart, profiles Supabase এই থাকবে
+- **SSR safe:** cache helpers server-only (`.server.ts`), route file loaders এ dynamic import করব দরকার হলে
+
+---
+
+## Out of scope (এই plan এ নেই, পরে করা যাবে)
+
+- Rate limiting (`@upstash/ratelimit`) — আলাদা phase
+- Service worker / offline shell
+- Steadfast/SMS balance cache
+- Coupon validation cache
+- `has_role` per-user cache
+
+---
+
+## Rollout order
+
+1. Phase 1 (foundation) — Upstash secrets + `cache.server.ts`
+2. Phase 2 (CMS cache) — biggest immediate win, low risk
+3. Phase 3 (edge headers) — even bigger win, zero Redis load
+4. Phase 4 (product catalog) — after Phase 2 pattern proven
+5. Phase 5 (browser tuning) — quick polish
+
+প্রতি phase আলাদা করে verify করব — DB call count, page load time।
