@@ -91,46 +91,60 @@ async function fetchProductsWithSubs(client: ReturnType<typeof serverPublic>, fi
   return rows.map((r: any) => mapProduct(r, byProduct.get(r.id) ?? []));
 }
 
-// ============ Public reads ============
+// ============ Public reads (Redis cached, invalidated on admin write) ============
+
+const PRODUCT_TTL = 10 * 60; // 10 min
+const CATEGORY_TTL = 60 * 60; // 1 hour
 
 export const listPublicProducts = createServerFn({ method: "GET" }).handler(async () => {
-  return await fetchProductsWithSubs(serverPublic());
+  const { withCache } = await import("./cache.server");
+  return withCache<Product[]>("products:list:public", PRODUCT_TTL, () =>
+    fetchProductsWithSubs(serverPublic()),
+  );
 });
 
 export const listFeaturedProducts = createServerFn({ method: "GET" }).handler(async () => {
-  const client = serverPublic();
-  return await fetchProductsWithSubs(client, (q) => q.eq("is_featured", true).limit(8));
+  const { withCache } = await import("./cache.server");
+  return withCache<Product[]>("products:list:featured", PRODUCT_TTL, () =>
+    fetchProductsWithSubs(serverPublic(), (q) => q.eq("is_featured", true).limit(8)),
+  );
 });
 
 export const getPublicProductBySlug = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => z.object({ slug: z.string().min(1).max(200) }).parse(input))
   .handler(async ({ data }) => {
-    const client = serverPublic();
-    const { data: row, error } = await client
-      .from("products")
-      .select("*, product_type:product_categories!products_product_type_id_fkey(slug,name)")
-      .eq("slug", data.slug)
-      .eq("is_active", true)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!row) return null;
-    const { data: subs } = await client
-      .from("product_subcategories")
-      .select("category:product_categories!product_subcategories_category_id_fkey(slug,kind)")
-      .eq("product_id", (row as any).id);
-    const subsMapped = (subs ?? []).map((s: any) => ({ slug: s.category.slug, kind: s.category.kind }));
-    return mapProduct(row, subsMapped);
+    const { withCache } = await import("./cache.server");
+    return withCache<Product | null>(`products:slug:${data.slug}`, PRODUCT_TTL, async () => {
+      const client = serverPublic();
+      const { data: row, error } = await client
+        .from("products")
+        .select("*, product_type:product_categories!products_product_type_id_fkey(slug,name)")
+        .eq("slug", data.slug)
+        .eq("is_active", true)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!row) return null;
+      const { data: subs } = await client
+        .from("product_subcategories")
+        .select("category:product_categories!product_subcategories_category_id_fkey(slug,kind)")
+        .eq("product_id", (row as any).id);
+      const subsMapped = (subs ?? []).map((s: any) => ({ slug: s.category.slug, kind: s.category.kind }));
+      return mapProduct(row, subsMapped);
+    });
   });
 
 export const listPublicCategories = createServerFn({ method: "GET" }).handler(async () => {
-  const { data, error } = await serverPublic()
-    .from("product_categories")
-    .select("*")
-    .eq("is_active", true)
-    .order("kind")
-    .order("sort_order");
-  if (error) throw new Error(error.message);
-  return (data ?? []) as CategoryRow[];
+  const { withCache } = await import("./cache.server");
+  return withCache<CategoryRow[]>("categories:public", CATEGORY_TTL, async () => {
+    const { data, error } = await serverPublic()
+      .from("product_categories")
+      .select("*")
+      .eq("is_active", true)
+      .order("kind")
+      .order("sort_order");
+    if (error) throw new Error(error.message);
+    return (data ?? []) as CategoryRow[];
+  });
 });
 
 // ============ Admin: categories ============
@@ -156,6 +170,11 @@ const CategoryInput = z.object({
   is_active: z.boolean().default(true),
 });
 
+async function invalidateProductCaches() {
+  const { cacheDelPrefix } = await import("./cache.server");
+  await Promise.all([cacheDelPrefix("products:"), cacheDelPrefix("categories:")]);
+}
+
 export const createCategory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => CategoryInput.parse(i))
@@ -167,6 +186,7 @@ export const createCategory = createServerFn({ method: "POST" })
       .select("*")
       .single();
     if (error) throw new Error(error.message);
+    await invalidateProductCaches();
     return row as CategoryRow;
   });
 
@@ -182,6 +202,7 @@ export const updateCategory = createServerFn({ method: "POST" })
       .update(data.patch as never)
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+    await invalidateProductCaches();
     return { ok: true };
   });
 
@@ -192,6 +213,7 @@ export const deleteCategory = createServerFn({ method: "POST" })
     await ensureCanManage(context);
     const { error } = await context.supabase.from("product_categories").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    await invalidateProductCaches();
     return { ok: true };
   });
 
@@ -286,6 +308,7 @@ export const upsertProduct = createServerFn({ method: "POST" })
         .insert(rows as never);
       if (insErr) throw new Error(insErr.message);
     }
+    await invalidateProductCaches();
     return { ok: true, id: productId };
   });
 
@@ -296,5 +319,6 @@ export const deleteProduct = createServerFn({ method: "POST" })
     await ensureCanManage(context);
     const { error } = await context.supabase.from("products").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    await invalidateProductCaches();
     return { ok: true };
   });

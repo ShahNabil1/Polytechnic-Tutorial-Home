@@ -13,6 +13,14 @@ import {
   type StaticPage,
 } from "./cms-types";
 
+// Cache TTL: 1 hour. Strict invalidation on every admin save.
+const CACHE_TTL = 60 * 60;
+const K_SITE = "cms:site_settings";
+const K_HOMEPAGE = "cms:homepage";
+const K_HOMEPAGE_BUNDLE = "cms:homepage_bundle";
+const K_PAGE = (slug: string) => `cms:page:${slug}`;
+const K_SEO = (path: string) => `cms:seo:${path}`;
+
 function serverPublic() {
   const key = process.env.SUPABASE_PUBLISHABLE_KEY!;
   return createClient<Database>(process.env.SUPABASE_URL!, key, {
@@ -41,40 +49,51 @@ async function ensureCanManage(context: { supabase: any; userId: string }) {
   if (canManage !== true) throw new Error("Forbidden");
 }
 
-// ---------- Public reads ----------
+// ---------- Public reads (cached) ----------
 
 export const getSiteSettings = createServerFn({ method: "GET" }).handler(async () => {
-  const sb = serverPublic();
-  const { data } = await sb.from("site_settings").select("*").eq("id", "global").maybeSingle();
-  const merged: SiteSettings = {
-    brand: mergeWithDefaults(DEFAULT_SITE_SETTINGS.brand, (data as any)?.brand),
-    contact: mergeWithDefaults(DEFAULT_SITE_SETTINGS.contact, (data as any)?.contact),
-    socials: mergeWithDefaults(DEFAULT_SITE_SETTINGS.socials, (data as any)?.socials),
-    footer: mergeWithDefaults(DEFAULT_SITE_SETTINGS.footer, (data as any)?.footer),
-  };
-  return merged;
+  const { withCache } = await import("./cache.server");
+  return withCache<SiteSettings>(K_SITE, CACHE_TTL, async () => {
+    const sb = serverPublic();
+    const { data } = await sb.from("site_settings").select("*").eq("id", "global").maybeSingle();
+    return {
+      brand: mergeWithDefaults(DEFAULT_SITE_SETTINGS.brand, (data as any)?.brand),
+      contact: mergeWithDefaults(DEFAULT_SITE_SETTINGS.contact, (data as any)?.contact),
+      socials: mergeWithDefaults(DEFAULT_SITE_SETTINGS.socials, (data as any)?.socials),
+      footer: mergeWithDefaults(DEFAULT_SITE_SETTINGS.footer, (data as any)?.footer),
+    };
+  });
 });
 
 export const getHomepageContent = createServerFn({ method: "GET" }).handler(async () => {
-  const sb = serverPublic();
-  const { data } = await sb.from("homepage_content").select("content").eq("id", "global").maybeSingle();
-  return mergeWithDefaults<HomepageContent>(DEFAULT_HOMEPAGE_CONTENT, (data as any)?.content);
+  const { withCache } = await import("./cache.server");
+  return withCache<HomepageContent>(K_HOMEPAGE, CACHE_TTL, async () => {
+    const sb = serverPublic();
+    const { data } = await sb.from("homepage_content").select("content").eq("id", "global").maybeSingle();
+    return mergeWithDefaults<HomepageContent>(DEFAULT_HOMEPAGE_CONTENT, (data as any)?.content);
+  });
 });
 
 export const getStaticPage = createServerFn({ method: "GET" })
   .inputValidator((d: { slug: string }) => z.object({ slug: z.string().min(1) }).parse(d))
   .handler(async ({ data }) => {
-    const sb = serverPublic();
-    const { data: row } = await sb.from("static_pages").select("*").eq("slug", data.slug).maybeSingle();
-    return (row ?? null) as StaticPage | null;
+    const { withCache } = await import("./cache.server");
+    return withCache<StaticPage | null>(K_PAGE(data.slug), CACHE_TTL, async () => {
+      const sb = serverPublic();
+      const { data: row } = await sb.from("static_pages").select("*").eq("slug", data.slug).maybeSingle();
+      return (row ?? null) as StaticPage | null;
+    });
   });
 
 export const getPageSeo = createServerFn({ method: "GET" })
   .inputValidator((d: { path: string }) => z.object({ path: z.string().min(1) }).parse(d))
   .handler(async ({ data }) => {
-    const sb = serverPublic();
-    const { data: row } = await sb.from("page_seo").select("*").eq("path", data.path).maybeSingle();
-    return (row ?? null) as PageSeo | null;
+    const { withCache } = await import("./cache.server");
+    return withCache<PageSeo | null>(K_SEO(data.path), CACHE_TTL, async () => {
+      const sb = serverPublic();
+      const { data: row } = await sb.from("page_seo").select("*").eq("path", data.path).maybeSingle();
+      return (row ?? null) as PageSeo | null;
+    });
   });
 
 export const listPageSeo = createServerFn({ method: "GET" }).handler(async () => {
@@ -83,27 +102,30 @@ export const listPageSeo = createServerFn({ method: "GET" }).handler(async () =>
   return (data ?? []) as PageSeo[];
 });
 
-// Combined loader for homepage: content + seo + site + static-page-for-slug (optional)
+// Combined loader for homepage: content + seo + site
 export const getHomepageBundle = createServerFn({ method: "GET" }).handler(async () => {
-  const sb = serverPublic();
-  const [homepage, site, seo] = await Promise.all([
-    sb.from("homepage_content").select("content").eq("id", "global").maybeSingle(),
-    sb.from("site_settings").select("*").eq("id", "global").maybeSingle(),
-    sb.from("page_seo").select("*").eq("path", "/").maybeSingle(),
-  ]);
-  return {
-    homepage: mergeWithDefaults<HomepageContent>(DEFAULT_HOMEPAGE_CONTENT, (homepage.data as any)?.content),
-    site: {
-      brand: mergeWithDefaults(DEFAULT_SITE_SETTINGS.brand, (site.data as any)?.brand),
-      contact: mergeWithDefaults(DEFAULT_SITE_SETTINGS.contact, (site.data as any)?.contact),
-      socials: mergeWithDefaults(DEFAULT_SITE_SETTINGS.socials, (site.data as any)?.socials),
-      footer: mergeWithDefaults(DEFAULT_SITE_SETTINGS.footer, (site.data as any)?.footer),
-    } as SiteSettings,
-    seo: (seo.data ?? null) as PageSeo | null,
-  };
+  const { withCache } = await import("./cache.server");
+  return withCache(K_HOMEPAGE_BUNDLE, CACHE_TTL, async () => {
+    const sb = serverPublic();
+    const [homepage, site, seo] = await Promise.all([
+      sb.from("homepage_content").select("content").eq("id", "global").maybeSingle(),
+      sb.from("site_settings").select("*").eq("id", "global").maybeSingle(),
+      sb.from("page_seo").select("*").eq("path", "/").maybeSingle(),
+    ]);
+    return {
+      homepage: mergeWithDefaults<HomepageContent>(DEFAULT_HOMEPAGE_CONTENT, (homepage.data as any)?.content),
+      site: {
+        brand: mergeWithDefaults(DEFAULT_SITE_SETTINGS.brand, (site.data as any)?.brand),
+        contact: mergeWithDefaults(DEFAULT_SITE_SETTINGS.contact, (site.data as any)?.contact),
+        socials: mergeWithDefaults(DEFAULT_SITE_SETTINGS.socials, (site.data as any)?.socials),
+        footer: mergeWithDefaults(DEFAULT_SITE_SETTINGS.footer, (site.data as any)?.footer),
+      } as SiteSettings,
+      seo: (seo.data ?? null) as PageSeo | null,
+    };
+  });
 });
 
-// ---------- Admin writes ----------
+// ---------- Admin writes (with strict cache invalidation) ----------
 
 export const saveSiteSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -118,6 +140,8 @@ export const saveSiteSettings = createServerFn({ method: "POST" })
       footer: data.footer,
     });
     if (error) throw new Error(error.message);
+    const { cacheDel } = await import("./cache.server");
+    await cacheDel([K_SITE, K_HOMEPAGE_BUNDLE]);
     return { ok: true };
   });
 
@@ -130,6 +154,8 @@ export const saveHomepageContent = createServerFn({ method: "POST" })
       .from("homepage_content")
       .upsert({ id: "global", content: data as any });
     if (error) throw new Error(error.message);
+    const { cacheDel } = await import("./cache.server");
+    await cacheDel([K_HOMEPAGE, K_HOMEPAGE_BUNDLE]);
     return { ok: true };
   });
 
@@ -154,6 +180,8 @@ export const saveStaticPage = createServerFn({ method: "POST" })
       body_markdown: data.body_markdown,
     });
     if (error) throw new Error(error.message);
+    const { cacheDel } = await import("./cache.server");
+    await cacheDel(K_PAGE(data.slug));
     return { ok: true };
   });
 
@@ -178,6 +206,10 @@ export const savePageSeo = createServerFn({ method: "POST" })
       og_image_url: data.og_image_url ?? null,
     });
     if (error) throw new Error(error.message);
+    const { cacheDel } = await import("./cache.server");
+    const invalidations = [K_SEO(data.path)];
+    if (data.path === "/") invalidations.push(K_HOMEPAGE_BUNDLE);
+    await cacheDel(invalidations);
     return { ok: true };
   });
 

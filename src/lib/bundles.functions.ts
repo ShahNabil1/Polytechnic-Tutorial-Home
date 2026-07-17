@@ -115,35 +115,48 @@ async function fetchItemsFor(client: any, bundleIds: string[]): Promise<Map<stri
   return map;
 }
 
-// ============ Public ============
+// ============ Public (Redis cached, invalidated on admin write) ============
+
+const BUNDLE_TTL = 10 * 60; // 10 min
+
+async function invalidateBundleCaches() {
+  const { cacheDelPrefix } = await import("./cache.server");
+  await cacheDelPrefix("bundles:");
+}
 
 export const listPublicBundles = createServerFn({ method: "GET" }).handler(async () => {
-  const client = serverPublic();
-  const { data: rows, error } = await client
-    .from("product_bundles")
-    .select("*")
-    .eq("is_active", true)
-    .order("created_at", { ascending: false });
-  if (error) throw new Error(error.message);
-  const ids = (rows ?? []).map((r) => r.id);
-  const itemsMap = await fetchItemsFor(client, ids);
-  return (rows ?? []).map((r) => mapBundle(r, itemsMap.get(r.id) ?? []));
+  const { withCache } = await import("./cache.server");
+  return withCache<Bundle[]>("bundles:list:public", BUNDLE_TTL, async () => {
+    const client = serverPublic();
+    const { data: rows, error } = await client
+      .from("product_bundles")
+      .select("*")
+      .eq("is_active", true)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    const ids = (rows ?? []).map((r) => r.id);
+    const itemsMap = await fetchItemsFor(client, ids);
+    return (rows ?? []).map((r) => mapBundle(r, itemsMap.get(r.id) ?? []));
+  });
 });
 
 export const getPublicBundleBySlug = createServerFn({ method: "GET" })
   .inputValidator((i: unknown) => z.object({ slug: z.string().min(1).max(200) }).parse(i))
   .handler(async ({ data }) => {
-    const client = serverPublic();
-    const { data: row, error } = await client
-      .from("product_bundles")
-      .select("*")
-      .eq("slug", data.slug)
-      .eq("is_active", true)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!row) return null;
-    const itemsMap = await fetchItemsFor(client, [row.id]);
-    return mapBundle(row, itemsMap.get(row.id) ?? []);
+    const { withCache } = await import("./cache.server");
+    return withCache<Bundle | null>(`bundles:slug:${data.slug}`, BUNDLE_TTL, async () => {
+      const client = serverPublic();
+      const { data: row, error } = await client
+        .from("product_bundles")
+        .select("*")
+        .eq("slug", data.slug)
+        .eq("is_active", true)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!row) return null;
+      const itemsMap = await fetchItemsFor(client, [row.id]);
+      return mapBundle(row, itemsMap.get(row.id) ?? []);
+    });
   });
 
 // ============ Admin ============
@@ -230,6 +243,7 @@ export const upsertBundle = createServerFn({ method: "POST" })
       .from("product_bundle_items")
       .insert(rows as never);
     if (insErr) throw new Error(insErr.message);
+    await invalidateBundleCaches();
     return { ok: true, id: bundleId };
   });
 
@@ -243,5 +257,6 @@ export const deleteBundle = createServerFn({ method: "POST" })
       .delete()
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+    await invalidateBundleCaches();
     return { ok: true };
   });
