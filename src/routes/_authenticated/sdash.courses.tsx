@@ -282,3 +282,62 @@ function TabBtn({
     </button>
   );
 }
+
+function FilterSelect({
+  label,
+  value,
+  options,
+  onChange,
+  disabled,
+}: {
+  label: string;
+  value: string | null;
+  options: { slug: string; name: string }[];
+  onChange: (v: string | null) => void;
+  disabled?: boolean;
+}) {
+  const selected = options.find((o) => o.slug === value);
+  return (
+    <div className="relative">
+      <select
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value || null)}
+        disabled={disabled}
+        className={cn(
+          "appearance-none rounded-lg border bg-white pl-3 pr-8 py-2 text-xs font-medium outline-none transition-colors",
+          "focus:border-brand focus:ring-2 focus:ring-brand/20",
+          value
+            ? "border-brand/40 text-brand"
+            : "border-slate-200 text-slate-700 hover:bg-slate-50",
+          disabled && "opacity-50 cursor-not-allowed",
+        )}
+        aria-label={label}
+      >
+        <option value="">সব {label}</option>
+        {options.map((o) => (
+          <option key={o.slug} value={o.slug}>
+            {o.name}
+          </option>
+        ))}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 size-3.5 text-slate-400" />
+      <span className="sr-only">{selected?.name}</span>
+    </div>
+  );
+}
+
+function FilterChip({ label, onClear }: { label: string; onClear: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 text-brand px-2.5 py-1 font-medium">
+      {label}
+      <button
+        type="button"
+        onClick={onClear}
+        className="grid place-items-center rounded-full hover:bg-brand/20"
+        aria-label={`Clear ${label}`}
+      >
+        <X className="size-3" />
+      </button>
+    </span>
+  );
+}
