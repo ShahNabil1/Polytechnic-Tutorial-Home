@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { UserIdentity } from "@supabase/supabase-js";
 import { ensureReauth } from "@/lib/reauth";
 import { retrySupabaseAuth } from "@/lib/auth-reliability";
+import { isSyntheticEmail } from "@/lib/synthetic-email";
 
 const RESEND_COOLDOWN_SECONDS = 60;
 const MAX_RESENDS = 3;
