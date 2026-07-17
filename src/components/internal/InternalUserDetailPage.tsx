@@ -895,7 +895,7 @@ export function InternalUserDetailPage({ userId, role }: Props) {
       {showLogs && (
         <InternalEmailLogsDialog
           userId={userId}
-          userLabel={`${detail.full_name || "(no name)"} · ${detail.email || detail.phone || ""}`}
+          userLabel={`${detail.full_name || "(no name)"} · ${visibleEmail(detail.email) || detail.phone || ""}`}
           onClose={() => setShowLogs(false)}
         />
       )}
