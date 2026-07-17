@@ -1321,6 +1321,7 @@ export const listPublicCourses = createServerFn({ method: "GET" }).handler(
         };
       })
       .filter((x): x is PublicCourseCard => x !== null);
+    });
   },
 );
 
