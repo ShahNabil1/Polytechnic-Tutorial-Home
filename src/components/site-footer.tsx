@@ -167,7 +167,7 @@ export function SiteFooter() {
             <span>{s.footer.copyright}</span>
           </p>
           <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 font-inter tracking-wide">
-            <span>{s.footer.madeWith}</span>
+            
             {s.footer.developerName && (
               <>
                 <span className="hidden text-border/80 md:inline">·</span>
