@@ -112,9 +112,16 @@ export const listCrmCustomers = createServerFn({ method: "GET" })
     if (seg !== "all") q = q.eq("segment", seg);
     if (data?.search && data.search.trim()) {
       const s = data.search.trim();
-      q = q.or(
-        `full_name.ilike.%${s}%,email.ilike.%${s}%,phone.ilike.%${s}%`,
-      );
+      const digits = s.replace(/\D/g, "");
+      const ors: string[] = [
+        `full_name.ilike.%${s}%`,
+        `email.ilike.%${s}%`,
+        `phone.ilike.%${s}%`,
+      ];
+      if (digits && /^\d{1,10}$/.test(digits)) {
+        ors.push(`student_id.eq.${Number(digits)}`);
+      }
+      q = q.or(ors.join(","));
     }
     const { data: rows, error } = await q
       .order("last_order_at", { ascending: false, nullsFirst: false })
