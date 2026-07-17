@@ -6,12 +6,22 @@ import { adminUpdateTargetBasicProfile } from "@/lib/admin-users.functions";
 import { uploadFileToR2 } from "@/lib/upload-client";
 import { toEnglishText } from "@/lib/input-filter";
 import { ImageCropperDialog } from "@/components/account/ImageCropperDialog";
+import { SEMESTER_OPTIONS, DEPARTMENT_OPTIONS } from "@/lib/profile";
 import { cn } from "@/lib/utils";
+
+export type StudentFieldsInitial = {
+  institute_name: string | null;
+  department_name: string | null;
+  current_semester: string | null;
+  board_roll: string | null;
+  registration_no: string | null;
+};
 
 type Props = {
   userId: string;
   initialFullName: string | null;
   initialAvatarUrl: string | null;
+  studentFields?: StudentFieldsInitial | null;
   onSaved?: (patch: { full_name: string | null; avatar_url: string | null }) => void;
 };
 
@@ -19,14 +29,28 @@ export function AdminBasicProfileForm({
   userId,
   initialFullName,
   initialAvatarUrl,
+  studentFields,
   onSaved,
 }: Props) {
   const save = useServerFn(adminUpdateTargetBasicProfile);
+  const showStudent = !!studentFields;
 
   const [fullName, setFullName] = useState(initialFullName ?? "");
   const [avatarUrl, setAvatarUrl] = useState(initialAvatarUrl ?? "");
   const [savedName, setSavedName] = useState(initialFullName ?? "");
   const [savedAvatar, setSavedAvatar] = useState(initialAvatarUrl ?? "");
+  const [institute, setInstitute] = useState(studentFields?.institute_name ?? "");
+  const [dept, setDept] = useState(studentFields?.department_name ?? "");
+  const [semester, setSemester] = useState(studentFields?.current_semester ?? "");
+  const [boardRoll, setBoardRoll] = useState(studentFields?.board_roll ?? "");
+  const [regNo, setRegNo] = useState(studentFields?.registration_no ?? "");
+  const [savedStudent, setSavedStudent] = useState<StudentFieldsInitial>({
+    institute_name: studentFields?.institute_name ?? null,
+    department_name: studentFields?.department_name ?? null,
+    current_semester: studentFields?.current_semester ?? null,
+    board_roll: studentFields?.board_roll ?? null,
+    registration_no: studentFields?.registration_no ?? null,
+  });
   const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -39,7 +63,22 @@ export function AdminBasicProfileForm({
     setSavedName(initialFullName ?? "");
     setAvatarUrl(initialAvatarUrl ?? "");
     setSavedAvatar(initialAvatarUrl ?? "");
-  }, [initialFullName, initialAvatarUrl]);
+    if (studentFields) {
+      setInstitute(studentFields.institute_name ?? "");
+      setDept(studentFields.department_name ?? "");
+      setSemester(studentFields.current_semester ?? "");
+      setBoardRoll(studentFields.board_roll ?? "");
+      setRegNo(studentFields.registration_no ?? "");
+      setSavedStudent({
+        institute_name: studentFields.institute_name ?? null,
+        department_name: studentFields.department_name ?? null,
+        current_semester: studentFields.current_semester ?? null,
+        board_roll: studentFields.board_roll ?? null,
+        registration_no: studentFields.registration_no ?? null,
+      });
+    }
+  }, [initialFullName, initialAvatarUrl, studentFields]);
+
 
   function handleFilePick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
