@@ -397,13 +397,14 @@ function GuestTable({
 
 
 function IncompleteTable({
-  rows, selected, allSelected, onToggleAll, onToggleOne,
+  rows, selected, allSelected, onToggleAll, onToggleOne, onOpenOrder,
 }: {
   rows: CrmIncompleteRow[];
   selected: Set<string>;
   allSelected: boolean;
   onToggleAll: () => void;
   onToggleOne: (id: string) => void;
+  onOpenOrder: (id: string) => void;
 }) {
   return (
     <div className="overflow-x-auto">
@@ -412,6 +413,7 @@ function IncompleteTable({
           <tr>
             <th className="w-10 px-3 py-3"><Checkbox checked={allSelected} onChange={onToggleAll} /></th>
             <th className="px-4 py-3 text-left">Name</th>
+            <th className="px-4 py-3 text-left">Order</th>
             <th className="px-4 py-3 text-left">Phone</th>
             <th className="px-4 py-3 text-left">Email</th>
             <th className="px-4 py-3 text-right">Cart value</th>
@@ -432,6 +434,11 @@ function IncompleteTable({
                   {r.name || "—"}
                 </span>
               </td>
+              <td className="px-4 py-3">
+                {r.order_id && r.order_no
+                  ? <OrderButton orderNo={r.order_no} onClick={() => onOpenOrder(r.order_id!)} />
+                  : <span className="text-xs text-muted-foreground">Cart</span>}
+              </td>
               <td className="px-4 py-3 text-xs">{r.phone}</td>
               <td className="px-4 py-3 text-xs text-muted-foreground">{r.email || "—"}</td>
               <td className="px-4 py-3 text-right tabular-nums font-medium">{fmtBDT(r.total_bdt)}</td>
@@ -447,3 +454,4 @@ function IncompleteTable({
     </div>
   );
 }
+
