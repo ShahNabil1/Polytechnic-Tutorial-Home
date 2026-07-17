@@ -300,15 +300,29 @@ export function CrmMessagingPanel({ vars, userId, phone, email }: Props) {
               <option key={t.id} value={t.id}>{t.name}</option>
             ))}
           </select>
+          <VarChips
+            vars={EMAIL_VARS}
+            onPick={(v) => {
+              const el = document.activeElement;
+              const token = `{{${v}}}`;
+              if (el === emailSubjectRef.current) {
+                insertAtCursor(emailSubjectRef.current, emailSubject, setEmailSubject, token);
+              } else {
+                insertAtCursor(emailBodyRef.current, emailBody, setEmailBody, token);
+              }
+            }}
+          />
           <input
+            ref={emailSubjectRef}
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             placeholder="Subject"
             value={emailSubject}
             onChange={(e) => setEmailSubject(e.target.value)}
           />
           <textarea
+            ref={emailBodyRef}
             className="min-h-[160px] w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-xs"
-            placeholder="HTML body. Use {{name}}, {{email}}, {{phone}}, {{last_order_no}}, {{ltv}}."
+            placeholder="HTML body. Click a chip to insert {{name}}, {{email}}, {{phone}}, {{last_order_no}}, {{ltv}}."
             value={emailBody}
             onChange={(e) => setEmailBody(e.target.value)}
           />
