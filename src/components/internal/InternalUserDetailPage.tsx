@@ -439,7 +439,7 @@ export function InternalUserDetailPage({ userId, role }: Props) {
             onClick={() => setShowLogs(true)}
             className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
           >
-            <ScrollText className="size-3.5" /> Email Logs
+            <ScrollText className="size-3.5" /> Delivery Logs
           </button>
           <button
             type="button"
