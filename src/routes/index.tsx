@@ -628,7 +628,7 @@ function CTA() {
               <Sparkles className="size-3.5" />
               প্রথম ৫টি লেসন ফ্রি
             </div>
-            <h2 className="mt-6 font-display text-4xl font-extrabold leading-[1.05] tracking-tight text-[color:var(--background)] md:text-6xl">
+            <h2 className="mt-6 font-display text-4xl font-extrabold leading-[1.35] tracking-tight text-[color:var(--background)] md:text-6xl md:leading-[1.2]">
               আজই শুরু করুন
               <br />
               আপনার <span className="italic text-gold">প্রস্তুতি</span>।
