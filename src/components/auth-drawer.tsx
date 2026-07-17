@@ -872,7 +872,7 @@ export function AuthDrawer({
       : stage === "mfa-enroll"
       ? "Two-Factor Setup"
       : stage === "mfa"
-        ? "টু-ফ্যাক্টর কোড দিন"
+        ? "Enter two-factor code"
         : stage === "otp"
         ? "ফোন ভেরিফাই করুন"
         : forgotMode
@@ -1136,14 +1136,9 @@ export function AuthDrawer({
                 {/* MFA (2FA) — session challenge / forgot-password gate */}
                 {stage === "mfa" && (
                   <form className="space-y-4" onSubmit={handleVerifyMfaOtp}>
-                    <div className="rounded-lg bg-muted/60 p-3 text-sm">
-                      {mfaPurpose === "session"
-                        ? "আপনার একাউন্টে টু-ফ্যাক্টর অথেন্টিকেশন চালু আছে। চালিয়ে যেতে Authenticator অ্যাপ থেকে ৬-ডিজিট কোড দিন।"
-                        : "আপনার একাউন্টে টু-ফ্যাক্টর অথেন্টিকেশন চালু আছে। পাসওয়ার্ড রিসেট করার আগে Authenticator অ্যাপ থেকে ৬-ডিজিট কোড দিন।"}
-                    </div>
                     {InfoBox}
                     <div className="space-y-2">
-                      <Label htmlFor="auth-mfa">২FA কোড</Label>
+                      <Label htmlFor="auth-mfa">2FA code</Label>
                       <Input
                         id="auth-mfa"
                         inputMode="numeric"
