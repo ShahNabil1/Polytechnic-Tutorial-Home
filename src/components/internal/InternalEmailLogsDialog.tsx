@@ -72,6 +72,7 @@ export function InternalEmailLogsDialog({
   const [emails, setEmails] = useState<EmailRow[]>([]);
   const [sms, setSms] = useState<SmsRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [tab, setTab] = useState<Tab>("all");
   useScrollLock(true);
 
