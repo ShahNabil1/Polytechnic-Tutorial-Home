@@ -90,6 +90,8 @@ export const syncMyPrimaryAuthEmail = createServerFn({ method: "POST" })
     }
 
     await supabaseAdmin.from("profiles").update({ email } as never).eq("id", context.userId);
+    const { invalidateProfileCache } = await import("@/lib/profile-cache.server");
+    await invalidateProfileCache(context.userId);
     return { ok: true, email, synced: !currentEmail };
   });
 
