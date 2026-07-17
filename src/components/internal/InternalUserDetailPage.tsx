@@ -353,7 +353,8 @@ export function InternalUserDetailPage({ userId, role }: Props) {
   }
 
   async function handleResetPassword(explicitChannel?: "email" | "sms") {
-    const hasEmail = !!detail?.email;
+    const realEmail = visibleEmail(detail?.email);
+    const hasEmail = !!realEmail;
     const hasPhone = !!detail?.phone;
     if (!hasEmail && !hasPhone) {
       toast.error("No email or phone on file — cannot deliver new password");
