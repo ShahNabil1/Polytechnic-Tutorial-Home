@@ -12,7 +12,6 @@ import {
   UserCog,
   BookOpen,
   MessageSquareText,
-  MessageSquareText,
   Mail,
   UserPlus,
   AlertCircle,
