@@ -186,7 +186,7 @@ export function CrmMessagingPanel({ vars, userId, phone, email }: Props) {
         data: {
           user_id: userId ?? null,
           to_phone: phone,
-          body: smsBody.trim(),
+          body: previewTemplate(smsBody, vars).trim(),
           template_id: smsTplId ?? null,
         },
       });
