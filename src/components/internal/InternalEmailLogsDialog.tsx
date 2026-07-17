@@ -77,6 +77,7 @@ export function InternalEmailLogsDialog({
   useScrollLock(true);
 
   async function refresh() {
+    setRefreshing(true);
     try {
       const [e, s] = await Promise.all([
         listEmails({ data: { user_id: userId } }) as Promise<EmailRow[]>,
@@ -88,6 +89,7 @@ export function InternalEmailLogsDialog({
       console.error("[InternalEmailLogsDialog] load failed", err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }
 
