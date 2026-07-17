@@ -1,117 +1,104 @@
-# Premium UI/UX Refactor — Main Website
+# Full CMS for Homepage, Static Pages & SEO
 
-**Scope:** Only visual/UX layer of `/` (homepage), site header, site footer, and shared design tokens. All data fetching, routes, auth, cart, checkout, admin, and workspace logic remain **byte-for-byte identical**. No API/DB changes.
+আপনি অনেক বড় একটা কাজ চাচ্ছেন। আমি এটাকে একটা পূর্ণাঙ্গ CMS হিসেবে বানাবো যাতে ভবিষ্যতেও নতুন পেইজ/সেকশন যোগ করা সহজ হয়।
 
----
+## Scope
 
-## 1. Design System (foundation)
+### 1. Homepage — সম্পূর্ণ ডায়নামিক
+`/workspace/settings/homepage` এ ট্যাব/সেকশন আকারে সব কিছু এডিট করা যাবে:
+- **Hero** — eyebrow, title (with highlight portion), subtitle, দুইটা CTA বাটনের টেক্সট + লিংক, featured card (badge, eyebrow, title, features list, price, footnote)
+- **Stats bar** — ৪টা stat (value + label)
+- **Courses section** — eyebrow, title (highlight), description, "সব কোর্স দেখুন" বাটন টেক্সট
+- **Shop section** — eyebrow, title (highlight), description, বাটন টেক্সট
+- **About section** — eyebrow, title (highlight), দুই paragraph, badge টেক্সট, তিনটা feature card (title + description)
+- **Testimonials** — eyebrow, title (highlight), প্রতিটা রিভিউ (rating, text, নাম, ভূমিকা) — add/remove/reorder
+- **FAQ** — eyebrow, title (highlight), description, প্রতিটা প্রশ্ন-উত্তর — add/remove/reorder
+- **Final CTA** — badge, title (highlight), description, দুইটা বাটন
 
-Update `src/styles.css` with a custom editorial palette blended from your picks:
+### 2. Site-wide Settings — `/workspace/settings/site`
+- Brand name, tagline, logo
+- **Contact** — address, email, phone
+- **Social links** — Facebook, Instagram, WhatsApp (real brand SVG icons; user paste করবে full URL, empty হলে icon hide)
+- Footer copyright text, description
 
-**Colors (light mode, primary)**
-- Paper base: `#f5f3ee` (background), `#e8e4dd` (muted surface)
-- Ink: `#2d2d2d` (foreground)
-- Deep Emerald: `#064e3b` (primary), `#0d7a5f` (primary-glow)
-- Indigo accent: `#1e1e5a` / `#4f46e5` (secondary / links)
-- Gold: `#c9a84c` (accent), `#f0d78c` (accent-soft) — used sparingly for prestige highlights, dividers, numbers
+### 3. Static Pages — `/workspace/settings/pages`
+এডিটেবল পেইজ: `about`, `terms-of-service`, `privacy-policy`
+- Rich text content (markdown or simple HTML editor)
+- Per-page SEO override
 
-**Dark mode**: ink `#0d0d0d` bg, `#f5f3ee` foreground, same emerald/indigo/gold accents shifted for contrast.
+### 4. SEO Manager — `/workspace/settings/seo`
+সব public পেইজের জন্য meta title, meta description, OG image:
+- `/` (home), `/about`, `/shop`, `/courses`, `/terms-of-service`, `/privacy-policy`
+- OG image upload (R2 bucket ইতিমধ্যে আছে)
+- Head tag routes থেকে DB-এ শিফট করবো — SSR-safe loader দিয়ে fetch হবে যাতে crawlers ঠিকমতো পায়
 
-**Tokens added**
-- `--gradient-editorial`: emerald → indigo diagonal
-- `--gradient-gold`: gold → gold-soft
-- `--shadow-editorial`: soft layered shadow with emerald tint
-- `--shadow-gold`: subtle gold glow for CTAs
-- Border radius scale kept, plus new `--radius-editorial: 2px` for sharp magazine blocks
+Shop/course product & category-এর নিজস্ব meta ইতিমধ্যে DB-তে থাকে (products table এ metaTitle/metaDescription/ogImage আছে); ওই ফর্মগুলোতে ঠিকমতো wired আছে কিনা verify করে দরকার হলে ঠিক করবো।
 
-**Typography** (loaded via `<link>` in `__root.tsx` head)
-- Headings: **Syne** (700/800) — bold, distinctive display
-- Body: **Plus Jakarta Sans** (400/500/600)
-- Numeric/labels: Plus Jakarta with tight tracking, uppercase for eyebrow labels
+## Technical Plan
 
----
+```text
+DB migrations (supabase migration):
+  - site_settings           singleton row, JSONB (brand, contact, socials, footer)
+  - homepage_content        singleton row, JSONB per section (hero, stats, courses,
+                            shop, about, testimonials[], faq[], final_cta)
+  - static_pages            slug PK, JSONB body + title
+  - page_seo                path PK, meta_title, meta_description, og_image_url
 
-## 2. Site Header (`site-header.tsx`)
+RLS:
+  - anon: SELECT on all four (public content)
+  - authenticated with role admin/super_admin: full write via has_role()
+  - GRANTs per public-schema rule
 
-Keep every existing link, drawer, cart, auth trigger. Refactor visuals only:
-- Slimmer top strip with gold hairline divider
-- Wordmark in Syne, tight tracking, small gold dot separator
-- Nav links: uppercase micro-label + underline-on-hover reveal (emerald)
-- Cart / auth buttons: pill icon buttons with subtle border, gold indicator dot for cart count
-- Sticky header on scroll: shrinks, background frosted paper with border-bottom hairline
-- Mobile: full-height drawer, editorial serif-adjacent headings
+Server fns (src/lib/cms.functions.ts):
+  - getHomepageContent, getSiteSettings, getStaticPage(slug), getPageSeo(path)
+    → public read via server publishable client (SSR-safe, cached)
+  - saveHomepageContent, saveSiteSettings, saveStaticPage, savePageSeo
+    → requireSupabaseAuth + admin role check
 
----
+Homepage refactor (src/routes/index.tsx):
+  - loader: ensureQueryData for homepage_content + site_settings + page_seo('/')
+  - head(): derive title/description/og from loaderData
+  - component: read via useSuspenseQuery, render every string/link from data
+  - fallback defaults inline so first-run before migration still works
 
-## 3. Homepage (`routes/index.tsx`) — Magazine Layout
+Static page routes (about, terms, privacy):
+  - loader fetches static_pages row by slug + page_seo
+  - head() from loader data
+  - render body
 
-All existing data queries (featured courses, bundles, products, departments) reused as-is. Only presentation swapped.
+Shared SEO helper:
+  - buildRouteHead(loaderData) — consistent title/desc/og/twitter/canonical
 
-**Section order:**
+Footer:
+  - Read site_settings; render Facebook/Instagram/WhatsApp icons only when URL set
+  - Real brand SVGs (inline, currentColor) — Facebook 'f', Instagram camera outline, WhatsApp phone
 
-1. **Editorial Hero (featured block)**
-   - Split magazine cover: left = huge Syne headline + eyebrow label + emerald CTA + gold-underlined secondary link. Right = layered image / bento-mini with course thumbnail, floating stat cards (students count, courses count) with gold accents.
-   - Issue-number style tag: "VOL. 01 · POLYTECHNIC EDITORIAL"
+Workspace admin UI (new routes under _authenticated/_internal.workspace.settings.*):
+  - site.tsx           — brand + contact + socials + footer editor
+  - homepage.tsx       — tabbed section editor with add/remove for testimonials & faq
+  - pages.$slug.tsx    — static page + its SEO
+  - seo.tsx            — table of all public paths with editable meta + OG upload
+  - Sidebar nav updated in _internal.workspace.tsx
 
-2. **Featured Grid (magazine)**
-   - Asymmetric 3-column: one large feature card (7 cols) + two stacked small cards (5 cols).
-   - Cards: paper background, thin ink border, category eyebrow, Syne title, meta row with gold divider.
+Image uploads for OG:
+  - Reuse existing uploads.functions.ts + R2 helper
+```
 
-3. **Departments strip**
-   - Horizontal scroll / grid of department chips as editorial index entries: numbered `01 — Computer`, hover reveals emerald underline.
+## Non-Goals (out of scope for this pass)
 
-4. **Courses showcase**
-   - 3-up card grid using existing `PublicCourseCard`, restyled: sharper corners, gold rating stars, price in Syne, "Enroll" button emerald with gold hover.
+- WYSIWYG rich-text editor with images inline in static pages — will use a simple textarea with markdown (rendered via existing markdown pipeline if present, otherwise `react-markdown`). Can upgrade later.
+- Multi-language content editing UI (Bangla stays as-is; single locale).
+- Course/product SEO form changes — those already have fields; only fix if broken during verify.
+- Reordering via drag-drop — will use up/down arrows for simplicity.
 
-5. **Bundles block**
-   - Full-width dark emerald band with gold headline, bundle cards in inverted palette (paper on emerald).
+## Delivery order
 
-6. **Shop / Products preview**
-   - Same product card component, restyled with editorial number labels and gold price tag.
+1. Migration (tables, RLS, GRANTs, seed rows mirroring current hardcoded content so nothing visually changes on deploy)
+2. Server functions (read + write)
+3. Homepage refactor to consume DB
+4. Footer social icons + contact
+5. Static pages (about/terms/privacy) refactor
+6. Workspace settings UI (site → homepage → pages → seo)
+7. Wire SEO into every listed route's `head()`
 
-7. **Trust / Stats band**
-   - Big Syne numbers (students, courses, departments) with gold underline ticks and thin ink dividers.
-
-8. **Editorial CTA footer band**
-   - Full-width gradient (emerald → indigo), gold Syne headline, single primary CTA.
-
-All sections wrapped in a consistent max-width container with generous whitespace, thin hairline dividers between sections, subtle grain texture overlay for print feel.
-
----
-
-## 4. Site Footer (`site-footer.tsx`)
-
-- Paper background with top gold hairline
-- 4-column editorial grid: brand block (Syne wordmark + tagline), quick links, legal, contact
-- Bottom bar: copyright + small gold dot separators, social icons as thin outlined circles
-- Keeps every existing link
-
----
-
-## 5. Motion (framer-motion, already available)
-
-Restrained, premium:
-- Hero headline: staggered word reveal on mount
-- Section headings: fade-up on scroll (once)
-- Cards: subtle lift + gold border glow on hover
-- No parallax, no confetti, no rainbow gradients
-
----
-
-## Technical notes
-
-- Files touched:
-  - `src/styles.css` (tokens + fonts reference)
-  - `src/routes/__root.tsx` (font `<link>` tags only, keep everything else)
-  - `src/routes/index.tsx` (JSX/markup refactor, same data hooks)
-  - `src/components/site-header.tsx`
-  - `src/components/site-footer.tsx`
-  - `src/components/public-course-card.tsx` (visual only)
-  - `src/components/product-card.tsx` (visual only)
-- No changes to: routes list, loaders, server functions, auth, cart, checkout, admin, workspace, DB, migrations, edge functions.
-- No new dependencies (framer-motion already in project).
-- Both light + dark modes fully themed.
-
----
-
-Approve to build.
+চালিয়ে যাবো?
