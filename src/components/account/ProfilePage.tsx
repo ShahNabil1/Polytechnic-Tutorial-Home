@@ -30,6 +30,7 @@ import {
 } from "@/lib/profile";
 import type { AppRole } from "@/lib/roles.functions";
 import { cn } from "@/lib/utils";
+import { visibleEmail } from "@/lib/synthetic-email";
 
 type FormState = {
   full_name: string;
