@@ -84,7 +84,20 @@ export function SiteFooter() {
             <span className="text-gold">◆</span>
             <span>সর্বস্বত্ব সংরক্ষিত।</span>
           </p>
-          <p className="font-inter tracking-wide">Made with care in Bangladesh 🇧🇩</p>
+          <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 font-inter tracking-wide">
+            <span>Made with care in Bangladesh 🇧🇩</span>
+            <span className="hidden text-border/80 md:inline">·</span>
+            <span className="hidden md:inline">Developed by</span>
+            <a
+              href="https://www.shahnabil.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 font-semibold text-foreground transition-colors hover:text-gold"
+            >
+              Shahriar Nabil
+              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-70"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg>
+            </a>
+          </p>
         </div>
       </div>
     </footer>
