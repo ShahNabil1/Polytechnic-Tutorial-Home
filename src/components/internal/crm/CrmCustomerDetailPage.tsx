@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Loader2, ShoppingBag, GraduationCap, TrendingUp,
@@ -9,6 +8,8 @@ import { CrmMessagingPanel } from "./CrmMessagingPanel";
 import { CrmCartCard } from "./CrmCartCard";
 import { CrmCouponPanel } from "./CrmCouponPanel";
 import { InternalUserDetailPage } from "@/components/internal/InternalUserDetailPage";
+import { AdminOrderDrawer } from "@/components/internal/AdminOrderDrawer";
+
 
 function fmtBDT(n: number) {
   return `৳${Math.round(n).toLocaleString("en-BD")}`;
@@ -26,6 +27,9 @@ export function CrmCustomerDetailPage({ userId }: { userId: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("overview");
+  const [openOrderId, setOpenOrderId] = useState<string | null>(null);
+  const [reloadTick, setReloadTick] = useState(0);
+
 
   useEffect(() => {
     let cancel = false;
@@ -35,7 +39,8 @@ export function CrmCustomerDetailPage({ userId }: { userId: string }) {
       .catch((e) => !cancel && setError(e instanceof Error ? e.message : String(e)))
       .finally(() => !cancel && setLoading(false));
     return () => { cancel = true; };
-  }, [userId, getFn]);
+  }, [userId, getFn, reloadTick]);
+
 
   const lastOrderNo = detail?.orders[0]?.order_no ?? null;
   const vars = detail
@@ -122,10 +127,16 @@ export function CrmCustomerDetailPage({ userId }: { userId: string }) {
                         {detail.orders.map((o) => (
                           <tr key={o.id} className="hover:bg-muted/30">
                             <td className="px-4 py-2 font-mono text-xs">
-                              <Link to="/workspace/ecommerce/orders" className="text-primary hover:underline">
+                              <button
+                                type="button"
+                                onClick={() => setOpenOrderId(o.id)}
+                                className="inline-flex items-center gap-1 rounded-md bg-gradient-to-r from-indigo-600 to-sky-600 px-2 py-1 font-mono text-xs font-bold text-white shadow-sm hover:from-indigo-700 hover:to-sky-700"
+                                title="Open order"
+                              >
                                 {o.order_no}
-                              </Link>
+                              </button>
                             </td>
+
                             <td className="px-4 py-2 text-xs">{o.status}</td>
                             <td className="px-4 py-2 text-xs">{o.payment_status}</td>
                             <td className="px-4 py-2 text-right tabular-nums font-medium">{fmtBDT(o.total_bdt)}</td>
@@ -190,9 +201,18 @@ export function CrmCustomerDetailPage({ userId }: { userId: string }) {
           )}
         </>
       )}
+
+      {openOrderId && (
+        <AdminOrderDrawer
+          orderId={openOrderId}
+          onClose={() => setOpenOrderId(null)}
+          onChanged={() => setReloadTick((n) => n + 1)}
+        />
+      )}
     </div>
   );
 }
+
 
 function StatCard({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
   return (
