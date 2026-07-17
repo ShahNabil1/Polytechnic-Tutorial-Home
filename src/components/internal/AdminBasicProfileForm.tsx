@@ -285,6 +285,83 @@ export function AdminBasicProfileForm({
             disabled={locked}
           />
         </label>
+
+        {showStudent && (
+          <>
+            <label className="block">
+              <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">
+                Institute Name
+              </span>
+              <input
+                type="text"
+                value={institute}
+                onChange={(e) => setInstitute(toEnglishText(e.target.value))}
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-600"
+                placeholder="e.g. Dhaka Polytechnic Institute"
+                disabled={locked}
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">
+                Department
+              </span>
+              <select
+                value={dept}
+                onChange={(e) => setDept(e.target.value)}
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-600"
+                disabled={locked}
+              >
+                <option value="">— Select —</option>
+                {DEPARTMENT_OPTIONS.map((d) => (
+                  <option key={d.value} value={d.value}>{d.label}</option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">
+                Current Semester
+              </span>
+              <select
+                value={semester}
+                onChange={(e) => setSemester(e.target.value)}
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-600"
+                disabled={locked}
+              >
+                <option value="">— Select —</option>
+                {SEMESTER_OPTIONS.map((s) => (
+                  <option key={s.value} value={s.value}>{s.label}</option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">
+                Board Roll
+              </span>
+              <input
+                type="text"
+                value={boardRoll}
+                onChange={(e) => setBoardRoll(toEnglishText(e.target.value))}
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-600"
+                placeholder="Board roll"
+                disabled={locked}
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">
+                Registration No
+              </span>
+              <input
+                type="text"
+                value={regNo}
+                onChange={(e) => setRegNo(toEnglishText(e.target.value))}
+                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-600"
+                placeholder="Registration number"
+                disabled={locked}
+              />
+            </label>
+          </>
+        )}
+
         {!locked && (
           <div className="sm:col-span-2 flex items-center gap-2">
             <button
