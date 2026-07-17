@@ -45,50 +45,54 @@ const ROLE_LABEL: Record<AppRole, string> = {
 
 export function InternalProfilePage({ role }: { role: AppRole }) {
   const { user } = useAuth();
+  const qc = useQueryClient();
+  const fetchProfile = useServerFn(getMyProfile);
+  const saveProfile = useServerFn(updateMyProfile);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [savedForm, setSavedForm] = useState<FormState>(EMPTY_FORM);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadPct, setUploadPct] = useState(0);
   const [editMode, setEditMode] = useState(false);
   const [pickedFile, setPickedFile] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const profileQuery = useQuery({
+    queryKey: ["me", "profile", user?.id],
+    queryFn: () => fetchProfile(undefined as never) as Promise<ProfileRow | null>,
+    enabled: !!user,
+    staleTime: 10 * 60_000,
+    gcTime: 30 * 60_000,
+  });
+  const loading = profileQuery.isLoading;
+  const loadError = profileQuery.error ? (profileQuery.error as Error).message : null;
+
   useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-    (async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle<ProfileRow>();
-      if (cancelled) return;
-      if (error) {
-        setLoadError(error.message);
-        setLoading(false);
-        return;
-      }
-      if (data) {
-        const next: FormState = {
-          full_name: data.full_name ?? "",
-          avatar_url: data.avatar_url ?? "",
-        };
-        setForm(next);
-        setSavedForm(next);
-        setEditMode(!data.full_name);
-      } else {
-        setEditMode(true);
-      }
-      setLoadError(null);
-      setLoading(false);
-    })();
-    return () => {
-      cancelled = true;
+    const data = profileQuery.data;
+    if (!data) {
+      if (profileQuery.isSuccess && !data) setEditMode(true);
+      return;
+    }
+    const next: FormState = {
+      full_name: data.full_name ?? "",
+      avatar_url: data.avatar_url ?? "",
     };
-  }, [user]);
+    setForm(next);
+    setSavedForm(next);
+    setEditMode(!data.full_name);
+  }, [profileQuery.data, profileQuery.isSuccess]);
+
+  const saveMutation = useMutation({
+    mutationFn: (payload: Record<string, string | null>) =>
+      saveProfile({ data: payload } as never),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["me", "profile", user?.id] });
+      toast.success("Profile saved");
+    },
+    onError: (err: unknown) => {
+      toast.error("Failed to save: " + (err instanceof Error ? err.message : "unknown"));
+    },
+  });
+  const saving = saveMutation.isPending;
 
   const isComplete = useMemo(() => !!form.full_name.trim(), [form]);
 
