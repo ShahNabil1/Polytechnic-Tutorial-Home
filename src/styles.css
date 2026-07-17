@@ -254,6 +254,21 @@
   width: 100%;
 }
 
+@utility bg-editorial-gradient {
+  background-color: var(--brand);
+  background-image: var(--gradient-editorial);
+}
+
+@utility bg-gold-gradient {
+  background-color: var(--gold);
+  background-image: var(--gradient-gold);
+}
+
+@utility bg-paper-gradient {
+  background-color: var(--background);
+  background-image: var(--gradient-paper);
+}
+
 @utility grain {
   position: relative;
   &::after {

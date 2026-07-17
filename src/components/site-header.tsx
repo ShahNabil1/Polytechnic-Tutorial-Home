@@ -148,7 +148,7 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/70 bg-[color-mix(in_oklab,var(--background)_88%,transparent)] backdrop-blur-xl">
-      <div className="h-[2px] w-full bg-[var(--gradient-gold)] opacity-80" />
+      <div className="h-[2px] w-full bg-gold-gradient opacity-80" />
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 md:px-6 md:py-4">
         <Link to="/" className="group flex items-center gap-3">
           <div className="relative">
