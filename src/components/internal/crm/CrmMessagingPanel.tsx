@@ -257,9 +257,14 @@ export function CrmMessagingPanel({ vars, userId, phone, email }: Props) {
               <option key={t.id} value={t.id}>{t.name}</option>
             ))}
           </select>
+          <VarChips
+            vars={SMS_VARS}
+            onPick={(v) => insertAtCursor(smsRef.current, smsBody, setSmsBody, `{{${v}}}`)}
+          />
           <textarea
+            ref={smsRef}
             className="min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            placeholder="Type or select a template. Variables like {{name}} {{phone}} auto-fill on preview."
+            placeholder="Type or select a template. Click a chip to insert variables like {{name}}, {{phone}}."
             value={smsBody}
             onChange={(e) => setSmsBody(e.target.value)}
           />
