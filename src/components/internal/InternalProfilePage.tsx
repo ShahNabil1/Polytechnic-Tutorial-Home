@@ -25,6 +25,7 @@ import { toEnglishText } from "@/lib/input-filter";
 import type { ProfileRow } from "@/lib/profile";
 import type { AppRole } from "@/lib/roles.functions";
 import { cn } from "@/lib/utils";
+import { visibleEmail } from "@/lib/synthetic-email";
 
 type FormState = {
   full_name: string;
@@ -231,7 +232,7 @@ export function InternalProfilePage({ role }: { role: AppRole }) {
               {form.full_name || "Add your name"}
             </div>
             <div className="text-xs font-medium text-slate-500">
-              {user?.phone || user?.email || user?.id}
+              {user?.phone || visibleEmail(user?.email) || user?.id}
             </div>
             {!locked && (
               <div className="mt-3 flex flex-wrap items-center gap-2">

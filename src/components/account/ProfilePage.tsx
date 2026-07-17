@@ -30,6 +30,7 @@ import {
 } from "@/lib/profile";
 import type { AppRole } from "@/lib/roles.functions";
 import { cn } from "@/lib/utils";
+import { visibleEmail } from "@/lib/synthetic-email";
 
 type FormState = {
   full_name: string;
@@ -296,7 +297,7 @@ export function ProfilePage({ role }: { role: AppRole }) {
           <div className="flex-1">
             <div className="text-base font-semibold">{form.full_name || "নাম যোগ করুন"}</div>
             <div className="text-xs text-muted-foreground">
-              {user?.phone || user?.email || user?.id}
+              {user?.phone || visibleEmail(user?.email) || user?.id}
             </div>
             {!locked && (
               <div className="mt-3 flex flex-wrap items-center gap-2">

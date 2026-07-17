@@ -804,7 +804,11 @@ export const adminResetUserPassword = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(data.user_id);
-    const email = String(authUser?.user?.email ?? "").trim().toLowerCase();
+    const rawEmail = String(authUser?.user?.email ?? "").trim().toLowerCase();
+    const { isSyntheticEmail } = await import("@/lib/synthetic-email");
+    // Synthetic placeholder emails (phone-only accounts) are not real, contactable
+    // addresses and must never be used as a Reset Password destination.
+    const email = isSyntheticEmail(rawEmail) ? "" : rawEmail;
     const phone = String(authUser?.user?.phone ?? "").trim();
 
     const channel: "email" | "sms" =
@@ -812,6 +816,7 @@ export const adminResetUserPassword = createServerFn({ method: "POST" })
 
     if (channel === "email" && !email) throw new Error("Target has no primary email on file");
     if (channel === "sms" && !phone) throw new Error("Target has no phone number on file");
+
 
     const { data: prof } = await supabaseAdmin
       .from("profiles")

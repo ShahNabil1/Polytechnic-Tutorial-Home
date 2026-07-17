@@ -46,6 +46,7 @@ import { AdminContactChangeCard } from "@/components/internal/AdminContactChange
 import { RoleProfileFieldsEN } from "@/components/internal/RoleProfileFieldsEN";
 import { beginImpersonation } from "@/lib/impersonation";
 import { ExternalLink, AlertTriangle } from "lucide-react";
+import { isSyntheticEmail, visibleEmail } from "@/lib/synthetic-email";
 
 type Props = { userId: string; role: "employee" | "instructor" | "customer" };
 
@@ -353,7 +354,8 @@ export function InternalUserDetailPage({ userId, role }: Props) {
   }
 
   async function handleResetPassword(explicitChannel?: "email" | "sms") {
-    const hasEmail = !!detail?.email;
+    const realEmail = visibleEmail(detail?.email);
+    const hasEmail = !!realEmail;
     const hasPhone = !!detail?.phone;
     if (!hasEmail && !hasPhone) {
       toast.error("No email or phone on file — cannot deliver new password");
@@ -504,10 +506,20 @@ export function InternalUserDetailPage({ userId, role }: Props) {
               </span>
             </div>
             <div className="mt-1 text-sm font-medium text-slate-600">
-              {detail.email || "(no email)"}
+              {isSyntheticEmail(detail.email) ? (
+                <span
+                  className="italic text-slate-400"
+                  title="Internal-only placeholder for phone-only accounts. Not a real, contactable email."
+                >
+                  (no email — phone-only account)
+                </span>
+              ) : (
+                detail.email || "(no email)"
+              )}
               {detail.phone && <span className="mx-2 text-slate-300">·</span>}
               {detail.phone}
             </div>
+
             <div className="mt-3 flex flex-wrap gap-2">
               <button
                 type="button"
@@ -591,7 +603,7 @@ export function InternalUserDetailPage({ userId, role }: Props) {
       {/* Admin: change primary sign-in email + phone */}
       <AdminContactChangeCard
         userId={userId}
-        currentEmail={detail.email}
+        currentEmail={visibleEmail(detail.email)}
         currentPhone={detail.phone}
         onSaved={() => refresh()}
       />
@@ -600,7 +612,8 @@ export function InternalUserDetailPage({ userId, role }: Props) {
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="mb-4 font-display text-base font-bold tracking-tight">Account meta</h2>
         <dl className="grid gap-4 sm:grid-cols-2">
-          <Info label="Email (primary ID)" value={detail.email} />
+          <Info label="Email (primary ID)" value={visibleEmail(detail.email)} />
+
           <Info label="Phone" value={detail.phone} />
           <Info
             label={isCustomer ? "Student ID" : "Display ID"}
@@ -882,7 +895,7 @@ export function InternalUserDetailPage({ userId, role }: Props) {
       {showLogs && (
         <InternalEmailLogsDialog
           userId={userId}
-          userLabel={`${detail.full_name || "(no name)"} · ${detail.email || detail.phone || ""}`}
+          userLabel={`${detail.full_name || "(no name)"} · ${visibleEmail(detail.email) || detail.phone || ""}`}
           onClose={() => setShowLogs(false)}
         />
       )}
@@ -910,7 +923,7 @@ export function InternalUserDetailPage({ userId, role }: Props) {
               >
                 <Mail className="size-4 text-indigo-600" />
                 <span className="flex-1 text-left">Email</span>
-                <span className="truncate text-xs font-normal text-slate-500">{detail.email}</span>
+                <span className="truncate text-xs font-normal text-slate-500">{visibleEmail(detail.email)}</span>
               </button>
               <button
                 type="button"

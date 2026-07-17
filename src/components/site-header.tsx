@@ -13,6 +13,7 @@ import { CartDrawer } from "@/components/cart-drawer";
 import { useCartDrawer } from "@/lib/cart-drawer-store";
 import { signOutSafely } from "@/lib/auth-reliability";
 import { useQueryClient } from "@tanstack/react-query";
+import { visibleEmail } from "@/lib/synthetic-email";
 
 type NavItem = { to: string; label: string; hash?: boolean };
 
@@ -120,7 +121,7 @@ function AuthButton() {
             navigate({ to: "/", replace: true });
           }}
           className="hidden items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-secondary sm:inline-flex"
-          title={user.email ?? user.phone ?? ""}
+          title={visibleEmail(user.email) ?? user.phone ?? ""}
         >
           <LogOut className="size-4" />
           সাইন আউট
