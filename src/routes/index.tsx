@@ -162,12 +162,7 @@ function Hero({ c }: { c: HomepageContent["hero"] }) {
           <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
             <div className="flex items-center gap-3">
               <div className="flex -space-x-2">
-                {[
-                  "https://i.pravatar.cc/64?img=32",
-                  "https://i.pravatar.cc/64?img=68",
-                  "https://i.pravatar.cc/64?img=47",
-                  "https://i.pravatar.cc/64?img=15",
-                ].map((src, i) => (
+                {(c.socialProof.avatars ?? []).map((src, i) => (
                   <img
                     key={i}
                     src={src}
