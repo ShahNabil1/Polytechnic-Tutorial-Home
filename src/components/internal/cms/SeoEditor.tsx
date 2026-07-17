@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { listPageSeo, savePageSeo } from "@/lib/cms.functions";
 import { KNOWN_SEO_PATHS, type PageSeo } from "@/lib/cms-types";
 import { Field, PageHeader, SaveButton, SectionCard, TextArea, TextInput } from "./FormPrimitives";
+import { ImageUploadField } from "./ImageUploadField";
 
 type Row = PageSeo;
 
@@ -68,8 +69,11 @@ export function SeoEditor() {
             <Field label="Meta description" hint="160 অক্ষরের কম রাখুন">
               <TextArea rows={3} value={row.meta_description} onChange={(e) => setAt(i, { ...row, meta_description: e.target.value })} />
             </Field>
-            <Field label="OG image URL" hint="সম্পূর্ণ https URL। ফাঁকা রাখলে ডিফল্ট সোশ্যাল প্রিভিউ হবে।">
-              <TextInput placeholder="https://…" value={row.og_image_url ?? ""} onChange={(e) => setAt(i, { ...row, og_image_url: e.target.value || null })} />
+            <Field label="OG image" hint="সরাসরি আপলোড করুন অথবা সম্পূর্ণ https URL দিন। ফাঁকা রাখলে ডিফল্ট সোশ্যাল প্রিভিউ হবে।">
+              <ImageUploadField
+                value={row.og_image_url ?? ""}
+                onChange={(v) => setAt(i, { ...row, og_image_url: v || null })}
+              />
             </Field>
             <div className="flex justify-end">
               <SaveButton saving={saving === row.path} onClick={() => onSave(row)} />
