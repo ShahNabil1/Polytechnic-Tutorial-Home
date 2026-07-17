@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Search, User as UserIcon, Phone as PhoneIcon, Mail as MailIcon, ShoppingBag, GraduationCap, AlertCircle, MessageSquare, Mail as MailIcon2, ExternalLink } from "lucide-react";
+import { Loader2, Search, User as UserIcon, Phone as PhoneIcon, Mail as MailIcon, ShoppingBag, GraduationCap, AlertCircle, MessageSquare, Mail as MailIcon2, ExternalLink, Receipt } from "lucide-react";
 import {
   listCrmCustomers,
   listCrmGuestPurchased,
@@ -12,6 +12,8 @@ import {
 } from "@/lib/crm.functions";
 import { CrmBulkSendDialog, type BulkRecipient } from "./CrmBulkSendDialog";
 import { CrmSegmentBar } from "./CrmSegmentBar";
+import { AdminOrderDrawer } from "@/components/internal/AdminOrderDrawer";
+
 
 type Kind = "customers" | "signed" | "guests" | "incomplete";
 
