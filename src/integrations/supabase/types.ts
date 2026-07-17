@@ -2139,6 +2139,7 @@ export type Database = {
           phone: string | null
           segment: string | null
           signed_up_at: string | null
+          student_id: number | null
           total_enrollments: number | null
           total_spent: number | null
           user_id: string | null
@@ -2257,6 +2258,7 @@ export type Database = {
         Returns: undefined
       }
       next_order_no: { Args: never; Returns: string }
+      normalize_bd_phone: { Args: { _p: string }; Returns: string }
       recompute_order_status: {
         Args: { _order_id: string }
         Returns: undefined
