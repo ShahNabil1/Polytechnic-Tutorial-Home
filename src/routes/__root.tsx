@@ -173,6 +173,8 @@ function RootComponent() {
     pathname.startsWith("/workspace/") ||
     pathname === "/instructor" ||
     pathname.startsWith("/instructor/");
+  const isStudentApp =
+    pathname === "/sdash" || pathname.startsWith("/sdash/");
 
   if (isInternalApp) {
     return (
@@ -180,6 +182,20 @@ function RootComponent() {
         <BlocklistGate>
           <ImpersonationBanner />
           <Outlet />
+        </BlocklistGate>
+        <Toaster richColors position="top-center" />
+        <ConfirmDialogHost />
+      </QueryClientProvider>
+    );
+  }
+
+  if (isStudentApp) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <BlocklistGate>
+          <ImpersonationBanner />
+          <Outlet />
+          <CartSync />
         </BlocklistGate>
         <Toaster richColors position="top-center" />
         <ConfirmDialogHost />
@@ -206,4 +222,5 @@ function RootComponent() {
 
   );
 }
+
 
