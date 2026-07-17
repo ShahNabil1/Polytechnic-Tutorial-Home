@@ -45,6 +45,7 @@ import { Route as AuthenticatedInternalWorkspaceEmployeesIndexRouteImport } from
 import { Route as AuthenticatedInternalWorkspaceEcommerceIndexRouteImport } from './routes/_authenticated/_internal.workspace.ecommerce.index'
 import { Route as AuthenticatedInternalWorkspaceCrmIndexRouteImport } from './routes/_authenticated/_internal.workspace.crm.index'
 import { Route as ApiPublicWebhooksSteadfastSecretRouteImport } from './routes/api/public/webhooks/steadfast.$secret'
+import { Route as ApiPublicWebhooksBulksmsbdSecretRouteImport } from './routes/api/public/webhooks/bulksmsbd.$secret'
 import { Route as AuthenticatedSdashCoursesDeptSlugSemSlugRouteImport } from './routes/_authenticated/sdash.courses.$deptSlug.$semSlug'
 import { Route as AuthenticatedInternalWorkspaceSettingsSmsTemplatesRouteImport } from './routes/_authenticated/_internal.workspace.settings.sms-templates'
 import { Route as AuthenticatedInternalWorkspaceSettingsEmailTemplatesRouteImport } from './routes/_authenticated/_internal.workspace.settings.email-templates'
@@ -260,6 +261,12 @@ const ApiPublicWebhooksSteadfastSecretRoute =
     path: '/api/public/webhooks/steadfast/$secret',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicWebhooksBulksmsbdSecretRoute =
+  ApiPublicWebhooksBulksmsbdSecretRouteImport.update({
+    id: '/api/public/webhooks/bulksmsbd/$secret',
+    path: '/api/public/webhooks/bulksmsbd/$secret',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedSdashCoursesDeptSlugSemSlugRoute =
   AuthenticatedSdashCoursesDeptSlugSemSlugRouteImport.update({
     id: '/$deptSlug/$semSlug',
@@ -434,6 +441,7 @@ export interface FileRoutesByFullPath {
   '/workspace/settings/email-templates': typeof AuthenticatedInternalWorkspaceSettingsEmailTemplatesRoute
   '/workspace/settings/sms-templates': typeof AuthenticatedInternalWorkspaceSettingsSmsTemplatesRoute
   '/sdash/courses/$deptSlug/$semSlug': typeof AuthenticatedSdashCoursesDeptSlugSemSlugRoute
+  '/api/public/webhooks/bulksmsbd/$secret': typeof ApiPublicWebhooksBulksmsbdSecretRoute
   '/api/public/webhooks/steadfast/$secret': typeof ApiPublicWebhooksSteadfastSecretRoute
   '/workspace/crm/': typeof AuthenticatedInternalWorkspaceCrmIndexRoute
   '/workspace/ecommerce/': typeof AuthenticatedInternalWorkspaceEcommerceIndexRoute
@@ -486,6 +494,7 @@ export interface FileRoutesByTo {
   '/workspace/settings/email-templates': typeof AuthenticatedInternalWorkspaceSettingsEmailTemplatesRoute
   '/workspace/settings/sms-templates': typeof AuthenticatedInternalWorkspaceSettingsSmsTemplatesRoute
   '/sdash/courses/$deptSlug/$semSlug': typeof AuthenticatedSdashCoursesDeptSlugSemSlugRoute
+  '/api/public/webhooks/bulksmsbd/$secret': typeof ApiPublicWebhooksBulksmsbdSecretRoute
   '/api/public/webhooks/steadfast/$secret': typeof ApiPublicWebhooksSteadfastSecretRoute
   '/workspace/crm': typeof AuthenticatedInternalWorkspaceCrmIndexRoute
   '/workspace/ecommerce': typeof AuthenticatedInternalWorkspaceEcommerceIndexRoute
@@ -545,6 +554,7 @@ export interface FileRoutesById {
   '/_authenticated/_internal/workspace/settings/email-templates': typeof AuthenticatedInternalWorkspaceSettingsEmailTemplatesRoute
   '/_authenticated/_internal/workspace/settings/sms-templates': typeof AuthenticatedInternalWorkspaceSettingsSmsTemplatesRoute
   '/_authenticated/sdash/courses/$deptSlug/$semSlug': typeof AuthenticatedSdashCoursesDeptSlugSemSlugRoute
+  '/api/public/webhooks/bulksmsbd/$secret': typeof ApiPublicWebhooksBulksmsbdSecretRoute
   '/api/public/webhooks/steadfast/$secret': typeof ApiPublicWebhooksSteadfastSecretRoute
   '/_authenticated/_internal/workspace/crm/': typeof AuthenticatedInternalWorkspaceCrmIndexRoute
   '/_authenticated/_internal/workspace/ecommerce/': typeof AuthenticatedInternalWorkspaceEcommerceIndexRoute
@@ -603,6 +613,7 @@ export interface FileRouteTypes {
     | '/workspace/settings/email-templates'
     | '/workspace/settings/sms-templates'
     | '/sdash/courses/$deptSlug/$semSlug'
+    | '/api/public/webhooks/bulksmsbd/$secret'
     | '/api/public/webhooks/steadfast/$secret'
     | '/workspace/crm/'
     | '/workspace/ecommerce/'
@@ -655,6 +666,7 @@ export interface FileRouteTypes {
     | '/workspace/settings/email-templates'
     | '/workspace/settings/sms-templates'
     | '/sdash/courses/$deptSlug/$semSlug'
+    | '/api/public/webhooks/bulksmsbd/$secret'
     | '/api/public/webhooks/steadfast/$secret'
     | '/workspace/crm'
     | '/workspace/ecommerce'
@@ -713,6 +725,7 @@ export interface FileRouteTypes {
     | '/_authenticated/_internal/workspace/settings/email-templates'
     | '/_authenticated/_internal/workspace/settings/sms-templates'
     | '/_authenticated/sdash/courses/$deptSlug/$semSlug'
+    | '/api/public/webhooks/bulksmsbd/$secret'
     | '/api/public/webhooks/steadfast/$secret'
     | '/_authenticated/_internal/workspace/crm/'
     | '/_authenticated/_internal/workspace/ecommerce/'
@@ -740,6 +753,7 @@ export interface RootRouteChildren {
   ApiPublicHooksDeliverEbookBatchRoute: typeof ApiPublicHooksDeliverEbookBatchRoute
   ApiPublicSessionsActionRoute: typeof ApiPublicSessionsActionRoute
   ApiPublicWebhooksResendRoute: typeof ApiPublicWebhooksResendRoute
+  ApiPublicWebhooksBulksmsbdSecretRoute: typeof ApiPublicWebhooksBulksmsbdSecretRoute
   ApiPublicWebhooksSteadfastSecretRoute: typeof ApiPublicWebhooksSteadfastSecretRoute
 }
 
@@ -995,6 +1009,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/webhooks/steadfast/$secret'
       fullPath: '/api/public/webhooks/steadfast/$secret'
       preLoaderRoute: typeof ApiPublicWebhooksSteadfastSecretRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/webhooks/bulksmsbd/$secret': {
+      id: '/api/public/webhooks/bulksmsbd/$secret'
+      path: '/api/public/webhooks/bulksmsbd/$secret'
+      fullPath: '/api/public/webhooks/bulksmsbd/$secret'
+      preLoaderRoute: typeof ApiPublicWebhooksBulksmsbdSecretRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/sdash/courses/$deptSlug/$semSlug': {
@@ -1367,18 +1388,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksDeliverEbookBatchRoute: ApiPublicHooksDeliverEbookBatchRoute,
   ApiPublicSessionsActionRoute: ApiPublicSessionsActionRoute,
   ApiPublicWebhooksResendRoute: ApiPublicWebhooksResendRoute,
+  ApiPublicWebhooksBulksmsbdSecretRoute: ApiPublicWebhooksBulksmsbdSecretRoute,
   ApiPublicWebhooksSteadfastSecretRoute: ApiPublicWebhooksSteadfastSecretRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
