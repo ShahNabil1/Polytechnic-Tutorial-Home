@@ -339,6 +339,27 @@ export const listInternalEmailDeliveries = createServerFn({ method: "POST" })
     return rows ?? [];
   });
 
+export const listInternalSmsDeliveries = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ user_id: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await ensureCanManageUsers(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
+      .from("crm_sms_deliveries")
+      .select(
+        "id, kind, to_phone, body, status, sms_count, is_unicode, provider_status, error_reason, created_at, updated_at",
+      )
+      .eq("user_id", data.user_id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+
 export type InternalUserDetail = {
   user_id: string;
   full_name: string | null;
