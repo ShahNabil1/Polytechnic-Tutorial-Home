@@ -100,6 +100,8 @@ function VarChips({ vars, onPick }: { vars: string[]; onPick: (v: string) => voi
       ))}
     </div>
   );
+}
+
 
 type Props = {
   vars: CrmVars;
