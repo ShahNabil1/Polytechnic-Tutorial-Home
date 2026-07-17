@@ -182,16 +182,19 @@ function StudentDashboardLayout() {
 
       <div className="flex">
         {/* Sidebar — desktop */}
-        <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col border-r border-slate-200 bg-white">
-          <SidebarContent
-            displayName={displayName}
-            initials={initials}
-            avatarUrl={avatarUrl}
-            email={user?.email ?? user?.phone ?? ""}
-            pathname={pathname}
-            onSignOut={handleSignOut}
-          />
-        </aside>
+        {!collapsed && (
+          <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col border-r border-slate-200 bg-white">
+            <SidebarContent
+              displayName={displayName}
+              initials={initials}
+              avatarUrl={avatarUrl}
+              email={user?.email ?? user?.phone ?? ""}
+              pathname={pathname}
+              onSignOut={handleSignOut}
+              onCollapse={() => setCollapsed(true)}
+            />
+          </aside>
+        )}
 
         {/* Sidebar — mobile drawer */}
         {mobileOpen && (
@@ -224,16 +227,30 @@ function StudentDashboardLayout() {
         )}
 
         {/* Main */}
-        <div className="flex-1 lg:pl-64 min-w-0">
+        <div className={cn("flex-1 min-w-0", !collapsed && "lg:pl-64")}>
           {/* Desktop top bar */}
-          <header className="hidden lg:flex sticky top-0 z-20 items-center justify-between gap-4 border-b border-slate-200 bg-white/85 px-8 py-4 backdrop-blur">
-            <div className="min-w-0">
-              <div className="text-xs font-medium uppercase tracking-wider text-slate-500">
-                শিক্ষার্থী পোর্টাল
+          <header className="hidden lg:flex sticky top-0 z-20 items-center justify-between gap-4 border-b border-slate-200 bg-white/85 px-6 py-4 backdrop-blur">
+            <div className="flex items-center gap-3 min-w-0">
+              <button
+                onClick={() => setCollapsed((c) => !c)}
+                aria-label={collapsed ? "সাইডবার খুলুন" : "সাইডবার বন্ধ করুন"}
+                title={collapsed ? "সাইডবার খুলুন" : "সাইডবার বন্ধ করুন"}
+                className="grid size-9 place-items-center rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 shrink-0"
+              >
+                {collapsed ? (
+                  <PanelLeftOpen className="size-4" />
+                ) : (
+                  <PanelLeftClose className="size-4" />
+                )}
+              </button>
+              <div className="min-w-0">
+                <div className="text-xs font-medium uppercase tracking-wider text-slate-500">
+                  শিক্ষার্থী পোর্টাল
+                </div>
+                <h1 className="mt-0.5 text-lg font-semibold tracking-tight text-slate-900 truncate">
+                  {pageTitle}
+                </h1>
               </div>
-              <h1 className="mt-0.5 text-lg font-semibold tracking-tight text-slate-900 truncate">
-                {pageTitle}
-              </h1>
             </div>
             <div className="flex items-center gap-2">
               <Link
