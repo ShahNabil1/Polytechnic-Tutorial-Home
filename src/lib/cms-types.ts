@@ -40,7 +40,7 @@ export type HomepageContent = {
     ctaPrimaryHref: string;
     ctaSecondaryLabel: string;
     ctaSecondaryHref: string;
-    socialProof: { count: string; caption: string; rating: string };
+    socialProof: { count: string; caption: string; rating: string; avatars: string[] };
     featuredCard: {
       eyebrow: string;
       liveLabel: string;
@@ -175,6 +175,12 @@ export const DEFAULT_HOMEPAGE_CONTENT: HomepageContent = {
       count: "১২,০০০+ শিক্ষার্থী",
       caption: "এখনই শেখা শুরু করেছেন",
       rating: "৪.৯ / ৫ · রিভিউ",
+      avatars: [
+        "https://i.pravatar.cc/64?img=32",
+        "https://i.pravatar.cc/64?img=68",
+        "https://i.pravatar.cc/64?img=47",
+        "https://i.pravatar.cc/64?img=15",
+      ],
     },
     featuredCard: {
       eyebrow: "Featured Course",
