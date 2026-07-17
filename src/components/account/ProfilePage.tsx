@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { PasskeysCard } from "@/components/account/PasskeysCard";
+import { ProfileSkeleton } from "@/components/account/ProfileSkeleton";
 import { LinkedAccountsCard } from "@/components/account/LinkedAccountsCard";
 import { PasswordCard } from "@/components/account/PasswordCard";
 import { SessionsCard } from "@/components/account/SessionsCard";
@@ -235,13 +236,10 @@ export function ProfilePage({ role }: { role: AppRole }) {
     setEditMode(false);
   }
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+  if (loading && !profileQuery.data) {
+    return <ProfileSkeleton variant="bn" />;
   }
+
 
   if (loadError) {
     return (
