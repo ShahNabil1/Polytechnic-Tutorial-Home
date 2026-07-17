@@ -13,6 +13,7 @@ import { CartDrawer } from "@/components/cart-drawer";
 import { useCartDrawer } from "@/lib/cart-drawer-store";
 import { signOutSafely } from "@/lib/auth-reliability";
 import { useQueryClient } from "@tanstack/react-query";
+import { visibleEmail } from "@/lib/synthetic-email";
 
 type NavItem = { to: string; label: string; hash?: boolean };
 
