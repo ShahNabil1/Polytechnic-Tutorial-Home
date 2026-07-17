@@ -211,39 +211,6 @@ function DashboardHome() {
   );
 }
 
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-  hint,
-  tone,
-}: {
-  icon: typeof BookOpen;
-  label: string;
-  value: string;
-  hint: string;
-  tone: "brand" | "sky" | "amber" | "emerald";
-}) {
-  const toneMap: Record<string, string> = {
-    brand: "bg-brand/10 text-brand",
-    sky: "bg-sky-50 text-sky-600",
-    amber: "bg-amber-50 text-amber-600",
-    emerald: "bg-emerald-50 text-emerald-600",
-  };
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5">
-      <div className="flex items-center justify-between">
-        <div className={`grid size-10 place-items-center rounded-lg ${toneMap[tone]}`}>
-          <Icon className="size-5" />
-        </div>
-      </div>
-      <div className="mt-3 text-2xl font-bold tracking-tight text-slate-900">{value}</div>
-      <div className="text-sm font-medium text-slate-700">{label}</div>
-      <div className="mt-0.5 text-xs text-slate-500">{hint}</div>
-    </div>
-  );
-}
-
 function SectionHeader({
   title,
   subtitle,
@@ -254,17 +221,25 @@ function SectionHeader({
   action?: { to: string; label: string };
 }) {
   return (
-    <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <h2 className="text-lg md:text-xl font-bold tracking-tight text-slate-900">{title}</h2>
-        {subtitle && <p className="mt-0.5 text-sm text-slate-500">{subtitle}</p>}
+    <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+      <div className="min-w-0">
+        <div className="flex items-center gap-2.5">
+          <span aria-hidden className="h-4 w-1 rounded-full bg-brand" />
+          <h2 className="font-display text-xl md:text-[22px] font-semibold tracking-tight text-slate-900">
+            {title}
+          </h2>
+        </div>
+        {subtitle && (
+          <p className="mt-1 pl-[14px] text-sm text-slate-500">{subtitle}</p>
+        )}
       </div>
       {action && (
         <Link
           to={action.to}
-          className="inline-flex items-center gap-1 text-sm font-medium text-brand hover:text-brand/80"
+          className="inline-flex items-center gap-1 text-sm font-medium text-slate-700 hover:text-brand"
         >
-          {action.label} <ArrowRight className="size-4" />
+          {action.label}
+          <ArrowUpRight className="size-4" />
         </Link>
       )}
     </div>
