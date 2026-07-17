@@ -320,14 +320,29 @@ function SignedTable({
   );
 }
 
+function OrderButton({ orderNo, onClick }: { orderNo: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title="Open order"
+      className="inline-flex items-center gap-1 rounded-md bg-gradient-to-r from-indigo-600 to-sky-600 px-2 py-1 font-mono text-xs font-bold text-white shadow-sm hover:from-indigo-700 hover:to-sky-700"
+    >
+      <Receipt className="size-3" />
+      {orderNo}
+    </button>
+  );
+}
+
 function GuestTable({
-  rows, selected, allSelected, onToggleAll, onToggleOne,
+  rows, selected, allSelected, onToggleAll, onToggleOne, onOpenOrder,
 }: {
   rows: CrmGuestRow[];
   selected: Set<string>;
   allSelected: boolean;
   onToggleAll: () => void;
   onToggleOne: (phone: string) => void;
+  onOpenOrder: (id: string) => void;
 }) {
   return (
     <div className="overflow-x-auto">
@@ -338,35 +353,48 @@ function GuestTable({
             <th className="px-4 py-3 text-left">Name</th>
             <th className="px-4 py-3 text-left">Phone</th>
             <th className="px-4 py-3 text-left">Email</th>
-            <th className="px-4 py-3 text-right">Orders</th>
+            <th className="px-4 py-3 text-left">Orders</th>
             <th className="px-4 py-3 text-right">Spent</th>
             <th className="px-4 py-3 text-left">Last order</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
-          {rows.map((r) => (
-            <tr key={r.phone} className="hover:bg-muted/30">
-              <td className="px-3 py-3"><Checkbox checked={selected.has(`p:${r.phone}`)} onChange={() => onToggleOne(r.phone)} /></td>
-              <td className="px-4 py-3">
-                <span className="flex items-center gap-2 font-medium">
-                  <span className="grid size-8 place-items-center rounded-full bg-amber-500/10 text-amber-600">
-                    <ShoppingBag className="size-4" />
+          {rows.map((r) => {
+            const ids = r.order_ids ?? [];
+            const nos = r.order_nos ?? [];
+            return (
+              <tr key={r.phone} className="hover:bg-muted/30">
+                <td className="px-3 py-3"><Checkbox checked={selected.has(`p:${r.phone}`)} onChange={() => onToggleOne(r.phone)} /></td>
+                <td className="px-4 py-3">
+                  <span className="flex items-center gap-2 font-medium">
+                    <span className="grid size-8 place-items-center rounded-full bg-amber-500/10 text-amber-600">
+                      <ShoppingBag className="size-4" />
+                    </span>
+                    {r.name || "Guest"}
                   </span>
-                  {r.name || "Guest"}
-                </span>
-              </td>
-              <td className="px-4 py-3 text-xs">{r.phone}</td>
-              <td className="px-4 py-3 text-xs text-muted-foreground">{r.email || "—"}</td>
-              <td className="px-4 py-3 text-right tabular-nums">{r.order_count}</td>
-              <td className="px-4 py-3 text-right tabular-nums font-medium">{fmtBDT(r.total_spent)}</td>
-              <td className="px-4 py-3 text-xs text-muted-foreground">{fmtDate(r.last_order_at)}</td>
-            </tr>
-          ))}
+                </td>
+                <td className="px-4 py-3 text-xs">{r.phone}</td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">{r.email || "—"}</td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap gap-1">
+                    {ids.length === 0
+                      ? <span className="text-xs text-muted-foreground">{r.order_count}</span>
+                      : ids.map((id, i) => (
+                          <OrderButton key={id} orderNo={nos[i] || "—"} onClick={() => onOpenOrder(id)} />
+                        ))}
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-right tabular-nums font-medium">{fmtBDT(r.total_spent)}</td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">{fmtDate(r.last_order_at)}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
   );
 }
+
 
 function IncompleteTable({
   rows, selected, allSelected, onToggleAll, onToggleOne,
