@@ -83,6 +83,7 @@ export function AcademicStructureManager() {
         },
       } as never)) as { id: string };
       setRows((prev) => prev.map((r, i) => (i === idx ? { ...r, id: res.id, dirty: false } : r)));
+      invalidate();
       toast.success("Saved");
     } catch (e: any) {
       toast.error(e?.message ?? "Save failed");
@@ -99,6 +100,7 @@ export function AcademicStructureManager() {
     try {
       await deleteFn({ data: { id: row.id, kind: row.kind } } as never);
       setRows((prev) => prev.filter((r) => r.id !== row.id));
+      invalidate();
       toast.success("Deleted");
     } catch (e: any) {
       toast.error(e?.message ?? "Delete failed");
