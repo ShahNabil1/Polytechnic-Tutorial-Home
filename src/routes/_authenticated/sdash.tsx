@@ -61,8 +61,21 @@ function StudentDashboardLayout() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState<boolean>(false);
   const openCart = useCartDrawer((s) => s.openDrawer);
   const cartCount = useCart((s) => s.items.reduce((a, i) => a + i.quantity, 0));
+
+  // Hydrate collapse preference after mount to avoid SSR mismatch.
+  useEffect(() => {
+    try {
+      setCollapsed(localStorage.getItem("sdash:collapsed") === "1");
+    } catch {}
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem("sdash:collapsed", collapsed ? "1" : "0");
+    } catch {}
+  }, [collapsed]);
 
   useEffect(() => {
     if (roleLoading || !info) return;
