@@ -11,6 +11,8 @@ import {
   X,
   ShoppingCart,
   Home,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -59,8 +61,21 @@ function StudentDashboardLayout() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState<boolean>(false);
   const openCart = useCartDrawer((s) => s.openDrawer);
   const cartCount = useCart((s) => s.items.reduce((a, i) => a + i.quantity, 0));
+
+  // Hydrate collapse preference after mount to avoid SSR mismatch.
+  useEffect(() => {
+    try {
+      setCollapsed(localStorage.getItem("sdash:collapsed") === "1");
+    } catch {}
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem("sdash:collapsed", collapsed ? "1" : "0");
+    } catch {}
+  }, [collapsed]);
 
   useEffect(() => {
     if (roleLoading || !info) return;
@@ -167,16 +182,19 @@ function StudentDashboardLayout() {
 
       <div className="flex">
         {/* Sidebar — desktop */}
-        <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col border-r border-slate-200 bg-white">
-          <SidebarContent
-            displayName={displayName}
-            initials={initials}
-            avatarUrl={avatarUrl}
-            email={user?.email ?? user?.phone ?? ""}
-            pathname={pathname}
-            onSignOut={handleSignOut}
-          />
-        </aside>
+        {!collapsed && (
+          <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col border-r border-slate-200 bg-white">
+            <SidebarContent
+              displayName={displayName}
+              initials={initials}
+              avatarUrl={avatarUrl}
+              email={user?.email ?? user?.phone ?? ""}
+              pathname={pathname}
+              onSignOut={handleSignOut}
+              onCollapse={() => setCollapsed(true)}
+            />
+          </aside>
+        )}
 
         {/* Sidebar — mobile drawer */}
         {mobileOpen && (
@@ -209,16 +227,30 @@ function StudentDashboardLayout() {
         )}
 
         {/* Main */}
-        <div className="flex-1 lg:pl-64 min-w-0">
+        <div className={cn("flex-1 min-w-0", !collapsed && "lg:pl-64")}>
           {/* Desktop top bar */}
-          <header className="hidden lg:flex sticky top-0 z-20 items-center justify-between gap-4 border-b border-slate-200 bg-white/85 px-8 py-4 backdrop-blur">
-            <div className="min-w-0">
-              <div className="text-xs font-medium uppercase tracking-wider text-slate-500">
-                শিক্ষার্থী পোর্টাল
+          <header className="hidden lg:flex sticky top-0 z-20 items-center justify-between gap-4 border-b border-slate-200 bg-white/85 px-6 py-4 backdrop-blur">
+            <div className="flex items-center gap-3 min-w-0">
+              <button
+                onClick={() => setCollapsed((c) => !c)}
+                aria-label={collapsed ? "সাইডবার খুলুন" : "সাইডবার বন্ধ করুন"}
+                title={collapsed ? "সাইডবার খুলুন" : "সাইডবার বন্ধ করুন"}
+                className="grid size-9 place-items-center rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 shrink-0"
+              >
+                {collapsed ? (
+                  <PanelLeftOpen className="size-4" />
+                ) : (
+                  <PanelLeftClose className="size-4" />
+                )}
+              </button>
+              <div className="min-w-0">
+                <div className="text-xs font-medium uppercase tracking-wider text-slate-500">
+                  শিক্ষার্থী পোর্টাল
+                </div>
+                <h1 className="mt-0.5 text-lg font-semibold tracking-tight text-slate-900 truncate">
+                  {pageTitle}
+                </h1>
               </div>
-              <h1 className="mt-0.5 text-lg font-semibold tracking-tight text-slate-900 truncate">
-                {pageTitle}
-              </h1>
             </div>
             <div className="flex items-center gap-2">
               <Link
@@ -274,6 +306,7 @@ function SidebarContent({
   email,
   pathname,
   onSignOut,
+  onCollapse,
 }: {
   displayName: string;
   initials: string;
@@ -281,23 +314,36 @@ function SidebarContent({
   email: string;
   pathname: string;
   onSignOut: () => void;
+  onCollapse?: () => void;
 }) {
   const isActive = (to: string, exact?: boolean) =>
     exact ? pathname === to : pathname === to || pathname.startsWith(to + "/");
 
   return (
     <>
-      <Link to="/sdash" className="flex items-center gap-2.5 px-5 py-5 border-b border-slate-200">
-        <img src={logoAsset.url} alt="" className="size-9 rounded-lg shrink-0" />
-        <div className="min-w-0">
-          <div className="text-sm font-bold tracking-tight text-slate-900 truncate">
-            Polytechnic Tutorial
+      <div className="flex items-center gap-2.5 px-5 py-5 border-b border-slate-200">
+        <Link to="/sdash" className="flex items-center gap-2.5 min-w-0 flex-1">
+          <img src={logoAsset.url} alt="" className="size-9 rounded-lg shrink-0" />
+          <div className="min-w-0">
+            <div className="text-sm font-bold tracking-tight text-slate-900 truncate">
+              Polytechnic Tutorial
+            </div>
+            <div className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+              Student Portal
+            </div>
           </div>
-          <div className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
-            Student Portal
-          </div>
-        </div>
-      </Link>
+        </Link>
+        {onCollapse && (
+          <button
+            onClick={onCollapse}
+            aria-label="সাইডবার বন্ধ করুন"
+            title="সাইডবার বন্ধ করুন"
+            className="hidden lg:grid size-8 place-items-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-800 shrink-0"
+          >
+            <PanelLeftClose className="size-4" />
+          </button>
+        )}
+      </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
         <div>
