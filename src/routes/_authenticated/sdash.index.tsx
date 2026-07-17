@@ -6,12 +6,10 @@ import {
   ShoppingBag,
   GraduationCap,
   ArrowRight,
-  Sparkles,
+  ArrowUpRight,
   PlayCircle,
-  Package,
-  TrendingUp,
-  Clock,
   CheckCircle2,
+  Lock,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { listCourseCatalog } from "@/lib/lms.functions";
