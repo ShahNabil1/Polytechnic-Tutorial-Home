@@ -160,10 +160,22 @@ export function ProfilePage({ role }: { role: AppRole }) {
     }
   }
 
+  const saveMutation = useMutation({
+    mutationFn: (payload: Record<string, string | null>) =>
+      saveProfile({ data: payload } as never),
+    onSuccess: (_res, _payload, _ctx) => {
+      qc.invalidateQueries({ queryKey: ["me", "profile", user?.id] });
+      toast.success("প্রোফাইল সেভ হয়েছে");
+    },
+    onError: (err: unknown) => {
+      toast.error("সেভ করা যায়নি: " + (err instanceof Error ? err.message : "unknown"));
+    },
+  });
+  const saving = saveMutation.isPending;
+
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
-    setSaving(true);
     const nextForm: FormState = {
       full_name: form.full_name.trim(),
       avatar_url: form.avatar_url.trim(),
@@ -173,8 +185,8 @@ export function ProfilePage({ role }: { role: AppRole }) {
       board_roll: form.board_roll.trim(),
       registration_no: form.registration_no.trim(),
     };
-    const payload = isStudent
-      ? ({
+    const payload: Record<string, string | null> = isStudent
+      ? {
           full_name: nextForm.full_name || null,
           avatar_url: nextForm.avatar_url || null,
           institute_name: nextForm.institute_name || null,
@@ -182,21 +194,19 @@ export function ProfilePage({ role }: { role: AppRole }) {
           current_semester: nextForm.current_semester || null,
           board_roll: nextForm.board_roll || null,
           registration_no: nextForm.registration_no || null,
-        } as never)
-      : ({
+        }
+      : {
           full_name: nextForm.full_name || null,
           avatar_url: nextForm.avatar_url || null,
-        } as never);
-    const { error } = await supabase.from("profiles").update(payload).eq("id", user.id);
-    setSaving(false);
-    if (error) {
-      toast.error("সেভ করা যায়নি: " + error.message);
-      return;
+        };
+    try {
+      await saveMutation.mutateAsync(payload);
+      setForm(nextForm);
+      setSavedForm(nextForm);
+      if (isComplete) setEditMode(false);
+    } catch {
+      /* handled in onError */
     }
-    setForm(nextForm);
-    setSavedForm(nextForm);
-    toast.success("প্রোফাইল সেভ হয়েছে");
-    if (isComplete) setEditMode(false);
   }
 
   function handleCancelEdit() {
