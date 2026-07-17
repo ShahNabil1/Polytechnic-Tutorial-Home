@@ -251,39 +251,58 @@ function CourseCard({ c }: { c: any }) {
     <Link
       to="/sdash/courses/$deptSlug/$semSlug"
       params={{ deptSlug: c.department_slug, semSlug: c.semester_slug }}
-      className="group overflow-hidden rounded-2xl border border-slate-200 bg-white transition-all hover:border-brand/40 hover:shadow-lg"
+      className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_20px_40px_-24px_rgba(15,23,42,0.25)]"
     >
-      <div className="aspect-video relative bg-gradient-to-br from-indigo-100 via-sky-100 to-emerald-100">
+      <div className="aspect-[16/10] relative bg-slate-100 overflow-hidden">
         {c.cover_image_url ? (
           <img
             src={c.cover_image_url}
             alt={c.title}
-            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
           />
         ) : (
-          <div className="w-full h-full grid place-items-center">
+          <div className="w-full h-full grid place-items-center bg-[linear-gradient(135deg,#f8fafc,#eef2f7)]">
             <GraduationCap className="size-12 text-slate-400/70" />
           </div>
         )}
-        {c.has_access && (
-          <span className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-full bg-emerald-500 text-white text-[11px] font-semibold px-2 py-0.5 shadow">
-            <CheckCircle2 className="size-3" /> Enrolled
+        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        {c.has_access ? (
+          <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-full bg-white/95 text-emerald-700 text-[11px] font-medium px-2 py-0.5 ring-1 ring-emerald-100 backdrop-blur">
+            <CheckCircle2 className="size-3" /> এনরোল্ড
+          </span>
+        ) : (
+          <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-full bg-white/85 text-slate-700 text-[11px] font-medium px-2 py-0.5 ring-1 ring-slate-200 backdrop-blur">
+            <Lock className="size-3" /> লকড
           </span>
         )}
       </div>
       <div className="p-4">
-        <div className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+        <div className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
           {c.department_name} · {c.semester_name}
         </div>
-        <h3 className="mt-1 font-semibold text-slate-900 line-clamp-2">{c.title}</h3>
-        <div className="mt-3 flex items-center justify-between">
-          <div className="inline-flex items-center gap-1 text-xs text-slate-500">
-            <PlayCircle className="size-3.5" /> {c.subject_count ?? 0} subjects
+        <h3 className="mt-1.5 font-semibold text-slate-900 line-clamp-2 leading-snug">
+          {c.title}
+        </h3>
+        <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
+          <div className="inline-flex items-center gap-1.5 text-xs text-slate-500">
+            <PlayCircle className="size-3.5" />
+            {c.subject_count ?? 0} সাবজেক্ট
           </div>
           {c.has_access ? (
-            <span className="text-sm font-semibold text-emerald-600">Continue →</span>
+            <span className="inline-flex items-center gap-1 text-sm font-medium text-emerald-700">
+              চালিয়ে যান <ArrowRight className="size-3.5" />
+            </span>
           ) : (
-            <span className="text-sm font-bold text-brand">{formatBDT(c.price_bdt)}</span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-base font-bold text-slate-900 tabular-nums">
+                {formatBDT(c.price_bdt)}
+              </span>
+              {c.compare_at_price_bdt && c.compare_at_price_bdt > c.price_bdt && (
+                <span className="text-xs text-slate-400 line-through">
+                  {formatBDT(c.compare_at_price_bdt)}
+                </span>
+              )}
+            </div>
           )}
         </div>
       </div>
