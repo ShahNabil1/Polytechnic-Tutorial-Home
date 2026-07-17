@@ -91,17 +91,6 @@ export function SiteSettingsEditor() {
         <Field label="Copyright">
           <TextInput value={s.footer.copyright} onChange={(e) => upd("footer", { ...s.footer, copyright: e.target.value })} />
         </Field>
-        <Field label="Made with tagline">
-          <TextInput value={s.footer.madeWith} onChange={(e) => upd("footer", { ...s.footer, madeWith: e.target.value })} />
-        </Field>
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Developer name">
-            <TextInput value={s.footer.developerName} onChange={(e) => upd("footer", { ...s.footer, developerName: e.target.value })} />
-          </Field>
-          <Field label="Developer URL">
-            <TextInput value={s.footer.developerUrl} onChange={(e) => upd("footer", { ...s.footer, developerUrl: e.target.value })} />
-          </Field>
-        </div>
       </SectionCard>
 
       <div className="flex justify-end">

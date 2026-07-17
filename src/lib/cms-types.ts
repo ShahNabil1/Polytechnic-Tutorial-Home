@@ -21,9 +21,6 @@ export type SiteSettings = {
   };
   footer: {
     copyright: string;
-    madeWith: string;
-    developerName: string;
-    developerUrl: string;
     shopHeading: string;
     supportHeading: string;
     contactHeading: string;
@@ -154,9 +151,6 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   socials: { facebook: "", instagram: "", whatsapp: "" },
   footer: {
     copyright: "© ২০২৬ Polytechnic Tutorial Home। সর্বস্বত্ব সংরক্ষিত।",
-    madeWith: "Made with care in Bangladesh 🇧🇩",
-    developerName: "Shahriar Nabil",
-    developerUrl: "https://www.shahnabil.com/",
     shopHeading: "শপ",
     supportHeading: "সহায়তা",
     contactHeading: "যোগাযোগ",
