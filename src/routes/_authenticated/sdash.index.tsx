@@ -286,7 +286,7 @@ function ContinueCard({ e }: { e: Enrollment }) {
               <GraduationCap className="size-14 text-slate-400/70" />
             </div>
           )}
-          <span className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full bg-emerald-600 text-white text-[11px] font-medium px-2.5 py-1 shadow-sm">
+          <span className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full bg-brand text-white text-[11px] font-medium px-2.5 py-1 shadow-sm">
             <Sparkles className="size-3" /> চালিয়ে যান
           </span>
         </div>
@@ -307,7 +307,7 @@ function ContinueCard({ e }: { e: Enrollment }) {
               </span>
             </div>
           </div>
-          <div className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-emerald-700">
+          <div className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-brand">
             লেসন শুরু করুন <ArrowRight className="size-4" />
           </div>
         </div>
@@ -343,7 +343,7 @@ function ActivityList({ items, loading }: { items: Enrollment[]; loading: boolea
           params={{ deptSlug: e.course.department_slug, semSlug: e.course.semester_slug }}
           className="flex items-center gap-3 p-3.5 hover:bg-slate-50 transition-colors"
         >
-          <span className="grid size-9 place-items-center rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">
+          <span className="grid size-9 place-items-center rounded-full bg-brand/10 text-brand ring-1 ring-brand/20">
             <CheckCircle2 className="size-4" />
           </span>
           <div className="min-w-0 flex-1">
@@ -378,7 +378,7 @@ function EnrolledCourseCard({ e }: { e: Enrollment }) {
             <GraduationCap className="size-12 text-slate-400/70" />
           </div>
         )}
-        <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-full bg-white/95 text-emerald-700 text-[11px] font-medium px-2 py-0.5 ring-1 ring-emerald-100 backdrop-blur">
+        <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-full bg-white/95 text-brand text-[11px] font-medium px-2 py-0.5 ring-1 ring-brand/20 backdrop-blur">
           <CheckCircle2 className="size-3" /> এনরোল্ড
         </span>
       </div>
@@ -391,7 +391,7 @@ function EnrolledCourseCard({ e }: { e: Enrollment }) {
           <span className="inline-flex items-center gap-1.5 text-xs text-slate-500">
             <PlayCircle className="size-3.5" /> {c.subject_count} সাবজেক্ট
           </span>
-          <span className="inline-flex items-center gap-1 text-sm font-medium text-emerald-700">
+          <span className="inline-flex items-center gap-1 text-sm font-medium text-brand">
             চালিয়ে যান <ArrowRight className="size-3.5" />
           </span>
         </div>
@@ -512,7 +512,7 @@ function CourseCard({ c }: { c: any }) {
         )}
         <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
         {c.has_access ? (
-          <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-full bg-white/95 text-emerald-700 text-[11px] font-medium px-2 py-0.5 ring-1 ring-emerald-100 backdrop-blur">
+          <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-full bg-white/95 text-brand text-[11px] font-medium px-2 py-0.5 ring-1 ring-brand/20 backdrop-blur">
             <CheckCircle2 className="size-3" /> এনরোল্ড
           </span>
         ) : (
@@ -534,7 +534,7 @@ function CourseCard({ c }: { c: any }) {
             {c.subject_count ?? 0} সাবজেক্ট
           </div>
           {c.has_access ? (
-            <span className="inline-flex items-center gap-1 text-sm font-medium text-emerald-700">
+            <span className="inline-flex items-center gap-1 text-sm font-medium text-brand">
               চালিয়ে যান <ArrowRight className="size-3.5" />
             </span>
           ) : (

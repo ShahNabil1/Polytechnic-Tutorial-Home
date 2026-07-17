@@ -24,6 +24,7 @@ import { CartDrawer } from "@/components/cart-drawer";
 import { useCartDrawer } from "@/lib/cart-drawer-store";
 import { useCart } from "@/lib/cart-store";
 import { supabase } from "@/integrations/supabase/client";
+import { visibleEmail } from "@/lib/synthetic-email";
 import logoAsset from "@/assets/pth-logo.jpg.asset.json";
 
 export const Route = createFileRoute("/_authenticated/sdash")({
@@ -102,11 +103,12 @@ function StudentDashboardLayout() {
     return (
       profile?.full_name ||
       m?.full_name ||
-      user?.email ||
+      visibleEmail(user?.email) ||
       user?.phone ||
       "শিক্ষার্থী"
     );
   }, [profile, user]);
+
 
   const initials = useMemo(() => {
     const s = (displayName || "S").trim();
@@ -126,6 +128,11 @@ function StudentDashboardLayout() {
       null
     );
   }, [profile, user]);
+
+  const contactLine = useMemo(() => {
+    return visibleEmail(user?.email) ?? user?.phone ?? "";
+  }, [user]);
+
 
   const pageTitle = useMemo(() => {
     if (pathname === "/sdash") return "ড্যাশবোর্ড";
@@ -188,7 +195,7 @@ function StudentDashboardLayout() {
               displayName={displayName}
               initials={initials}
               avatarUrl={avatarUrl}
-              email={user?.email ?? user?.phone ?? ""}
+              email={contactLine}
               pathname={pathname}
               onSignOut={handleSignOut}
               onCollapse={() => setCollapsed(true)}
@@ -218,7 +225,7 @@ function StudentDashboardLayout() {
                 displayName={displayName}
                 initials={initials}
                 avatarUrl={avatarUrl}
-                email={user?.email ?? user?.phone ?? ""}
+                email={contactLine}
                 pathname={pathname}
                 onSignOut={handleSignOut}
               />
@@ -469,7 +476,7 @@ function AvatarBadge({
   return (
     <div
       style={style}
-      className="grid place-items-center rounded-full bg-gradient-to-br from-brand to-emerald-700 text-white text-xs font-semibold shrink-0 ring-1 ring-black/5"
+      className="grid place-items-center rounded-full bg-gradient-to-br from-brand to-indigo-700 text-white text-xs font-semibold shrink-0 ring-1 ring-black/5"
     >
       {initials}
     </div>
