@@ -210,8 +210,8 @@ export function CrmMessagingPanel({ vars, userId, phone, email }: Props) {
         data: {
           user_id: userId ?? null,
           to_email: email,
-          subject: emailSubject.trim(),
-          body_html: emailBody,
+          subject: previewTemplate(emailSubject, vars).trim(),
+          body_html: previewTemplate(emailBody, vars),
           template_id: emailTplId ?? null,
         },
       });
