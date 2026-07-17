@@ -1,14 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useRole } from "@/hooks/use-role";
+import { SmsBalanceAlert } from "@/components/internal/crm/SmsBalanceAlert";
 
 export const Route = createFileRoute("/_authenticated/_internal/workspace/")({
   component: WorkspaceHome,
 });
 
 function WorkspaceHome() {
-  const { info } = useRole();
+  const { info, has } = useRole();
+  const canSeeSmsAlert = has("manage_users");
   return (
     <div className="space-y-6">
+      {canSeeSmsAlert && (
+        <div className="-mx-4 -mt-2 sm:-mx-6">
+          <SmsBalanceAlert />
+        </div>
+      )}
       <div>
         <h1 className="font-display text-3xl font-bold tracking-tight text-slate-900">
           Welcome back
