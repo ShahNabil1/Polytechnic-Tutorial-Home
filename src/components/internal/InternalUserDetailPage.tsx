@@ -350,31 +350,53 @@ export function InternalUserDetailPage({ userId, role }: Props) {
     }
   }
 
-  async function handleResetPassword() {
-    if (!detail?.email) {
-      toast.error("No primary email on file — cannot email a new password");
+  async function handleResetPassword(explicitChannel?: "email" | "sms") {
+    const hasEmail = !!detail?.email;
+    const hasPhone = !!detail?.phone;
+    if (!hasEmail && !hasPhone) {
+      toast.error("No email or phone on file — cannot deliver new password");
       return;
     }
+    let channel: "email" | "sms" | undefined = explicitChannel;
+    if (!channel) {
+      if (hasEmail && hasPhone) {
+        // Ask which channel
+        setShowChannelPicker(true);
+        return;
+      }
+      channel = hasEmail ? "email" : "sms";
+    }
+    setShowChannelPicker(false);
+    const target = channel === "email" ? detail?.email : detail?.phone;
     if (
       !(await confirmDialog({
         variant: "danger",
-        title: "Reset password & email new one?",
-        description: `একটি নতুন র‌্যান্ডম পাসওয়ার্ড তৈরি হবে ও ${detail.email}-এ পাঠানো হবে। সব ডিভাইস থেকে ইউজার সাইন আউট হয়ে যাবে।`,
+        title: "Reset password?",
+        description:
+          channel === "email"
+            ? `একটি নতুন র‌্যান্ডম পাসওয়ার্ড তৈরি হবে ও ${target}-এ ইমেইল করা হবে। সব ডিভাইস থেকে ইউজার সাইন আউট হয়ে যাবে।`
+            : `একটি নতুন র‌্যান্ডম পাসওয়ার্ড তৈরি হবে ও ${target}-এ SMS করা হবে। সব ডিভাইস থেকে ইউজার সাইন আউট হয়ে যাবে।`,
       }))
     )
       return;
     setBusy("pwreset");
     try {
-      const res = (await resetPassword({ data: { user_id: userId } })) as {
+      const res = (await resetPassword({ data: { user_id: userId, channel } })) as {
         ok: boolean;
-        emailed?: boolean;
+        channel?: "email" | "sms";
+        sent?: boolean;
         error?: string;
       };
-      if (res?.emailed) {
-        toast.success("নতুন পাসওয়ার্ড ইমেইলে পাঠানো হয়েছে");
+      if (res?.sent) {
+        toast.success(
+          channel === "sms"
+            ? "নতুন পাসওয়ার্ড SMS-এ পাঠানো হয়েছে"
+            : "নতুন পাসওয়ার্ড ইমেইলে পাঠানো হয়েছে",
+        );
       } else {
         toast.warning(
-          "পাসওয়ার্ড রিসেট হয়েছে, কিন্তু ইমেইল পাঠাতে সমস্যা: " + (res?.error ?? "unknown"),
+          `পাসওয়ার্ড রিসেট হয়েছে, কিন্তু ${channel === "sms" ? "SMS" : "ইমেইল"} পাঠাতে সমস্যা: ` +
+            (res?.error ?? "unknown"),
         );
       }
       await refresh();
@@ -384,6 +406,7 @@ export function InternalUserDetailPage({ userId, role }: Props) {
       setBusy(null);
     }
   }
+
 
   if (loading || !detail) {
     return (
