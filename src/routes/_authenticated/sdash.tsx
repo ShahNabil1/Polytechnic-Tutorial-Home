@@ -375,7 +375,6 @@ function SidebarContent({
       </nav>
 
       <div className="border-t border-slate-200 p-3 space-y-2">
-      <div className="border-t border-slate-200 p-3 space-y-2">
         <Link
           to="/sdash/profile"
           className="flex items-center gap-3 rounded-lg px-2.5 py-2 hover:bg-slate-100"
