@@ -170,6 +170,11 @@ const CategoryInput = z.object({
   is_active: z.boolean().default(true),
 });
 
+async function invalidateProductCaches() {
+  const { cacheDelPrefix } = await import("./cache.server");
+  await Promise.all([cacheDelPrefix("products:"), cacheDelPrefix("categories:")]);
+}
+
 export const createCategory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => CategoryInput.parse(i))
@@ -181,6 +186,7 @@ export const createCategory = createServerFn({ method: "POST" })
       .select("*")
       .single();
     if (error) throw new Error(error.message);
+    await invalidateProductCaches();
     return row as CategoryRow;
   });
 
@@ -196,6 +202,7 @@ export const updateCategory = createServerFn({ method: "POST" })
       .update(data.patch as never)
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+    await invalidateProductCaches();
     return { ok: true };
   });
 
@@ -206,6 +213,7 @@ export const deleteCategory = createServerFn({ method: "POST" })
     await ensureCanManage(context);
     const { error } = await context.supabase.from("product_categories").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    await invalidateProductCaches();
     return { ok: true };
   });
 
