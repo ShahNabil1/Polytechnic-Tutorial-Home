@@ -375,13 +375,12 @@ function SidebarContent({
       </nav>
 
       <div className="border-t border-slate-200 p-3 space-y-2">
+      <div className="border-t border-slate-200 p-3 space-y-2">
         <Link
           to="/sdash/profile"
           className="flex items-center gap-3 rounded-lg px-2.5 py-2 hover:bg-slate-100"
         >
-          <div className="grid size-9 place-items-center rounded-full bg-brand/10 text-brand text-sm font-semibold shrink-0">
-            {initials}
-          </div>
+          <AvatarBadge url={avatarUrl} initials={initials} size={36} />
           <div className="min-w-0">
             <div className="text-sm font-semibold text-slate-900 truncate">{displayName}</div>
             <div className="text-xs text-slate-500 truncate">{email || "শিক্ষার্থী"}</div>
@@ -396,5 +395,38 @@ function SidebarContent({
         </button>
       </div>
     </>
+  );
+}
+
+function AvatarBadge({
+  url,
+  initials,
+  size,
+}: {
+  url: string | null;
+  initials: string;
+  size: number;
+}) {
+  const style = { width: size, height: size };
+  if (url) {
+    return (
+      <img
+        src={url}
+        alt=""
+        style={style}
+        className="rounded-full object-cover shrink-0 ring-1 ring-slate-200"
+        onError={(e) => {
+          (e.currentTarget as HTMLImageElement).style.display = "none";
+        }}
+      />
+    );
+  }
+  return (
+    <div
+      style={style}
+      className="grid place-items-center rounded-full bg-gradient-to-br from-brand to-emerald-700 text-white text-xs font-semibold shrink-0 ring-1 ring-black/5"
+    >
+      {initials}
+    </div>
   );
 }
