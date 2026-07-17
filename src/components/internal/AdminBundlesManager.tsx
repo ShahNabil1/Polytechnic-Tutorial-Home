@@ -65,27 +65,24 @@ export function AdminBundlesManager({ products }: { products: Product[] }) {
   const list = useServerFn(listAdminBundles);
   const upsert = useServerFn(upsertBundle);
   const remove = useServerFn(deleteBundle);
+  const qc = useQueryClient();
 
-  const [bundles, setBundles] = useState<Bundle[]>([]);
-  const [loading, setLoading] = useState(true);
+  const query = useQuery({
+    queryKey: ["admin", "bundles"],
+    queryFn: () => list({ data: undefined as never }) as Promise<Bundle[]>,
+    staleTime: 2 * 60_000,
+  });
+  const bundles = query.data ?? [];
+  const loading = query.isLoading;
+
   const [editorOpen, setEditorOpen] = useState(false);
   const [draft, setDraft] = useState<BundleDraft>(EMPTY);
 
-  async function refresh() {
-    setLoading(true);
-    try {
-      const b = await list({ data: undefined as never });
-      setBundles(b ?? []);
-    } catch (e) {
-      toast.error("Failed to load: " + (e instanceof Error ? e.message : String(e)));
-    } finally {
-      setLoading(false);
-    }
-  }
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["admin", "bundles"] });
+    qc.invalidateQueries({ queryKey: ["admin", "products"] });
+  };
 
-  useEffect(() => {
-    refresh();
-  }, []);
 
   function openCreate() {
     setDraft(EMPTY);

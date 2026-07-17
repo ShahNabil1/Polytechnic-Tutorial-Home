@@ -85,32 +85,33 @@ export function AdminProductsManager() {
   const listCats = useServerFn(listAllCategories);
   const upsert = useServerFn(upsertProduct);
   const remove = useServerFn(deleteProduct);
+  const qc = useQueryClient();
 
-  const [products, setProducts] = useState<Product[]>([]);
-  const [cats, setCats] = useState<CategoryRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const productsQ = useQuery({
+    queryKey: ["admin", "products"],
+    queryFn: () => list({ data: undefined as never }) as Promise<Product[]>,
+    staleTime: 2 * 60_000,
+  });
+  const catsQ = useQuery({
+    queryKey: ["admin", "categories"],
+    queryFn: () => listCats({ data: undefined as never }) as Promise<CategoryRow[]>,
+    staleTime: 10 * 60_000,
+  });
+
+  const products = productsQ.data ?? [];
+  const cats = catsQ.data ?? [];
+  const loading = productsQ.isLoading || catsQ.isLoading;
+
   const [editorOpen, setEditorOpen] = useState(false);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [tab, setTab] = useState<"products" | "bundles">("products");
 
-  async function refresh() {
-    setLoading(true);
-    try {
-      const [p, c] = await Promise.all([
-        list({ data: undefined as never }),
-        listCats({ data: undefined as never }),
-      ]);
-      setProducts(p ?? []);
-      setCats(c ?? []);
-    } catch (e) {
-      toast.error("Failed to load: " + (e instanceof Error ? e.message : String(e)));
-    } finally {
-      setLoading(false);
-    }
-  }
-  useEffect(() => {
-    refresh();
-  }, []);
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["admin", "products"] });
+    qc.invalidateQueries({ queryKey: ["admin", "bundles"] });
+    qc.invalidateQueries({ queryKey: ["products"] });
+  };
+
 
   function openCreate() {
     const firstType = cats.find((c) => c.kind === "product_type" && c.is_active);
