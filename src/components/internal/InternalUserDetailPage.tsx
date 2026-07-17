@@ -506,10 +506,20 @@ export function InternalUserDetailPage({ userId, role }: Props) {
               </span>
             </div>
             <div className="mt-1 text-sm font-medium text-slate-600">
-              {detail.email || "(no email)"}
+              {isSyntheticEmail(detail.email) ? (
+                <span
+                  className="italic text-slate-400"
+                  title="Internal-only placeholder for phone-only accounts. Not a real, contactable email."
+                >
+                  (no email — phone-only account)
+                </span>
+              ) : (
+                detail.email || "(no email)"
+              )}
               {detail.phone && <span className="mx-2 text-slate-300">·</span>}
               {detail.phone}
             </div>
+
             <div className="mt-3 flex flex-wrap gap-2">
               <button
                 type="button"
