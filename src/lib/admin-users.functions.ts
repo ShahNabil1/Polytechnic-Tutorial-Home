@@ -838,10 +838,26 @@ export const adminResetUserPassword = createServerFn({ method: "POST" })
     const { SITE_URL } = await import("@/lib/site-url");
 
     if (channel === "sms") {
-      const { sendBulksmsbd, estimateSmsCount, isUnicodeMessage } = await import(
+      const { sendBulksmsbd, estimateSmsCount, isUnicodeMessage, renderTemplate } = await import(
         "@/lib/sms.server"
       );
-      const message = `নমস্কার ${fullName}, আপনার পাসওয়ার্ড রিসেট করা হয়েছে। নতুন পাসওয়ার্ড: ${newPassword} । লগইন: ${SITE_URL}/auth`;
+      const { SITE_URL: siteUrl } = await import("@/lib/site-url");
+      const { data: smsTpl } = await supabaseAdmin
+        .from("sms_templates")
+        .select("body, enabled")
+        .eq("key", "internal_password_reset")
+        .maybeSingle();
+      const tplBody = (smsTpl as any)?.body as string | undefined;
+      const tplEnabled = (smsTpl as any)?.enabled !== false;
+      const smsVars = {
+        name: fullName,
+        password: newPassword,
+        login_url: `${siteUrl}/auth`,
+        phone,
+      };
+      const message = tplBody && tplEnabled
+        ? renderTemplate(tplBody, smsVars).trim()
+        : `নমস্কার ${fullName}, আপনার পাসওয়ার্ড রিসেট করা হয়েছে। নতুন পাসওয়ার্ড: ${newPassword} । লগইন: ${SITE_URL}/auth`;
       const isUnicode = isUnicodeMessage(message);
       const smsCount = estimateSmsCount(message);
       const res = await sendBulksmsbd({ to: phone, message });
