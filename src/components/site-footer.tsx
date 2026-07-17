@@ -4,7 +4,7 @@ import logoAsset from "@/assets/pth-logo.jpg.asset.json";
 export function SiteFooter() {
   return (
     <footer className="mt-24 border-t border-border/70 bg-surface">
-      <div className="h-[2px] w-full bg-[var(--gradient-gold)] opacity-80" />
+      <div className="h-[2px] w-full bg-gold-gradient opacity-80" />
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 md:grid-cols-12 md:px-6">
         <div className="md:col-span-5">
           <div className="flex items-center gap-3">

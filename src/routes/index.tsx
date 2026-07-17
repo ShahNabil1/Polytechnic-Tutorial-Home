@@ -123,7 +123,7 @@ function Hero() {
   return (
     <section className="relative overflow-hidden border-b border-border/70 grain">
       {/* Editorial background layers */}
-      <div className="pointer-events-none absolute inset-0 bg-[var(--gradient-paper)]" />
+      <div className="pointer-events-none absolute inset-0 bg-paper-gradient" />
       <div className="pointer-events-none absolute -top-40 -right-32 size-[520px] rounded-full bg-brand/10 blur-[120px]" />
       <div className="pointer-events-none absolute -bottom-40 -left-32 size-[480px] rounded-full bg-[color:var(--indigo-deep)]/10 blur-[120px]" />
 
@@ -147,7 +147,7 @@ function Hero() {
             প্রস্তুতির{" "}
             <span className="relative inline-block">
               <span className="relative z-10 text-brand">সম্পূর্ণ</span>
-              <span className="absolute inset-x-0 bottom-1 h-3 rounded-sm bg-[var(--gradient-gold)] opacity-70" />
+              <span className="absolute inset-x-0 bottom-1 h-3 rounded-sm bg-gold-gradient opacity-70" />
             </span>{" "}
             প্ল্যাটফর্ম।
           </motion.h1>
@@ -190,7 +190,7 @@ function Hero() {
                 {[0, 1, 2, 3].map((i) => (
                   <div
                     key={i}
-                    className="size-8 rounded-full border-2 border-background bg-[var(--gradient-editorial)]"
+                    className="size-8 rounded-full border-2 border-background bg-editorial-gradient"
                     style={{ opacity: 0.6 + i * 0.1 }}
                   />
                 ))}
@@ -256,7 +256,7 @@ function Hero() {
             </div>
 
             {/* Floating gold badge */}
-            <div className="absolute -top-4 -left-4 hidden rotate-[-8deg] rounded-2xl border border-gold/40 bg-[var(--gradient-gold)] px-4 py-2 shadow-[var(--shadow-gold)] md:block">
+            <div className="absolute -top-4 -left-4 hidden rotate-[-8deg] rounded-2xl border border-gold/40 bg-gold-gradient px-4 py-2 shadow-[var(--shadow-gold)] md:block">
               <div className="text-[10px] font-bold uppercase tracking-widest text-[color:var(--ink)]">
                 ★ ৯০%+ কমন
               </div>
@@ -382,7 +382,7 @@ function ShopStrip({ products }: { products: Product[] }) {
   return (
     <section className="relative px-4 py-24 md:px-6 md:py-28">
       <div className="mx-auto max-w-7xl">
-        <div className="relative overflow-hidden rounded-[2rem] border border-border bg-[var(--gradient-editorial)] p-6 shadow-[var(--shadow-editorial)] md:p-12">
+        <div className="relative overflow-hidden rounded-[2rem] border border-border bg-editorial-gradient p-6 shadow-[var(--shadow-editorial)] md:p-12">
           {/* Decorative gold arcs */}
           <div className="pointer-events-none absolute -top-32 -right-32 size-96 rounded-full bg-gold/20 blur-3xl" />
           <div className="pointer-events-none absolute -bottom-24 -left-24 size-80 rounded-full bg-[color:var(--indigo-deep)]/30 blur-3xl" />
@@ -404,7 +404,7 @@ function ShopStrip({ products }: { products: Product[] }) {
             <div className="md:col-span-4 md:text-right">
               <Link
                 to="/shop"
-                className="group inline-flex items-center gap-2 rounded-full bg-[var(--gradient-gold)] px-6 py-3.5 text-sm font-bold text-[color:var(--ink)] shadow-[var(--shadow-gold)] transition-all hover:-translate-y-0.5"
+                className="group inline-flex items-center gap-2 rounded-full bg-gold-gradient px-6 py-3.5 text-sm font-bold text-[color:var(--ink)] shadow-[var(--shadow-gold)] transition-all hover:-translate-y-0.5"
               >
                 সব প্রোডাক্ট দেখুন
                 <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
@@ -478,7 +478,7 @@ function About() {
                 transition={{ duration: 0.5, delay: i * 0.1 }}
                 className="group relative flex gap-5 rounded-2xl border border-border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-[var(--shadow-editorial)] md:p-6"
               >
-                <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-[var(--gradient-editorial)] text-background shadow-[var(--shadow-editorial)]">
+                <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-editorial-gradient text-background shadow-[var(--shadow-editorial)]">
                   <p.icon className="size-5" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -541,7 +541,7 @@ function Testimonials() {
                 "mt-6 flex items-center gap-3 border-t pt-4",
                 i === 1 ? "border-background/15" : "border-border"
               )}>
-                <div className="grid size-9 place-items-center rounded-full bg-[var(--gradient-gold)] font-display text-xs font-bold text-[color:var(--ink)]">
+                <div className="grid size-9 place-items-center rounded-full bg-gold-gradient font-display text-xs font-bold text-[color:var(--ink)]">
                   {t.name.charAt(0)}
                 </div>
                 <div>
@@ -618,8 +618,8 @@ function CTA() {
   return (
     <section className="px-4 py-24 md:px-6 md:py-28">
       <div className="mx-auto max-w-7xl">
-        <div className="relative overflow-hidden rounded-[2rem] bg-[var(--gradient-editorial)] px-6 py-16 text-center shadow-[var(--shadow-editorial)] md:px-16 md:py-20">
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-[var(--gradient-gold)]" />
+        <div className="relative overflow-hidden rounded-[2rem] bg-editorial-gradient px-6 py-16 text-center shadow-[var(--shadow-editorial)] md:px-16 md:py-20">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gold-gradient" />
           <div className="pointer-events-none absolute -top-24 left-1/2 size-96 -translate-x-1/2 rounded-full bg-gold/15 blur-3xl" />
           <div className="pointer-events-none absolute inset-0 opacity-[0.05] mix-blend-overlay bg-[radial-gradient(circle_at_1px_1px,#fff_1px,transparent_0)] [background-size:32px_32px]" />
 
@@ -639,7 +639,7 @@ function CTA() {
             <div className="mt-9 flex flex-wrap justify-center gap-3">
               <Link
                 to="/courses"
-                className="group inline-flex items-center gap-2 rounded-full bg-[var(--gradient-gold)] px-7 py-4 text-sm font-bold text-[color:var(--ink)] shadow-[var(--shadow-gold)] transition-all hover:-translate-y-0.5"
+                className="group inline-flex items-center gap-2 rounded-full bg-gold-gradient px-7 py-4 text-sm font-bold text-[color:var(--ink)] shadow-[var(--shadow-gold)] transition-all hover:-translate-y-0.5"
               >
                 এনরোল করুন
                 <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
