@@ -80,7 +80,7 @@ function AuthButton() {
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-md bg-brand px-2.5 py-1.5 text-xs font-medium text-brand-foreground transition-colors hover:bg-brand/90 sm:px-3 sm:text-sm"
+          className="group inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand px-3 py-1.5 text-xs font-semibold text-brand-foreground shadow-[0_6px_18px_-8px_rgba(6,78,59,0.55)] transition-all hover:-translate-y-px hover:shadow-[0_10px_24px_-10px_rgba(6,78,59,0.7)] sm:px-4 sm:text-sm"
         >
           <UserIcon className="size-4" />
           সাইন ইন
@@ -96,7 +96,7 @@ function AuthButton() {
         {dashboardTo && !roleLoading ? (
           <Link
             to={dashboardTo}
-            className="inline-flex items-center gap-1.5 rounded-md bg-brand px-2.5 py-1.5 text-xs font-medium text-brand-foreground transition-colors hover:bg-brand/90 sm:px-3 sm:text-sm"
+            className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand px-3 py-1.5 text-xs font-semibold text-brand-foreground shadow-[0_6px_18px_-8px_rgba(6,78,59,0.55)] transition-all hover:-translate-y-px sm:px-4 sm:text-sm"
           >
             <UserIcon className="size-4" />
             <span className="hidden xs:inline sm:inline">ড্যাশবোর্ড</span>
@@ -105,7 +105,7 @@ function AuthButton() {
           <button
             type="button"
             disabled
-            className="inline-flex items-center gap-1.5 rounded-md bg-brand/70 px-2.5 py-1.5 text-xs font-medium text-brand-foreground sm:px-3 sm:text-sm"
+            className="inline-flex items-center gap-1.5 rounded-full bg-brand/60 px-3 py-1.5 text-xs font-semibold text-brand-foreground sm:px-4 sm:text-sm"
           >
             <UserIcon className="size-4" />
             <span className="hidden xs:inline sm:inline">ড্যাশবোর্ড</span>
@@ -120,7 +120,7 @@ function AuthButton() {
             toast.success("সাইন আউট হয়েছে");
             navigate({ to: "/", replace: true });
           }}
-          className="hidden items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-secondary sm:inline-flex"
+          className="hidden items-center gap-1.5 rounded-full border border-border bg-background/60 px-3 py-1.5 text-sm transition-colors hover:bg-secondary sm:inline-flex"
           title={visibleEmail(user.email) ?? user.phone ?? ""}
         >
           <LogOut className="size-4" />
