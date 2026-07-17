@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { BookOpen, Loader2, GraduationCap, CheckCircle2, Lock, Search, PlayCircle } from "lucide-react";
+import { BookOpen, Loader2, GraduationCap, CheckCircle2, Lock, Search, PlayCircle, X, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { listCourseCatalog } from "@/lib/lms.functions";
 import { cn } from "@/lib/utils";
@@ -17,13 +17,14 @@ function CoursesPage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"mine" | "all">("mine");
   const [query, setQuery] = useState("");
+  const [deptSlug, setDeptSlug] = useState<string | null>(null);
+  const [semSlug, setSemSlug] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
         const data = (await listFn(undefined as never)) as any[];
         setItems(data);
-        // Auto-switch to "all" if user has no enrolled courses
         if (!data.some((d) => d.has_access)) setTab("all");
       } catch (e: any) {
         toast.error(e?.message ?? "Failed to load");
@@ -34,24 +35,43 @@ function CoursesPage() {
   }, []);
 
   const enrolled = useMemo(() => items.filter((i) => i.has_access), [items]);
+
+  const scope = tab === "mine" ? enrolled : items;
+
+  const departments = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of scope) if (c.department_slug) map.set(c.department_slug, c.department_name);
+    return Array.from(map, ([slug, name]) => ({ slug, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [scope]);
+
+  const semesters = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of scope) {
+      if (deptSlug && c.department_slug !== deptSlug) continue;
+      if (c.semester_slug) map.set(c.semester_slug, c.semester_name);
+    }
+    return Array.from(map, ([slug, name]) => ({ slug, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [scope, deptSlug]);
+
+  useEffect(() => {
+    if (semSlug && !semesters.some((s) => s.slug === semSlug)) setSemSlug(null);
+  }, [semesters, semSlug]);
+
   const filtered = useMemo(() => {
-    const base = tab === "mine" ? enrolled : items;
+    let base = scope;
+    if (deptSlug) base = base.filter((c) => c.department_slug === deptSlug);
+    if (semSlug) base = base.filter((c) => c.semester_slug === semSlug);
     if (!query.trim()) return base;
     const q = query.toLowerCase();
     return base.filter((c) =>
-      [
-        c.title,
-        c.slug,
-        c.department_name,
-        c.department_slug,
-        c.semester_name,
-        c.semester_slug,
-        c.description,
-      ]
+      [c.title, c.slug, c.department_name, c.department_slug, c.semester_name, c.semester_slug, c.description]
         .filter(Boolean)
         .some((v: string) => String(v).toLowerCase().includes(q)),
     );
-  }, [tab, enrolled, items, query]);
+  }, [scope, deptSlug, semSlug, query]);
+
+  const hasActiveFilter = Boolean(query.trim() || deptSlug || semSlug);
+
 
   return (
     <div className="space-y-6">
@@ -92,16 +112,63 @@ function CoursesPage() {
           </div>
         </div>
 
-        <div className="mt-4 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-          <input
-            type="search"
-            placeholder="কোর্স, ডিপার্টমেন্ট বা সেমিস্টার খুঁজুন..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-slate-50 pl-10 pr-3 py-2.5 text-sm outline-none focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/20"
-          />
+        <div className="mt-4 flex flex-col gap-2.5 md:flex-row md:items-center">
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+            <input
+              type="search"
+              placeholder="কোর্স, ডিপার্টমেন্ট বা সেমিস্টার খুঁজুন..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 pl-10 pr-3 py-2.5 text-sm outline-none focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/20"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <FilterSelect
+              label="ডিপার্টমেন্ট"
+              value={deptSlug}
+              options={departments}
+              onChange={(v) => setDeptSlug(v)}
+            />
+            <FilterSelect
+              label="সেমিস্টার"
+              value={semSlug}
+              options={semesters}
+              onChange={(v) => setSemSlug(v)}
+              disabled={semesters.length === 0}
+            />
+            {hasActiveFilter && (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery("");
+                  setDeptSlug(null);
+                  setSemSlug(null);
+                }}
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
+              >
+                <X className="size-3.5" /> ক্লিয়ার
+              </button>
+            )}
+          </div>
         </div>
+
+        {(deptSlug || semSlug) && (
+          <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs">
+            {deptSlug && (
+              <FilterChip
+                label={departments.find((d) => d.slug === deptSlug)?.name ?? deptSlug}
+                onClear={() => setDeptSlug(null)}
+              />
+            )}
+            {semSlug && (
+              <FilterChip
+                label={semesters.find((s) => s.slug === semSlug)?.name ?? semSlug}
+                onClear={() => setSemSlug(null)}
+              />
+            )}
+          </div>
+        )}
       </div>
 
       {loading ? (
@@ -213,5 +280,64 @@ function TabBtn({
     >
       {children}
     </button>
+  );
+}
+
+function FilterSelect({
+  label,
+  value,
+  options,
+  onChange,
+  disabled,
+}: {
+  label: string;
+  value: string | null;
+  options: { slug: string; name: string }[];
+  onChange: (v: string | null) => void;
+  disabled?: boolean;
+}) {
+  const selected = options.find((o) => o.slug === value);
+  return (
+    <div className="relative">
+      <select
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value || null)}
+        disabled={disabled}
+        className={cn(
+          "appearance-none rounded-lg border bg-white pl-3 pr-8 py-2 text-xs font-medium outline-none transition-colors",
+          "focus:border-brand focus:ring-2 focus:ring-brand/20",
+          value
+            ? "border-brand/40 text-brand"
+            : "border-slate-200 text-slate-700 hover:bg-slate-50",
+          disabled && "opacity-50 cursor-not-allowed",
+        )}
+        aria-label={label}
+      >
+        <option value="">সব {label}</option>
+        {options.map((o) => (
+          <option key={o.slug} value={o.slug}>
+            {o.name}
+          </option>
+        ))}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 size-3.5 text-slate-400" />
+      <span className="sr-only">{selected?.name}</span>
+    </div>
+  );
+}
+
+function FilterChip({ label, onClear }: { label: string; onClear: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 text-brand px-2.5 py-1 font-medium">
+      {label}
+      <button
+        type="button"
+        onClick={onClear}
+        className="grid place-items-center rounded-full hover:bg-brand/20"
+        aria-label={`Clear ${label}`}
+      >
+        <X className="size-3" />
+      </button>
+    </span>
   );
 }
