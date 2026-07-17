@@ -127,10 +127,16 @@ export function CrmCustomerDetailPage({ userId }: { userId: string }) {
                         {detail.orders.map((o) => (
                           <tr key={o.id} className="hover:bg-muted/30">
                             <td className="px-4 py-2 font-mono text-xs">
-                              <Link to="/workspace/ecommerce/orders" className="text-primary hover:underline">
+                              <button
+                                type="button"
+                                onClick={() => setOpenOrderId(o.id)}
+                                className="inline-flex items-center gap-1 rounded-md bg-gradient-to-r from-indigo-600 to-sky-600 px-2 py-1 font-mono text-xs font-bold text-white shadow-sm hover:from-indigo-700 hover:to-sky-700"
+                                title="Open order"
+                              >
                                 {o.order_no}
-                              </Link>
+                              </button>
                             </td>
+
                             <td className="px-4 py-2 text-xs">{o.status}</td>
                             <td className="px-4 py-2 text-xs">{o.payment_status}</td>
                             <td className="px-4 py-2 text-right tabular-nums font-medium">{fmtBDT(o.total_bdt)}</td>
