@@ -119,13 +119,36 @@ export function AdminBasicProfileForm({
     try {
       const nextName = fullName.trim();
       const nextAvatar = avatarUrl.trim();
+      const studentPayload = showStudent
+        ? {
+            institute_name: institute.trim() || null,
+            department_name: dept.trim() || null,
+            current_semester: semester.trim() || null,
+            board_roll: boardRoll.trim() || null,
+            registration_no: regNo.trim() || null,
+          }
+        : {};
       await save({
-        data: { user_id: userId, full_name: nextName || null, avatar_url: nextAvatar || null },
+        data: {
+          user_id: userId,
+          full_name: nextName || null,
+          avatar_url: nextAvatar || null,
+          ...studentPayload,
+        },
       });
       setSavedName(nextName);
       setSavedAvatar(nextAvatar);
       setFullName(nextName);
       setAvatarUrl(nextAvatar);
+      if (showStudent) {
+        setSavedStudent({
+          institute_name: studentPayload.institute_name ?? null,
+          department_name: studentPayload.department_name ?? null,
+          current_semester: studentPayload.current_semester ?? null,
+          board_roll: studentPayload.board_roll ?? null,
+          registration_no: studentPayload.registration_no ?? null,
+        });
+      }
       setEditMode(false);
       toast.success("Profile updated", {
         description: "Changes are reflected in the user's profile.",
@@ -139,6 +162,7 @@ export function AdminBasicProfileForm({
       setSaving(false);
     }
   }
+
 
   const locked = !editMode;
 
@@ -168,6 +192,13 @@ export function AdminBasicProfileForm({
             onClick={() => {
               setFullName(savedName);
               setAvatarUrl(savedAvatar);
+              if (showStudent) {
+                setInstitute(savedStudent.institute_name ?? "");
+                setDept(savedStudent.department_name ?? "");
+                setSemester(savedStudent.current_semester ?? "");
+                setBoardRoll(savedStudent.board_roll ?? "");
+                setRegNo(savedStudent.registration_no ?? "");
+              }
               setEditMode(false);
             }}
             className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
