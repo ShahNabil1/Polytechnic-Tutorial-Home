@@ -391,7 +391,7 @@ function ShopStrip({ products }: { products: Product[] }) {
           <div className="relative grid gap-8 md:grid-cols-12 md:items-end">
             <div className="md:col-span-8">
               <SectionEyebrow index="02" label="Shop · অনলাইন অর্ডার" tone="light" />
-              <h2 className="mt-4 font-display text-4xl font-extrabold leading-[1.05] tracking-tight text-[color:var(--background)] md:text-5xl">
+              <h2 className="mt-4 font-display text-4xl font-extrabold leading-[1.35] tracking-tight text-[color:var(--background)] md:text-5xl md:leading-[1.25]">
                 বই, ই-বুক ও
                 <br />
                 সুপার <span className="italic text-gold">সাজেশন</span>।
@@ -628,7 +628,7 @@ function CTA() {
               <Sparkles className="size-3.5" />
               প্রথম ৫টি লেসন ফ্রি
             </div>
-            <h2 className="mt-6 font-display text-4xl font-extrabold leading-[1.05] tracking-tight text-[color:var(--background)] md:text-6xl">
+            <h2 className="mt-6 font-display text-4xl font-extrabold leading-[1.35] tracking-tight text-[color:var(--background)] md:text-6xl md:leading-[1.2]">
               আজই শুরু করুন
               <br />
               আপনার <span className="italic text-gold">প্রস্তুতি</span>।
