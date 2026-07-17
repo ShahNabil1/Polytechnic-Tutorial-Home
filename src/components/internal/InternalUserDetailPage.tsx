@@ -522,39 +522,43 @@ export function InternalUserDetailPage({ userId, role }: Props) {
                 )}
                 Enter dashboard as user
               </button>
+              {!isCustomer && (
+                <button
+                  type="button"
+                  onClick={handleDownloadCv}
+                  disabled={busy === "cv" || !detail.cv_r2_key}
+                  title={detail.cv_r2_key ? "Download CV" : "No CV on file"}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                >
+                  {busy === "cv" ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <FileDown className="size-3.5" />
+                  )}
+                  Download CV
+                </button>
+              )}
+              {!isCustomer && (
+                <button
+                  type="button"
+                  onClick={handleResetMfa}
+                  disabled={busy === "mfa"}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-60"
+                >
+                  {busy === "mfa" ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <KeyRound className="size-3.5" />
+                  )}
+                  Reset 2FA
+                </button>
+              )}
               <button
                 type="button"
-                onClick={handleDownloadCv}
-                disabled={busy === "cv" || !detail.cv_r2_key}
-                title={detail.cv_r2_key ? "Download CV" : "No CV on file"}
-                className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
-              >
-                {busy === "cv" ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : (
-                  <FileDown className="size-3.5" />
-                )}
-                Download CV
-              </button>
-              <button
-                type="button"
-                onClick={handleResetMfa}
-                disabled={busy === "mfa"}
-                className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-60"
-              >
-                {busy === "mfa" ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : (
-                  <KeyRound className="size-3.5" />
-                )}
-                Reset 2FA
-              </button>
-              <button
-                type="button"
-                onClick={handleResetPassword}
+                onClick={() => handleResetPassword()}
                 disabled={busy === "pwreset"}
                 className="inline-flex items-center gap-1.5 rounded-md border border-orange-300 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-800 hover:bg-orange-100 disabled:opacity-60"
-                title="Generate a new random password and email it to the primary email"
+                title="Generate a new random password and send it via email or SMS"
               >
                 {busy === "pwreset" ? (
                   <Loader2 className="size-3.5 animate-spin" />
@@ -563,6 +567,7 @@ export function InternalUserDetailPage({ userId, role }: Props) {
                 )}
                 Reset Password
               </button>
+
             </div>
           </div>
         </div>
