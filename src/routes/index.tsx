@@ -1,16 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowRight,
+  ArrowUpRight,
   PlayCircle,
   Users,
   Award,
-  Clock,
   Star,
   Plus,
   Minus,
+  Sparkles,
+  BookOpen,
+  Radio,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { motion } from "framer-motion";
 import { ProductCard } from "@/components/product-card";
 import type { Product } from "@/lib/products";
 import { listFeaturedProducts } from "@/lib/products.functions";
@@ -33,9 +37,6 @@ export const Route = createFileRoute("/")({
 });
 
 /* ---------- Data ---------- */
-
-// Course cards now come from Supabase via listPublicCourses.
-
 
 const TESTIMONIALS = [
   {
@@ -103,12 +104,11 @@ function HomePage() {
   }, [fetchCourses]);
 
   return (
-    <div>
+    <div className="relative overflow-hidden">
       <Hero />
       <Stats />
       <Courses items={courses} />
       <ShopStrip products={featured} />
-      
       <About />
       <Testimonials />
       <FAQ />
@@ -121,41 +121,174 @@ function HomePage() {
 
 function Hero() {
   return (
-    <section className="border-b border-border/60">
-      <div className="mx-auto max-w-6xl px-4 pt-16 pb-20 md:px-6 md:pt-24 md:pb-28">
-        <div className="mx-auto max-w-3xl text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary/50 px-3 py-1 text-xs text-muted-foreground">
-            <span className="size-1.5 rounded-full bg-brand" />
-            নতুন সেমিস্টার ২০২৬ এর কোর্স লাইভ
+    <section className="relative overflow-hidden border-b border-border/70 grain">
+      {/* Editorial background layers */}
+      <div className="pointer-events-none absolute inset-0 bg-[var(--gradient-paper)]" />
+      <div className="pointer-events-none absolute -top-40 -right-32 size-[520px] rounded-full bg-brand/10 blur-[120px]" />
+      <div className="pointer-events-none absolute -bottom-40 -left-32 size-[480px] rounded-full bg-[color:var(--indigo-deep)]/10 blur-[120px]" />
+
+      <div className="relative mx-auto grid max-w-7xl gap-12 px-4 pt-16 pb-20 md:grid-cols-12 md:gap-10 md:px-6 md:pt-24 md:pb-28 lg:pt-28">
+        {/* Left: Editorial masthead */}
+        <div className="md:col-span-7">
+          <div className="flex items-center gap-3">
+            <span className="eyebrow">VOL. 01</span>
+            <span className="h-px w-10 bg-gold" />
+            <span className="eyebrow">Polytechnic Editorial · 2026</span>
           </div>
-          <h1 className="mt-6 text-4xl font-bold leading-[1.15] tracking-tight text-balance md:text-5xl lg:text-6xl">
-            ডিপ্লোমা ইঞ্জিনিয়ারিং প্রস্তুতির
+
+          <motion.h1
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            className="mt-6 font-display text-[2.5rem] font-extrabold leading-[1.05] tracking-tight text-balance md:text-6xl lg:text-7xl"
+          >
+            ডিপ্লোমা ইঞ্জিনিয়ারিং
             <br />
-            <span className="text-brand">সম্পূর্ণ প্ল্যাটফর্ম</span>
-          </h1>
-          <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-muted-foreground md:text-lg">
+            প্রস্তুতির{" "}
+            <span className="relative inline-block">
+              <span className="relative z-10 text-brand">সম্পূর্ণ</span>
+              <span className="absolute inset-x-0 bottom-1 h-3 rounded-sm bg-[var(--gradient-gold)] opacity-70" />
+            </span>{" "}
+            প্ল্যাটফর্ম।
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.15 }}
+            className="mt-7 max-w-xl text-base leading-relaxed text-muted-foreground md:text-lg"
+          >
             অভিজ্ঞ পলিটেকনিক শিক্ষকদের ভিডিও লেকচার, লাইভ ক্লাস, নোটস,
-            মডেল টেস্ট এবং সুপার সাজেশন — সব এক জায়গায়।
-          </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            মডেল টেস্ট এবং সুপার সাজেশন — এক জায়গায়, একটি সাবস্ক্রিপশনে।
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="mt-9 flex flex-wrap gap-3"
+          >
             <Link
               to="/courses"
-              className="inline-flex items-center gap-2 rounded-md bg-foreground px-5 py-3 text-sm font-medium text-background transition-opacity hover:opacity-90"
+              className="group inline-flex items-center gap-2 rounded-full bg-brand px-6 py-3.5 text-sm font-semibold text-brand-foreground shadow-[0_18px_40px_-16px_rgba(6,78,59,0.55)] transition-all hover:-translate-y-0.5 hover:shadow-[0_22px_50px_-14px_rgba(6,78,59,0.7)]"
             >
               এনরোল করুন
-              <ArrowRight className="size-4" />
+              <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
             </Link>
             <a
               href="#courses"
-              className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-5 py-3 text-sm font-medium transition-colors hover:bg-secondary"
+              className="inline-flex items-center gap-2 rounded-full border border-border bg-background/60 px-6 py-3.5 text-sm font-semibold text-foreground backdrop-blur transition-colors hover:border-brand/40 hover:bg-background"
             >
-              <PlayCircle className="size-4" />
+              <PlayCircle className="size-4 text-brand" />
               কোর্স দেখুন
             </a>
+          </motion.div>
+
+          <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
+            <div className="flex items-center gap-3">
+              <div className="flex -space-x-2">
+                {[0, 1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="size-8 rounded-full border-2 border-background bg-[var(--gradient-editorial)]"
+                    style={{ opacity: 0.6 + i * 0.1 }}
+                  />
+                ))}
+              </div>
+              <div className="text-sm">
+                <div className="font-semibold">১২,০০০+ শিক্ষার্থী</div>
+                <div className="text-xs text-muted-foreground">এখনই শেখা শুরু করেছেন</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex gap-0.5">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star key={i} className="size-3.5 fill-gold text-gold" />
+                ))}
+              </div>
+              <span className="text-sm font-medium">৪.৯ / ৫ · রিভিউ</span>
+            </div>
           </div>
+        </div>
+
+        {/* Right: Editorial feature card */}
+        <div className="md:col-span-5">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="relative"
+          >
+            {/* Main feature card */}
+            <div className="relative overflow-hidden rounded-[2rem] border border-border bg-card p-6 shadow-[var(--shadow-editorial)] md:p-7">
+              <div className="flex items-center justify-between">
+                <span className="eyebrow">Featured Course</span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-brand/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-brand">
+                  <span className="size-1.5 rounded-full bg-brand animate-pulse" />
+                  Live
+                </span>
+              </div>
+              <h3 className="mt-4 font-display text-2xl font-bold leading-tight">
+                কম্পিউটার ৬ষ্ঠ পর্ব
+                <br />
+                <span className="text-brand">সম্পূর্ণ সিলেবাস</span>
+              </h3>
+              <div className="mt-5 space-y-3 border-t border-border/60 pt-4">
+                <FeatureRow icon={PlayCircle} label="১,৫০০+ ভিডিও লেসন" />
+                <FeatureRow icon={Radio} label="সপ্তাহে ২০+ লাইভ ক্লাস" />
+                <FeatureRow icon={BookOpen} label="নোটস, মডেল টেস্ট, সাজেশন" />
+              </div>
+              <div className="mt-6 flex items-end justify-between">
+                <div>
+                  <div className="eyebrow">শুরু থেকে</div>
+                  <div className="font-display text-3xl font-extrabold text-brand">
+                    ৳ ৯৯৯<span className="text-base font-medium text-muted-foreground">/সেমিস্টার</span>
+                  </div>
+                </div>
+                <Link
+                  to="/courses"
+                  className="inline-flex size-11 items-center justify-center rounded-full bg-foreground text-background transition-transform hover:-translate-y-0.5 hover:rotate-45"
+                  aria-label="See courses"
+                >
+                  <ArrowUpRight className="size-5" />
+                </Link>
+              </div>
+            </div>
+
+            {/* Floating gold badge */}
+            <div className="absolute -top-4 -left-4 hidden rotate-[-8deg] rounded-2xl border border-gold/40 bg-[var(--gradient-gold)] px-4 py-2 shadow-[var(--shadow-gold)] md:block">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-[color:var(--ink)]">
+                ★ ৯০%+ কমন
+              </div>
+            </div>
+
+            {/* Floating stat card */}
+            <div className="absolute -bottom-6 -right-4 hidden rotate-[4deg] rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow-editorial)] md:block">
+              <div className="flex items-center gap-3">
+                <div className="grid size-10 place-items-center rounded-full bg-brand/10 text-brand">
+                  <Sparkles className="size-5" />
+                </div>
+                <div>
+                  <div className="font-display text-lg font-bold leading-tight">নতুন কোর্স</div>
+                  <div className="text-[11px] text-muted-foreground">প্রতি সপ্তাহে আপডেট</div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </div>
     </section>
+  );
+}
+
+function FeatureRow({ icon: Icon, label }: { icon: React.ElementType; label: string }) {
+  return (
+    <div className="flex items-center gap-3 text-sm">
+      <span className="grid size-7 shrink-0 place-items-center rounded-full bg-brand/10 text-brand">
+        <Icon className="size-3.5" />
+      </span>
+      <span className="text-foreground/85">{label}</span>
+    </div>
   );
 }
 
@@ -167,14 +300,21 @@ function Stats() {
     { label: "গড় কমন সাজেশন", value: "৯০%" },
   ];
   return (
-    <section className="border-b border-border/60 bg-surface">
-      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-8 px-4 py-10 md:grid-cols-4 md:px-6 md:py-12">
-        {stats.map((s) => (
-          <div key={s.label} className="text-center md:text-left">
-            <div className="text-2xl font-bold tracking-tight md:text-3xl">
+    <section className="relative border-b border-border/70 bg-foreground text-background">
+      <div className="mx-auto grid max-w-7xl grid-cols-2 gap-y-8 gap-x-6 px-4 py-12 md:grid-cols-4 md:px-6 md:py-14">
+        {stats.map((s, i) => (
+          <div
+            key={s.label}
+            className={cn(
+              "relative",
+              i > 0 && "md:pl-6 md:border-l md:border-background/15"
+            )}
+          >
+            <div className="font-display text-3xl font-extrabold tracking-tight md:text-4xl">
               {s.value}
             </div>
-            <div className="mt-1 text-xs text-muted-foreground md:text-sm">
+            <div className="mt-1 flex items-center gap-2 text-xs text-background/60 md:text-sm">
+              <span className="h-px w-6 bg-gold" />
               {s.label}
             </div>
           </div>
@@ -186,35 +326,50 @@ function Stats() {
 
 function Courses({ items }: { items: PublicCourseCardData[] }) {
   return (
-    <section id="courses" className="scroll-mt-20 px-4 py-20 md:px-6 md:py-24">
-      <div className="mx-auto max-w-6xl">
-        <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
-          <div>
-            <p className="text-xs font-medium text-brand">কোর্স</p>
-            <h2 className="mt-1 text-3xl font-extrabold tracking-tight md:text-4xl">
-              বিভাগ অনুযায়ী কমপ্লিট কোর্স
+    <section id="courses" className="scroll-mt-20 px-4 py-24 md:px-6 md:py-32">
+      <div className="mx-auto max-w-7xl">
+        <div className="grid gap-8 md:grid-cols-12 md:items-end">
+          <div className="md:col-span-8">
+            <SectionEyebrow index="01" label="কোর্স · Editorial" />
+            <h2 className="mt-4 font-display text-4xl font-extrabold leading-[1.05] tracking-tight md:text-5xl lg:text-6xl">
+              বিভাগ অনুযায়ী
+              <br />
+              <span className="italic text-brand">কমপ্লিট</span> কোর্স।
             </h2>
-            <p className="mt-2 max-w-xl text-sm font-semibold text-muted-foreground md:text-base">
-              প্রতিটি ডিপার্টমেন্টের ১ম থেকে ৮ম পর্ব পর্যন্ত সম্পূর্ণ সিলেবাস কভার করা।
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground md:text-lg">
+              প্রতিটি ডিপার্টমেন্টের ১ম থেকে ৮ম পর্ব পর্যন্ত সম্পূর্ণ সিলেবাস — বোর্ড প্রশ্নের ধরন
+              অনুযায়ী সাজানো।
             </p>
           </div>
-          <Link
-            to="/courses"
-            className="group inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-foreground px-6 py-3.5 text-sm font-extrabold text-background shadow-lg transition-all hover:-translate-y-0.5 hover:bg-brand hover:text-brand-foreground hover:shadow-xl hover:shadow-brand/30"
-          >
-            See All Courses
-            <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
-          </Link>
+          <div className="md:col-span-4 md:text-right">
+            <Link
+              to="/courses"
+              className="group inline-flex items-center gap-2 rounded-full border border-foreground bg-foreground px-6 py-3.5 text-sm font-semibold text-background transition-all hover:-translate-y-0.5 hover:bg-brand hover:border-brand hover:shadow-[0_18px_40px_-16px_rgba(6,78,59,0.55)]"
+            >
+              সব কোর্স দেখুন
+              <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+          </div>
         </div>
 
+        <div className="my-10 hairline" />
+
         {items.length === 0 ? (
-          <div className="mt-10 rounded-xl border border-dashed border-border bg-surface p-10 text-center text-sm text-muted-foreground">
+          <div className="rounded-2xl border border-dashed border-border bg-surface p-16 text-center text-sm text-muted-foreground">
             শীঘ্রই নতুন কোর্স যুক্ত হচ্ছে।
           </div>
         ) : (
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {items.map((c) => (
-              <PublicCourseCard key={c.id} course={c} />
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {items.map((c, i) => (
+              <motion.div
+                key={c.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-40px" }}
+                transition={{ duration: 0.5, delay: i * 0.08 }}
+              >
+                <PublicCourseCard course={c} />
+              </motion.div>
             ))}
           </div>
         )}
@@ -225,37 +380,39 @@ function Courses({ items }: { items: PublicCourseCardData[] }) {
 
 function ShopStrip({ products }: { products: Product[] }) {
   return (
-    <section className="relative px-4 py-20 md:px-6 md:py-24">
-      <div className="mx-auto max-w-6xl">
-        <div className="relative overflow-hidden rounded-3xl border-2 border-brand/25 bg-gradient-to-br from-brand-soft/70 via-background to-amber-50/50 p-6 shadow-[0_20px_60px_-25px_rgba(0,0,0,0.15)] md:p-10">
-          {/* Decorative glow */}
-          <div className="pointer-events-none absolute -top-24 -right-24 size-72 rounded-full bg-brand/20 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-24 -left-24 size-72 rounded-full bg-amber-200/40 blur-3xl" />
+    <section className="relative px-4 py-24 md:px-6 md:py-28">
+      <div className="mx-auto max-w-7xl">
+        <div className="relative overflow-hidden rounded-[2rem] border border-border bg-[var(--gradient-editorial)] p-6 shadow-[var(--shadow-editorial)] md:p-12">
+          {/* Decorative gold arcs */}
+          <div className="pointer-events-none absolute -top-32 -right-32 size-96 rounded-full bg-gold/20 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-24 -left-24 size-80 rounded-full bg-[color:var(--indigo-deep)]/30 blur-3xl" />
+          <div className="pointer-events-none absolute inset-0 opacity-[0.04] mix-blend-overlay bg-[radial-gradient(circle_at_1px_1px,#fff_1px,transparent_0)] [background-size:24px_24px]" />
 
-          <div className="relative flex flex-col justify-between gap-5 md:flex-row md:items-end">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-brand px-3 py-1 text-[11px] font-extrabold uppercase tracking-widest text-brand-foreground shadow-md shadow-brand/25">
-                <span className="size-1.5 rounded-full bg-white animate-pulse" />
-                অনলাইন শপ · সরাসরি অর্ডার
-              </div>
-              <h2 className="mt-3 text-3xl font-extrabold tracking-tight md:text-4xl">
-                বই, ই-বুক ও সুপার সাজেশন
+          <div className="relative grid gap-8 md:grid-cols-12 md:items-end">
+            <div className="md:col-span-8">
+              <SectionEyebrow index="02" label="Shop · অনলাইন অর্ডার" tone="light" />
+              <h2 className="mt-4 font-display text-4xl font-extrabold leading-[1.05] tracking-tight text-[color:var(--background)] md:text-5xl">
+                বই, ই-বুক ও
+                <br />
+                সুপার <span className="italic text-gold">সাজেশন</span>।
               </h2>
-              <p className="mt-2 max-w-xl text-sm font-semibold text-muted-foreground md:text-base">
+              <p className="mt-4 max-w-xl text-sm leading-relaxed text-[color:var(--background)]/75 md:text-base">
                 কোর্সের পাশাপাশি প্রয়োজনীয় প্রিন্টেড বই, ডিজিটাল ই-বুক ও পরীক্ষার সুপার সাজেশন —
                 ঘরে বসেই অর্ডার, দ্রুত ডেলিভারি।
               </p>
             </div>
-            <Link
-              to="/shop"
-              className="group inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-foreground px-6 py-3.5 text-sm font-extrabold text-background shadow-lg transition-all hover:-translate-y-0.5 hover:bg-brand hover:text-brand-foreground hover:shadow-xl hover:shadow-brand/30"
-            >
-              See All Products
-              <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
-            </Link>
+            <div className="md:col-span-4 md:text-right">
+              <Link
+                to="/shop"
+                className="group inline-flex items-center gap-2 rounded-full bg-[var(--gradient-gold)] px-6 py-3.5 text-sm font-bold text-[color:var(--ink)] shadow-[var(--shadow-gold)] transition-all hover:-translate-y-0.5"
+              >
+                সব প্রোডাক্ট দেখুন
+                <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+            </div>
           </div>
 
-          <div className="relative mt-8 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-5">
+          <div className="relative mt-10 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-5">
             {products.map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}
@@ -265,7 +422,6 @@ function ShopStrip({ products }: { products: Product[] }) {
     </section>
   );
 }
-
 
 function About() {
   const points = [
@@ -286,16 +442,16 @@ function About() {
     },
   ];
   return (
-    <section id="about" className="scroll-mt-20 border-t border-border/60 bg-surface px-4 py-20 md:px-6 md:py-24">
-      <div className="mx-auto grid max-w-6xl gap-12 md:grid-cols-2 md:gap-16">
-        <div>
-          <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            আমাদের সম্পর্কে
-          </div>
-          <h2 className="mt-2 text-3xl font-semibold leading-tight tracking-tight md:text-4xl">
-            পলিটেকনিক শিক্ষার্থীদের কথা ভেবেই তৈরি
+    <section id="about" className="scroll-mt-20 border-t border-border/70 bg-surface px-4 py-24 md:px-6 md:py-32">
+      <div className="mx-auto grid max-w-7xl gap-12 md:grid-cols-12 md:gap-16">
+        <div className="md:col-span-6">
+          <SectionEyebrow index="03" label="আমাদের সম্পর্কে" />
+          <h2 className="mt-4 font-display text-4xl font-extrabold leading-[1.05] tracking-tight md:text-5xl">
+            পলিটেকনিক শিক্ষার্থীদের
+            <br />
+            কথা ভেবেই <span className="italic text-brand">তৈরি</span>।
           </h2>
-          <p className="mt-5 text-base leading-relaxed text-muted-foreground">
+          <p className="mt-6 text-base leading-relaxed text-muted-foreground">
             Polytechnic Tutorial Home একটি ফোকাসড এডুকেশন প্ল্যাটফর্ম, যেখানে
             শুধুমাত্র বাংলাদেশের ডিপ্লোমা ইন ইঞ্জিনিয়ারিং শিক্ষার্থীদের জন্য
             কনটেন্ট তৈরি করা হয়। বিএসসি বা এইচএসসির জেনেরিক কোর্স নয় —
@@ -305,21 +461,40 @@ function About() {
             লক্ষ্য একটাই — প্রতিটা শিক্ষার্থী যেন সহজে, স্পষ্ট করে বুঝতে পারে
             এবং পরীক্ষায় ভালো করতে পারে।
           </p>
+          <div className="mt-8 inline-flex items-center gap-3 rounded-full border border-border bg-background/60 px-4 py-2 text-xs font-semibold">
+            <span className="size-1.5 rounded-full bg-gold" />
+            Bogura · Est. 2024
+          </div>
         </div>
-        <div className="space-y-6">
-          {points.map((p) => (
-            <div key={p.title} className="flex gap-4">
-              <div className="grid size-10 shrink-0 place-items-center rounded-md border border-border bg-background">
-                <p.icon className="size-4" />
-              </div>
-              <div>
-                <h3 className="font-semibold">{p.title}</h3>
-                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                  {p.desc}
-                </p>
-              </div>
-            </div>
-          ))}
+
+        <div className="md:col-span-6">
+          <div className="space-y-4">
+            {points.map((p, i) => (
+              <motion.div
+                key={p.title}
+                initial={{ opacity: 0, x: 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.1 }}
+                className="group relative flex gap-5 rounded-2xl border border-border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-[var(--shadow-editorial)] md:p-6"
+              >
+                <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-[var(--gradient-editorial)] text-background shadow-[var(--shadow-editorial)]">
+                  <p.icon className="size-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline gap-3">
+                    <span className="font-inter text-xs font-bold text-gold">
+                      0{i + 1}
+                    </span>
+                    <h3 className="font-display text-lg font-bold">{p.title}</h3>
+                  </div>
+                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                    {p.desc}
+                  </p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </div>
     </section>
@@ -328,31 +503,56 @@ function About() {
 
 function Testimonials() {
   return (
-    <section id="testimonials" className="scroll-mt-20 px-4 py-20 md:px-6 md:py-24">
-      <div className="mx-auto max-w-6xl">
-        <SectionHead
-          eyebrow="শিক্ষার্থীদের অভিজ্ঞতা"
-          title="যা বলছেন আমাদের শিক্ষার্থীরা"
-        />
-        <div className="mt-10 grid gap-5 md:grid-cols-3">
-          {TESTIMONIALS.map((t) => (
-            <figure
+    <section id="testimonials" className="scroll-mt-20 px-4 py-24 md:px-6 md:py-32">
+      <div className="mx-auto max-w-7xl">
+        <div className="max-w-3xl">
+          <SectionEyebrow index="04" label="শিক্ষার্থীদের অভিজ্ঞতা" />
+          <h2 className="mt-4 font-display text-4xl font-extrabold leading-[1.05] tracking-tight md:text-5xl">
+            যা বলছেন আমাদের
+            <br />
+            <span className="italic text-brand">শিক্ষার্থীরা</span>।
+          </h2>
+        </div>
+        <div className="mt-12 grid gap-5 md:grid-cols-3">
+          {TESTIMONIALS.map((t, i) => (
+            <motion.figure
               key={t.name}
-              className="flex flex-col rounded-xl border border-border bg-card p-6"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: i * 0.08 }}
+              className={cn(
+                "group relative flex flex-col rounded-2xl border border-border bg-card p-7 transition-all hover:-translate-y-1 hover:shadow-[var(--shadow-editorial)]",
+                i === 1 && "md:mt-8 md:bg-foreground md:text-background md:border-foreground"
+              )}
             >
+              <span className="absolute -top-3 left-6 font-display text-6xl leading-none text-gold">
+                “
+              </span>
               <div className="flex gap-0.5">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className="size-3.5 fill-foreground text-foreground" />
+                {Array.from({ length: 5 }).map((_, k) => (
+                  <Star key={k} className="size-3.5 fill-gold text-gold" />
                 ))}
               </div>
               <blockquote className="mt-4 flex-1 text-sm leading-relaxed">
-                “{t.text}”
+                {t.text}
               </blockquote>
-              <figcaption className="mt-6 border-t border-border pt-4">
-                <div className="text-sm font-semibold">{t.name}</div>
-                <div className="text-xs text-muted-foreground">{t.role}</div>
+              <figcaption className={cn(
+                "mt-6 flex items-center gap-3 border-t pt-4",
+                i === 1 ? "border-background/15" : "border-border"
+              )}>
+                <div className="grid size-9 place-items-center rounded-full bg-[var(--gradient-gold)] font-display text-xs font-bold text-[color:var(--ink)]">
+                  {t.name.charAt(0)}
+                </div>
+                <div>
+                  <div className="text-sm font-semibold">{t.name}</div>
+                  <div className={cn(
+                    "text-xs",
+                    i === 1 ? "text-background/60" : "text-muted-foreground"
+                  )}>{t.role}</div>
+                </div>
               </figcaption>
-            </figure>
+            </motion.figure>
           ))}
         </div>
       </div>
@@ -363,38 +563,51 @@ function Testimonials() {
 function FAQ() {
   const [open, setOpen] = useState<number | null>(0);
   return (
-    <section id="faq" className="scroll-mt-20 border-t border-border/60 bg-surface px-4 py-20 md:px-6 md:py-24">
-      <div className="mx-auto max-w-3xl">
-        <SectionHead
-          eyebrow="FAQ"
-          title="সাধারণ জিজ্ঞাসা"
-          desc="আরও প্রশ্ন থাকলে সরাসরি আমাদের সাথে যোগাযোগ করুন।"
-          center
-        />
-        <div className="mt-10 divide-y divide-border rounded-xl border border-border bg-card">
-          {FAQS.map((f, i) => {
-            const isOpen = open === i;
-            return (
-              <div key={f.q}>
-                <button
-                  onClick={() => setOpen(isOpen ? null : i)}
-                  className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
-                >
-                  <span className="text-sm font-medium md:text-base">{f.q}</span>
-                  {isOpen ? (
-                    <Minus className="size-4 shrink-0 text-muted-foreground" />
-                  ) : (
-                    <Plus className="size-4 shrink-0 text-muted-foreground" />
+    <section id="faq" className="scroll-mt-20 border-t border-border/70 bg-surface px-4 py-24 md:px-6 md:py-32">
+      <div className="mx-auto grid max-w-7xl gap-12 md:grid-cols-12">
+        <div className="md:col-span-5">
+          <SectionEyebrow index="05" label="FAQ" />
+          <h2 className="mt-4 font-display text-4xl font-extrabold leading-[1.05] tracking-tight md:text-5xl">
+            সাধারণ
+            <br />
+            <span className="italic text-brand">জিজ্ঞাসা</span>।
+          </h2>
+          <p className="mt-5 max-w-md text-sm leading-relaxed text-muted-foreground md:text-base">
+            আরও প্রশ্ন থাকলে সরাসরি আমাদের সাথে যোগাযোগ করুন।
+          </p>
+        </div>
+        <div className="md:col-span-7">
+          <div className="divide-y divide-border rounded-2xl border border-border bg-card">
+            {FAQS.map((f, i) => {
+              const isOpen = open === i;
+              return (
+                <div key={f.q}>
+                  <button
+                    onClick={() => setOpen(isOpen ? null : i)}
+                    className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left transition-colors hover:bg-secondary/50"
+                  >
+                    <span className="flex items-center gap-4">
+                      <span className="font-inter text-xs font-bold text-gold">
+                        0{i + 1}
+                      </span>
+                      <span className="font-display text-base font-semibold md:text-lg">{f.q}</span>
+                    </span>
+                    <span className={cn(
+                      "grid size-8 shrink-0 place-items-center rounded-full border border-border transition-all",
+                      isOpen && "bg-brand text-brand-foreground border-brand rotate-180"
+                    )}>
+                      {isOpen ? <Minus className="size-4" /> : <Plus className="size-4" />}
+                    </span>
+                  </button>
+                  {isOpen && (
+                    <div className="px-6 pb-6 pl-16 text-sm leading-relaxed text-muted-foreground">
+                      {f.a}
+                    </div>
                   )}
-                </button>
-                {isOpen && (
-                  <div className="px-5 pb-5 text-sm leading-relaxed text-muted-foreground">
-                    {f.a}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </section>
@@ -403,28 +616,42 @@ function FAQ() {
 
 function CTA() {
   return (
-    <section className="px-4 py-20 md:px-6 md:py-24">
-      <div className="mx-auto max-w-4xl rounded-2xl border border-border bg-foreground px-6 py-14 text-center text-background md:px-12">
-        <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
-          আজই শুরু করুন আপনার প্রস্তুতি
-        </h2>
-        <p className="mx-auto mt-3 max-w-lg text-sm text-background/70 md:text-base">
-          প্রথম ৫টি লেসন সম্পূর্ণ ফ্রি — কোনো কার্ড লাগবে না।
-        </p>
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link
-            to="/courses"
-            className="inline-flex items-center gap-2 rounded-md bg-background px-5 py-3 text-sm font-medium text-foreground transition-opacity hover:opacity-90"
-          >
-            এনরোল করুন
-            <ArrowRight className="size-4" />
-          </Link>
-          <Link
-            to="/shop"
-            className="inline-flex items-center gap-2 rounded-md border border-background/30 px-5 py-3 text-sm font-medium text-background transition-colors hover:bg-background/10"
-          >
-            শপ দেখুন
-          </Link>
+    <section className="px-4 py-24 md:px-6 md:py-28">
+      <div className="mx-auto max-w-7xl">
+        <div className="relative overflow-hidden rounded-[2rem] bg-[var(--gradient-editorial)] px-6 py-16 text-center shadow-[var(--shadow-editorial)] md:px-16 md:py-20">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-[var(--gradient-gold)]" />
+          <div className="pointer-events-none absolute -top-24 left-1/2 size-96 -translate-x-1/2 rounded-full bg-gold/15 blur-3xl" />
+          <div className="pointer-events-none absolute inset-0 opacity-[0.05] mix-blend-overlay bg-[radial-gradient(circle_at_1px_1px,#fff_1px,transparent_0)] [background-size:32px_32px]" />
+
+          <div className="relative">
+            <div className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-[color:var(--ink)]/20 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-gold backdrop-blur">
+              <Sparkles className="size-3.5" />
+              প্রথম ৫টি লেসন ফ্রি
+            </div>
+            <h2 className="mt-6 font-display text-4xl font-extrabold leading-[1.05] tracking-tight text-[color:var(--background)] md:text-6xl">
+              আজই শুরু করুন
+              <br />
+              আপনার <span className="italic text-gold">প্রস্তুতি</span>।
+            </h2>
+            <p className="mx-auto mt-5 max-w-lg text-sm text-[color:var(--background)]/75 md:text-base">
+              কোনো কার্ড লাগবে না — এখনই সাইন আপ করে বিনামূল্যে লেসন দেখা শুরু করুন।
+            </p>
+            <div className="mt-9 flex flex-wrap justify-center gap-3">
+              <Link
+                to="/courses"
+                className="group inline-flex items-center gap-2 rounded-full bg-[var(--gradient-gold)] px-7 py-4 text-sm font-bold text-[color:var(--ink)] shadow-[var(--shadow-gold)] transition-all hover:-translate-y-0.5"
+              >
+                এনরোল করুন
+                <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+              <Link
+                to="/shop"
+                className="inline-flex items-center gap-2 rounded-full border border-[color:var(--background)]/30 px-7 py-4 text-sm font-semibold text-[color:var(--background)] backdrop-blur transition-colors hover:bg-[color:var(--background)]/10"
+              >
+                শপ দেখুন
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -433,30 +660,26 @@ function CTA() {
 
 /* ---------- Helpers ---------- */
 
-function SectionHead({
-  eyebrow,
-  title,
-  desc,
-  center,
-}: {
-  eyebrow: string;
-  title: string;
-  desc?: string;
-  center?: boolean;
-}) {
+function SectionEyebrow({ index, label, tone }: { index: string; label: string; tone?: "light" }) {
   return (
-    <div className={cn("max-w-2xl", center && "mx-auto text-center")}>
-      <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-        {eyebrow}
-      </div>
-      <h2 className="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">
-        {title}
-      </h2>
-      {desc && (
-        <p className="mt-3 text-base leading-relaxed text-muted-foreground">
-          {desc}
-        </p>
-      )}
+    <div className="flex items-center gap-3">
+      <span
+        className={cn(
+          "font-display text-xs font-bold",
+          tone === "light" ? "text-gold" : "text-gold"
+        )}
+      >
+        {index}
+      </span>
+      <span className="h-px w-10 bg-gold" />
+      <span
+        className={cn(
+          "eyebrow",
+          tone === "light" && "!text-[color:var(--background)]/70"
+        )}
+      >
+        {label}
+      </span>
     </div>
   );
 }
