@@ -64,62 +64,53 @@ const ROLE_LABEL: Record<AppRole, string> = {
 export function ProfilePage({ role }: { role: AppRole }) {
   const isStudent = role === "student";
   const { user } = useAuth();
+  const qc = useQueryClient();
+  const fetchProfile = useServerFn(getMyProfile);
+  const saveProfile = useServerFn(updateMyProfile);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [savedForm, setSavedForm] = useState<FormState>(EMPTY_FORM);
   const [studentId, setStudentId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [editMode, setEditMode] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadPct, setUploadPct] = useState(0);
-  const [editMode, setEditMode] = useState(false);
   const [pickedFile, setPickedFile] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const profileQuery = useQuery({
+    queryKey: ["me", "profile", user?.id],
+    queryFn: () => fetchProfile(undefined as never) as Promise<ProfileRow | null>,
+    enabled: !!user,
+    staleTime: 10 * 60_000,
+    gcTime: 30 * 60_000,
+  });
+  const loading = profileQuery.isLoading;
+  const loadError = profileQuery.error ? (profileQuery.error as Error).message : null;
+
   useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-    (async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle<ProfileRow>();
-      if (cancelled) return;
-      if (error) {
-        setLoadError(error.message);
-        setLoading(false);
-        return;
-      }
-      if (data) {
-        const next: FormState = {
-          full_name: data.full_name ?? "",
-          avatar_url: data.avatar_url ?? "",
-          institute_name: (data as { institute_name?: string | null }).institute_name ?? "",
-          department_name: (data as { department_name?: string | null }).department_name ?? "",
-          current_semester: (data as { current_semester?: string | null }).current_semester ?? "",
-          board_roll: (data as { board_roll?: string | null }).board_roll ?? "",
-          registration_no: (data as { registration_no?: string | null }).registration_no ?? "",
-        };
-        setForm(next);
-        setSavedForm(next);
-        setStudentId((data as { student_id?: number | null }).student_id ?? null);
-        if (isStudent) {
-          const missing = getMissingProfileFields(data);
-          setEditMode(missing.length > 0);
-        } else {
-          setEditMode(!data.full_name);
-        }
-      } else {
-        setEditMode(true);
-      }
-      setLoadError(null);
-      setLoading(false);
-    })();
-    return () => {
-      cancelled = true;
+    const data = profileQuery.data;
+    if (!data) {
+      if (profileQuery.isSuccess && !data) setEditMode(true);
+      return;
+    }
+    const next: FormState = {
+      full_name: data.full_name ?? "",
+      avatar_url: data.avatar_url ?? "",
+      institute_name: (data as { institute_name?: string | null }).institute_name ?? "",
+      department_name: (data as { department_name?: string | null }).department_name ?? "",
+      current_semester: (data as { current_semester?: string | null }).current_semester ?? "",
+      board_roll: (data as { board_roll?: string | null }).board_roll ?? "",
+      registration_no: (data as { registration_no?: string | null }).registration_no ?? "",
     };
-  }, [user, isStudent]);
+    setForm(next);
+    setSavedForm(next);
+    setStudentId((data as { student_id?: number | null }).student_id ?? null);
+    if (isStudent) {
+      const missing = getMissingProfileFields(data);
+      setEditMode(missing.length > 0);
+    } else {
+      setEditMode(!data.full_name);
+    }
+  }, [profileQuery.data, profileQuery.isSuccess, isStudent]);
 
   const isComplete = useMemo(() => {
     if (!isStudent) return !!form.full_name.trim();
