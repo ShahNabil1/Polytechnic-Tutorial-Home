@@ -201,9 +201,18 @@ export function CrmCustomerDetailPage({ userId }: { userId: string }) {
           )}
         </>
       )}
+
+      {openOrderId && (
+        <AdminOrderDrawer
+          orderId={openOrderId}
+          onClose={() => setOpenOrderId(null)}
+          onChanged={() => setReloadTick((n) => n + 1)}
+        />
+      )}
     </div>
   );
 }
+
 
 function StatCard({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
   return (
