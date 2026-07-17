@@ -150,10 +150,11 @@ export function InternalEmailLogsDialog({
           <div className="flex items-center gap-1">
             <button
               onClick={refresh}
-              className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+              disabled={refreshing}
+              className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:opacity-50"
               title="Refresh"
             >
-              <RefreshCw className="size-4" />
+              <RefreshCw className={`size-4 ${refreshing ? "animate-spin" : ""}`} />
             </button>
             <button
               onClick={onClose}
