@@ -57,7 +57,7 @@ export function InternalProfilePage({ role }: { role: AppRole }) {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const profileQuery = useQuery({
-    queryKey: ["me", "profile", user?.id],
+    queryKey: ["me", "profile"],
     queryFn: () => fetchProfile(undefined as never) as Promise<ProfileRow | null>,
     enabled: !!user,
     staleTime: 10 * 60_000,
@@ -85,7 +85,7 @@ export function InternalProfilePage({ role }: { role: AppRole }) {
     mutationFn: (payload: Record<string, string | null>) =>
       saveProfile({ data: payload } as never),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["me", "profile", user?.id] });
+      qc.invalidateQueries({ queryKey: ["me", "profile"] });
       toast.success("Profile saved");
     },
     onError: (err: unknown) => {
