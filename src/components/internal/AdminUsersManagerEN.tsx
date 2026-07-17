@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 
 import { useServerFn } from "@tanstack/react-start";
@@ -42,28 +43,25 @@ function generatePassword(len = 14) {
 export function AdminUsersManagerEN({ role }: { role: "employee" | "instructor" }) {
   const list = useServerFn(listInternalUsers);
   const createUser = useServerFn(createInternalUser);
+  const qc = useQueryClient();
 
-  const [rows, setRows] = useState<AdminUserRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const query = useQuery({
+    queryKey: ["admin", "users"],
+    queryFn: () => list({ data: undefined as never }),
+    staleTime: 5 * 60_000,
+  });
+  const rows: AdminUserRow[] = (query.data ?? []).filter((r: AdminUserRow) => r.role === role);
+  const loading = query.isLoading;
+
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [showPw, setShowPw] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [logsFor, setLogsFor] = useState<AdminUserRow | null>(null);
 
-  async function refresh() {
-    setLoading(true);
-    try {
-      const data = await list({ data: undefined as never });
-      setRows((data ?? []).filter((r) => r.role === role));
-    } catch (e) {
-      toast.error("Failed to load: " + (e instanceof Error ? e.message : String(e)));
-    } finally {
-      setLoading(false);
-    }
-  }
-  useEffect(() => {
-    refresh();
-  }, [role]);
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["admin", "users"] });
+  };
+
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();

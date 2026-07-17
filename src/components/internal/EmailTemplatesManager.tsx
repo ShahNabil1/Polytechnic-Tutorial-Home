@@ -75,6 +75,7 @@ export function EmailTemplatesManager() {
   const { data, isLoading } = useQuery({
     queryKey: ["email-templates"],
     queryFn: () => fetchList(undefined as never),
+    staleTime: 10 * 60_000,
   });
   const templates = data?.templates ?? [];
 
