@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Send, X } from "lucide-react";
 import { toast } from "sonner";
@@ -38,6 +38,33 @@ export function CrmBulkSendDialog({
   const [subject, setSubject] = useState("");
   const [sending, setSending] = useState(false);
   useScrollLock(true);
+  const subjectRef = useRef<HTMLInputElement | null>(null);
+  const bodyRef = useRef<HTMLTextAreaElement | null>(null);
+  const VARS = channel === "sms"
+    ? ["name", "phone", "email", "last_order_no", "ltv"]
+    : ["name", "email", "phone", "last_order_no", "ltv"];
+
+  function insertVar(v: string) {
+    const token = `{{${v}}}`;
+    const active = document.activeElement;
+    const targetEl =
+      active === subjectRef.current ? subjectRef.current : bodyRef.current;
+    const isSubject = targetEl === subjectRef.current;
+    const currentValue = isSubject ? subject : body;
+    const setValue = isSubject ? setSubject : setBody;
+    if (!targetEl) {
+      setValue(currentValue + token);
+      return;
+    }
+    const start = targetEl.selectionStart ?? currentValue.length;
+    const end = targetEl.selectionEnd ?? currentValue.length;
+    setValue(currentValue.slice(0, start) + token + currentValue.slice(end));
+    requestAnimationFrame(() => {
+      targetEl.focus();
+      const pos = start + token.length;
+      try { targetEl.setSelectionRange(pos, pos); } catch {}
+    });
+  }
 
   const eligible = recipients.filter((r) =>
     channel === "sms" ? !!r.phone : !!r.email,
@@ -167,6 +194,7 @@ export function CrmBulkSendDialog({
             <div>
               <label className="text-xs font-medium text-muted-foreground">Subject</label>
               <input
+                ref={subjectRef}
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
@@ -174,14 +202,30 @@ export function CrmBulkSendDialog({
             </div>
           )}
           <div>
-            <label className="text-xs font-medium text-muted-foreground">
-              {channel === "sms" ? "Message" : "Body (HTML)"}
-            </label>
+            <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+              <label className="text-xs font-medium text-muted-foreground">
+                {channel === "sms" ? "Message" : "Body (HTML)"}
+              </label>
+              <div className="flex flex-wrap gap-1">
+                {VARS.map((v) => (
+                  <button
+                    type="button"
+                    key={v}
+                    onClick={() => insertVar(v)}
+                    className="rounded-full border border-border bg-muted/40 px-2 py-0.5 font-mono text-[10px] text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                    title={`Insert {{${v}}}`}
+                  >
+                    {`{{${v}}}`}
+                  </button>
+                ))}
+              </div>
+            </div>
             <textarea
+              ref={bodyRef}
               value={body}
               onChange={(e) => setBody(e.target.value)}
               rows={channel === "sms" ? 5 : 10}
-              className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-sm"
+              className="w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-sm"
               placeholder={channel === "sms" ? "Hi {{name}}, ..." : "<p>Hi {{name}},</p>"}
             />
           </div>

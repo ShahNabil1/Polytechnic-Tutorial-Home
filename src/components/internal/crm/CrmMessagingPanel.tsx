@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, Send, MessageSquare, Mail as MailIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -63,6 +63,46 @@ function chipTone(status: string): string {
   }
 }
 
+function insertAtCursor(
+  el: HTMLTextAreaElement | HTMLInputElement | null,
+  value: string,
+  setValue: (v: string) => void,
+  token: string,
+) {
+  if (!el) {
+    setValue(value + token);
+    return;
+  }
+  const start = el.selectionStart ?? value.length;
+  const end = el.selectionEnd ?? value.length;
+  const next = value.slice(0, start) + token + value.slice(end);
+  setValue(next);
+  requestAnimationFrame(() => {
+    el.focus();
+    const pos = start + token.length;
+    try { el.setSelectionRange(pos, pos); } catch {}
+  });
+}
+
+function VarChips({ vars, onPick }: { vars: string[]; onPick: (v: string) => void }) {
+  return (
+    <div className="flex flex-wrap gap-1">
+      {vars.map((v) => (
+        <button
+          type="button"
+          key={v}
+          onClick={() => onPick(v)}
+          className="rounded-full border border-border bg-muted/40 px-2 py-0.5 font-mono text-[10px] text-muted-foreground hover:bg-primary/10 hover:text-primary"
+          title={`Insert {{${v}}}`}
+        >
+          {`{{${v}}}`}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+
 type Props = {
   vars: CrmVars;
   userId: string | null;
@@ -88,6 +128,12 @@ export function CrmMessagingPanel({ vars, userId, phone, email }: Props) {
   const [sending, setSending] = useState<"sms" | "email" | null>(null);
   const [history, setHistory] = useState<{ sms: CrmSmsDelivery[]; emails: CrmEmailDelivery[] }>({ sms: [], emails: [] });
   const [historyLoading, setHistoryLoading] = useState(true);
+  const smsRef = useRef<HTMLTextAreaElement | null>(null);
+  const emailSubjectRef = useRef<HTMLInputElement | null>(null);
+  const emailBodyRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const SMS_VARS = ["name", "phone", "email", "student_id", "last_order_no", "ltv"];
+  const EMAIL_VARS = ["name", "email", "phone", "student_id", "last_order_no", "ltv"];
 
   useEffect(() => {
     const isManual = (t: any) => {
@@ -140,7 +186,7 @@ export function CrmMessagingPanel({ vars, userId, phone, email }: Props) {
         data: {
           user_id: userId ?? null,
           to_phone: phone,
-          body: smsBody.trim(),
+          body: previewTemplate(smsBody, vars).trim(),
           template_id: smsTplId ?? null,
         },
       });
@@ -164,8 +210,8 @@ export function CrmMessagingPanel({ vars, userId, phone, email }: Props) {
         data: {
           user_id: userId ?? null,
           to_email: email,
-          subject: emailSubject.trim(),
-          body_html: emailBody,
+          subject: previewTemplate(emailSubject, vars).trim(),
+          body_html: previewTemplate(emailBody, vars),
           template_id: emailTplId ?? null,
         },
       });
@@ -211,9 +257,14 @@ export function CrmMessagingPanel({ vars, userId, phone, email }: Props) {
               <option key={t.id} value={t.id}>{t.name}</option>
             ))}
           </select>
+          <VarChips
+            vars={SMS_VARS}
+            onPick={(v) => insertAtCursor(smsRef.current, smsBody, setSmsBody, `{{${v}}}`)}
+          />
           <textarea
+            ref={smsRef}
             className="min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            placeholder="Type or select a template. Variables like {{name}} {{phone}} auto-fill on preview."
+            placeholder="Type or select a template. Click a chip to insert variables like {{name}}, {{phone}}."
             value={smsBody}
             onChange={(e) => setSmsBody(e.target.value)}
           />
@@ -249,15 +300,29 @@ export function CrmMessagingPanel({ vars, userId, phone, email }: Props) {
               <option key={t.id} value={t.id}>{t.name}</option>
             ))}
           </select>
+          <VarChips
+            vars={EMAIL_VARS}
+            onPick={(v) => {
+              const el = document.activeElement;
+              const token = `{{${v}}}`;
+              if (el === emailSubjectRef.current) {
+                insertAtCursor(emailSubjectRef.current, emailSubject, setEmailSubject, token);
+              } else {
+                insertAtCursor(emailBodyRef.current, emailBody, setEmailBody, token);
+              }
+            }}
+          />
           <input
+            ref={emailSubjectRef}
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             placeholder="Subject"
             value={emailSubject}
             onChange={(e) => setEmailSubject(e.target.value)}
           />
           <textarea
+            ref={emailBodyRef}
             className="min-h-[160px] w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-xs"
-            placeholder="HTML body. Use {{name}}, {{email}}, {{phone}}, {{last_order_no}}, {{ltv}}."
+            placeholder="HTML body. Click a chip to insert {{name}}, {{email}}, {{phone}}, {{last_order_no}}, {{ltv}}."
             value={emailBody}
             onChange={(e) => setEmailBody(e.target.value)}
           />
