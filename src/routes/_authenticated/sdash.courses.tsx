@@ -112,16 +112,63 @@ function CoursesPage() {
           </div>
         </div>
 
-        <div className="mt-4 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-          <input
-            type="search"
-            placeholder="কোর্স, ডিপার্টমেন্ট বা সেমিস্টার খুঁজুন..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-slate-50 pl-10 pr-3 py-2.5 text-sm outline-none focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/20"
-          />
+        <div className="mt-4 flex flex-col gap-2.5 md:flex-row md:items-center">
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+            <input
+              type="search"
+              placeholder="কোর্স, ডিপার্টমেন্ট বা সেমিস্টার খুঁজুন..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 pl-10 pr-3 py-2.5 text-sm outline-none focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/20"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <FilterSelect
+              label="ডিপার্টমেন্ট"
+              value={deptSlug}
+              options={departments}
+              onChange={(v) => setDeptSlug(v)}
+            />
+            <FilterSelect
+              label="সেমিস্টার"
+              value={semSlug}
+              options={semesters}
+              onChange={(v) => setSemSlug(v)}
+              disabled={semesters.length === 0}
+            />
+            {hasActiveFilter && (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery("");
+                  setDeptSlug(null);
+                  setSemSlug(null);
+                }}
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
+              >
+                <X className="size-3.5" /> ক্লিয়ার
+              </button>
+            )}
+          </div>
         </div>
+
+        {(deptSlug || semSlug) && (
+          <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs">
+            {deptSlug && (
+              <FilterChip
+                label={departments.find((d) => d.slug === deptSlug)?.name ?? deptSlug}
+                onClear={() => setDeptSlug(null)}
+              />
+            )}
+            {semSlug && (
+              <FilterChip
+                label={semesters.find((s) => s.slug === semSlug)?.name ?? semSlug}
+                onClear={() => setSemSlug(null)}
+              />
+            )}
+          </div>
+        )}
       </div>
 
       {loading ? (
