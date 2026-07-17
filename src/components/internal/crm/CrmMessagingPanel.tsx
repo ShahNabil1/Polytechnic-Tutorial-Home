@@ -90,8 +90,12 @@ export function CrmMessagingPanel({ vars, userId, phone, email }: Props) {
   const [historyLoading, setHistoryLoading] = useState(true);
 
   useEffect(() => {
-    listSmsTplFn().then((r: any) => setSmsTemplates(r?.templates ?? [])).catch(() => {});
-    listEmailTplFn().then((r: any) => setEmailTemplates(r?.templates ?? [])).catch(() => {});
+    const isManual = (t: any) => {
+      const cat = String(t?.category ?? "other").toLowerCase();
+      return cat !== "transactional" && cat !== "otp";
+    };
+    listSmsTplFn().then((r: any) => setSmsTemplates((r?.templates ?? []).filter(isManual))).catch(() => {});
+    listEmailTplFn().then((r: any) => setEmailTemplates((r?.templates ?? []).filter(isManual))).catch(() => {});
     refresh();
   }, [userId, phone, email]);
 
