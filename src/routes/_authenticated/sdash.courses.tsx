@@ -17,13 +17,14 @@ function CoursesPage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"mine" | "all">("mine");
   const [query, setQuery] = useState("");
+  const [deptSlug, setDeptSlug] = useState<string | null>(null);
+  const [semSlug, setSemSlug] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
         const data = (await listFn(undefined as never)) as any[];
         setItems(data);
-        // Auto-switch to "all" if user has no enrolled courses
         if (!data.some((d) => d.has_access)) setTab("all");
       } catch (e: any) {
         toast.error(e?.message ?? "Failed to load");
@@ -34,24 +35,43 @@ function CoursesPage() {
   }, []);
 
   const enrolled = useMemo(() => items.filter((i) => i.has_access), [items]);
+
+  const scope = tab === "mine" ? enrolled : items;
+
+  const departments = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of scope) if (c.department_slug) map.set(c.department_slug, c.department_name);
+    return Array.from(map, ([slug, name]) => ({ slug, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [scope]);
+
+  const semesters = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of scope) {
+      if (deptSlug && c.department_slug !== deptSlug) continue;
+      if (c.semester_slug) map.set(c.semester_slug, c.semester_name);
+    }
+    return Array.from(map, ([slug, name]) => ({ slug, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [scope, deptSlug]);
+
+  useEffect(() => {
+    if (semSlug && !semesters.some((s) => s.slug === semSlug)) setSemSlug(null);
+  }, [semesters, semSlug]);
+
   const filtered = useMemo(() => {
-    const base = tab === "mine" ? enrolled : items;
+    let base = scope;
+    if (deptSlug) base = base.filter((c) => c.department_slug === deptSlug);
+    if (semSlug) base = base.filter((c) => c.semester_slug === semSlug);
     if (!query.trim()) return base;
     const q = query.toLowerCase();
     return base.filter((c) =>
-      [
-        c.title,
-        c.slug,
-        c.department_name,
-        c.department_slug,
-        c.semester_name,
-        c.semester_slug,
-        c.description,
-      ]
+      [c.title, c.slug, c.department_name, c.department_slug, c.semester_name, c.semester_slug, c.description]
         .filter(Boolean)
         .some((v: string) => String(v).toLowerCase().includes(q)),
     );
-  }, [tab, enrolled, items, query]);
+  }, [scope, deptSlug, semSlug, query]);
+
+  const hasActiveFilter = Boolean(query.trim() || deptSlug || semSlug);
+
 
   return (
     <div className="space-y-6">
