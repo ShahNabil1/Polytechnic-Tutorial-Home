@@ -755,6 +755,67 @@ export const listMyEnrollments = createServerFn({ method: "GET" })
     return (data ?? []) as any[];
   });
 
+export const getStudentDashboard = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const [enrolRes, depsRes, semsRes, placeRes] = await Promise.all([
+      context.supabase
+        .from("lms_enrollments")
+        .select("id, course_id, granted_at, expires_at, order_id, course:lms_courses(*)")
+        .eq("user_id", context.userId)
+        .order("granted_at", { ascending: false }),
+      context.supabase.from("lms_departments").select("id, name, slug"),
+      context.supabase.from("lms_semesters").select("id, name, slug"),
+      context.supabase.from("lms_subject_placements").select("department_id, semester_id, subject_id"),
+    ]);
+    if (enrolRes.error) throw new Error(enrolRes.error.message);
+    if (depsRes.error) throw new Error(depsRes.error.message);
+    if (semsRes.error) throw new Error(semsRes.error.message);
+
+    const depMap = new Map<string, any>(((depsRes.data ?? []) as any[]).map((d) => [d.id, d]));
+    const semMap = new Map<string, any>(((semsRes.data ?? []) as any[]).map((s) => [s.id, s]));
+    const subjectCounts = new Map<string, Set<string>>();
+    for (const p of (placeRes.data ?? []) as any[]) {
+      const k = `${p.department_id}:${p.semester_id}`;
+      const set = subjectCounts.get(k) ?? new Set<string>();
+      set.add(p.subject_id);
+      subjectCounts.set(k, set);
+    }
+
+    const now = Date.now();
+    const enrollments = ((enrolRes.data ?? []) as any[])
+      .filter((e) => e.course)
+      .map((e) => {
+        const c = e.course as any;
+        const dep = depMap.get(c.department_id);
+        const sem = semMap.get(c.semester_id);
+        const expired = e.expires_at ? new Date(e.expires_at).getTime() <= now : false;
+        return {
+          enrollment_id: e.id as string,
+          granted_at: e.granted_at as string,
+          expires_at: e.expires_at as string | null,
+          expired,
+          order_id: e.order_id as string | null,
+          course: {
+            id: c.id,
+            title: c.title,
+            slug: c.slug,
+            cover_image_url: c.cover_image_url,
+            price_bdt: Number(c.price_bdt ?? 0),
+            department_id: c.department_id,
+            semester_id: c.semester_id,
+            department_name: dep?.name ?? "",
+            department_slug: dep?.slug ?? "",
+            semester_name: sem?.name ?? "",
+            semester_slug: sem?.slug ?? "",
+            subject_count: subjectCounts.get(`${c.department_id}:${c.semester_id}`)?.size ?? 0,
+          },
+        };
+      });
+
+    return { enrollments };
+  });
+
 export const getCourseContentForUser = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) =>
