@@ -363,6 +363,14 @@ export type InternalUserDetail = {
   subjects: string[];
   departments: string[];
   bank_details: any | null;
+  student_profile: {
+    institute_name: string | null;
+    department_name: string | null;
+    current_semester: string | null;
+    board_roll: string | null;
+    registration_no: string | null;
+    student_id: number | null;
+  };
   auth: {
     created_at: string | null;
     last_sign_in_at: string | null;
@@ -419,6 +427,14 @@ export const getInternalUserDetail = createServerFn({ method: "POST" })
       subjects: i.subjects ?? [],
       departments: i.departments ?? [],
       bank_details: i.bank_details ?? null,
+      student_profile: {
+        institute_name: p.institute_name ?? null,
+        department_name: p.department_name ?? null,
+        current_semester: p.current_semester ?? null,
+        board_roll: p.board_roll ?? null,
+        registration_no: p.registration_no ?? null,
+        student_id: p.student_id ?? null,
+      },
       auth: {
         created_at: u.created_at ?? null,
         last_sign_in_at: u.last_sign_in_at ?? null,
@@ -899,6 +915,11 @@ export const adminUpdateTargetBasicProfile = createServerFn({ method: "POST" })
         user_id: z.string().uuid(),
         full_name: z.string().max(200).nullable().optional(),
         avatar_url: z.string().max(1000).nullable().optional(),
+        institute_name: z.string().max(200).nullable().optional(),
+        department_name: z.string().max(200).nullable().optional(),
+        current_semester: z.string().max(40).nullable().optional(),
+        board_roll: z.string().max(60).nullable().optional(),
+        registration_no: z.string().max(60).nullable().optional(),
       })
       .parse(input),
   )
@@ -906,11 +927,20 @@ export const adminUpdateTargetBasicProfile = createServerFn({ method: "POST" })
     await ensureManageableTarget(context, data.user_id);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const payload: Record<string, unknown> = {};
-    if (Object.prototype.hasOwnProperty.call(data, "full_name")) {
-      payload.full_name = data.full_name?.trim() || null;
-    }
-    if (Object.prototype.hasOwnProperty.call(data, "avatar_url")) {
-      payload.avatar_url = data.avatar_url?.trim() || null;
+    const keys = [
+      "full_name",
+      "avatar_url",
+      "institute_name",
+      "department_name",
+      "current_semester",
+      "board_roll",
+      "registration_no",
+    ] as const;
+    for (const k of keys) {
+      if (Object.prototype.hasOwnProperty.call(data, k)) {
+        const v = (data as any)[k];
+        payload[k] = typeof v === "string" ? v.trim() || null : v ?? null;
+      }
     }
     const { error } = await supabaseAdmin
       .from("profiles")
