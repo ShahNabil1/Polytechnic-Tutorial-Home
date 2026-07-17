@@ -11,6 +11,7 @@ export type CrmCustomerRow = {
   phone: string | null;
   avatar_url: string | null;
   signed_up_at: string;
+  student_id: number | null;
   order_count: number;
   total_spent: number;
   first_order_at: string | null;
