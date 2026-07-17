@@ -103,11 +103,12 @@ function StudentDashboardLayout() {
     return (
       profile?.full_name ||
       m?.full_name ||
-      user?.email ||
+      visibleEmail(user?.email) ||
       user?.phone ||
       "শিক্ষার্থী"
     );
   }, [profile, user]);
+
 
   const initials = useMemo(() => {
     const s = (displayName || "S").trim();
