@@ -20,6 +20,7 @@ import {
   RefreshCw,
   Fingerprint,
   Mail,
+  MessageSquare,
 } from "lucide-react";
 import {
   getInternalUserDetail,
@@ -72,6 +73,8 @@ export function InternalUserDetailPage({ userId, role }: Props) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [showLogs, setShowLogs] = useState(false);
+  const [showChannelPicker, setShowChannelPicker] = useState(false);
+
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -349,31 +352,53 @@ export function InternalUserDetailPage({ userId, role }: Props) {
     }
   }
 
-  async function handleResetPassword() {
-    if (!detail?.email) {
-      toast.error("No primary email on file — cannot email a new password");
+  async function handleResetPassword(explicitChannel?: "email" | "sms") {
+    const hasEmail = !!detail?.email;
+    const hasPhone = !!detail?.phone;
+    if (!hasEmail && !hasPhone) {
+      toast.error("No email or phone on file — cannot deliver new password");
       return;
     }
+    let channel: "email" | "sms" | undefined = explicitChannel;
+    if (!channel) {
+      if (hasEmail && hasPhone) {
+        // Ask which channel
+        setShowChannelPicker(true);
+        return;
+      }
+      channel = hasEmail ? "email" : "sms";
+    }
+    setShowChannelPicker(false);
+    const target = channel === "email" ? detail?.email : detail?.phone;
     if (
       !(await confirmDialog({
         variant: "danger",
-        title: "Reset password & email new one?",
-        description: `একটি নতুন র‌্যান্ডম পাসওয়ার্ড তৈরি হবে ও ${detail.email}-এ পাঠানো হবে। সব ডিভাইস থেকে ইউজার সাইন আউট হয়ে যাবে।`,
+        title: "Reset password?",
+        description:
+          channel === "email"
+            ? `একটি নতুন র‌্যান্ডম পাসওয়ার্ড তৈরি হবে ও ${target}-এ ইমেইল করা হবে। সব ডিভাইস থেকে ইউজার সাইন আউট হয়ে যাবে।`
+            : `একটি নতুন র‌্যান্ডম পাসওয়ার্ড তৈরি হবে ও ${target}-এ SMS করা হবে। সব ডিভাইস থেকে ইউজার সাইন আউট হয়ে যাবে।`,
       }))
     )
       return;
     setBusy("pwreset");
     try {
-      const res = (await resetPassword({ data: { user_id: userId } })) as {
+      const res = (await resetPassword({ data: { user_id: userId, channel } })) as {
         ok: boolean;
-        emailed?: boolean;
+        channel?: "email" | "sms";
+        sent?: boolean;
         error?: string;
       };
-      if (res?.emailed) {
-        toast.success("নতুন পাসওয়ার্ড ইমেইলে পাঠানো হয়েছে");
+      if (res?.sent) {
+        toast.success(
+          channel === "sms"
+            ? "নতুন পাসওয়ার্ড SMS-এ পাঠানো হয়েছে"
+            : "নতুন পাসওয়ার্ড ইমেইলে পাঠানো হয়েছে",
+        );
       } else {
         toast.warning(
-          "পাসওয়ার্ড রিসেট হয়েছে, কিন্তু ইমেইল পাঠাতে সমস্যা: " + (res?.error ?? "unknown"),
+          `পাসওয়ার্ড রিসেট হয়েছে, কিন্তু ${channel === "sms" ? "SMS" : "ইমেইল"} পাঠাতে সমস্যা: ` +
+            (res?.error ?? "unknown"),
         );
       }
       await refresh();
@@ -383,6 +408,7 @@ export function InternalUserDetailPage({ userId, role }: Props) {
       setBusy(null);
     }
   }
+
 
   if (loading || !detail) {
     return (
@@ -413,7 +439,7 @@ export function InternalUserDetailPage({ userId, role }: Props) {
             onClick={() => setShowLogs(true)}
             className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
           >
-            <ScrollText className="size-3.5" /> Email Logs
+            <ScrollText className="size-3.5" /> Delivery Logs
           </button>
           <button
             type="button"
@@ -496,39 +522,43 @@ export function InternalUserDetailPage({ userId, role }: Props) {
                 )}
                 Enter dashboard as user
               </button>
+              {!isCustomer && (
+                <button
+                  type="button"
+                  onClick={handleDownloadCv}
+                  disabled={busy === "cv" || !detail.cv_r2_key}
+                  title={detail.cv_r2_key ? "Download CV" : "No CV on file"}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                >
+                  {busy === "cv" ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <FileDown className="size-3.5" />
+                  )}
+                  Download CV
+                </button>
+              )}
+              {!isCustomer && (
+                <button
+                  type="button"
+                  onClick={handleResetMfa}
+                  disabled={busy === "mfa"}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-60"
+                >
+                  {busy === "mfa" ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <KeyRound className="size-3.5" />
+                  )}
+                  Reset 2FA
+                </button>
+              )}
               <button
                 type="button"
-                onClick={handleDownloadCv}
-                disabled={busy === "cv" || !detail.cv_r2_key}
-                title={detail.cv_r2_key ? "Download CV" : "No CV on file"}
-                className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
-              >
-                {busy === "cv" ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : (
-                  <FileDown className="size-3.5" />
-                )}
-                Download CV
-              </button>
-              <button
-                type="button"
-                onClick={handleResetMfa}
-                disabled={busy === "mfa"}
-                className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-60"
-              >
-                {busy === "mfa" ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : (
-                  <KeyRound className="size-3.5" />
-                )}
-                Reset 2FA
-              </button>
-              <button
-                type="button"
-                onClick={handleResetPassword}
+                onClick={() => handleResetPassword()}
                 disabled={busy === "pwreset"}
                 className="inline-flex items-center gap-1.5 rounded-md border border-orange-300 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-800 hover:bg-orange-100 disabled:opacity-60"
-                title="Generate a new random password and email it to the primary email"
+                title="Generate a new random password and send it via email or SMS"
               >
                 {busy === "pwreset" ? (
                   <Loader2 className="size-3.5 animate-spin" />
@@ -537,6 +567,7 @@ export function InternalUserDetailPage({ userId, role }: Props) {
                 )}
                 Reset Password
               </button>
+
             </div>
           </div>
         </div>
@@ -855,6 +886,55 @@ export function InternalUserDetailPage({ userId, role }: Props) {
           onClose={() => setShowLogs(false)}
         />
       )}
+
+      {showChannelPicker && (
+        <div
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
+          onClick={() => setShowChannelPicker(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base font-bold text-slate-900">
+              পাসওয়ার্ড কোথায় পাঠাবেন?
+            </h3>
+            <p className="mt-1 text-xs text-slate-500">
+              নতুন পাসওয়ার্ড তৈরি করে ইমেইল অথবা SMS-এ পাঠানো হবে।
+            </p>
+            <div className="mt-4 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => handleResetPassword("email")}
+                className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+              >
+                <Mail className="size-4 text-indigo-600" />
+                <span className="flex-1 text-left">Email</span>
+                <span className="truncate text-xs font-normal text-slate-500">{detail.email}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleResetPassword("sms")}
+                className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+              >
+                <MessageSquare className="size-4 text-emerald-600" />
+                <span className="flex-1 text-left">SMS</span>
+                <span className="truncate text-xs font-normal text-slate-500">{detail.phone}</span>
+              </button>
+            </div>
+            <div className="mt-4 text-right">
+              <button
+                type="button"
+                onClick={() => setShowChannelPicker(false)}
+                className="rounded-md px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
