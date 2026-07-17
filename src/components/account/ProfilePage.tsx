@@ -235,13 +235,10 @@ export function ProfilePage({ role }: { role: AppRole }) {
     setEditMode(false);
   }
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+  if (loading && !profileQuery.data) {
+    return <ProfileSkeleton variant="bn" />;
   }
+
 
   if (loadError) {
     return (
