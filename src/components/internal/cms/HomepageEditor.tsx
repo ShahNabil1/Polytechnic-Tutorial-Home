@@ -5,6 +5,7 @@ import { Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import { getHomepageContent, saveHomepageContent } from "@/lib/cms.functions";
 import { DEFAULT_HOMEPAGE_CONTENT, type HomepageContent } from "@/lib/cms-types";
 import { Field, PageHeader, SaveButton, SectionCard, TextArea, TextInput } from "./FormPrimitives";
+import { ImageUploadField } from "./ImageUploadField";
 import { cn } from "@/lib/utils";
 
 const TABS = [
@@ -122,6 +123,41 @@ function HeroEditor({ value, onChange }: { value: HomepageContent["hero"]; onCha
           <Field label="Caption"><TextInput value={value.socialProof.caption} onChange={(e) => upd({ socialProof: { ...value.socialProof, caption: e.target.value } })} /></Field>
           <Field label="Rating"><TextInput value={value.socialProof.rating} onChange={(e) => upd({ socialProof: { ...value.socialProof, rating: e.target.value } })} /></Field>
         </div>
+        <Field label="Avatar images" hint="হিরো সেকশনে দেখানো ছোট গোল ছবিগুলো। আপলোড করুন বা URL দিন।">
+          <div className="space-y-3">
+            {(value.socialProof.avatars ?? []).map((url, idx) => (
+              <div key={idx} className="flex items-start gap-2">
+                <div className="flex-1">
+                  <ImageUploadField
+                    value={url}
+                    onChange={(v) => {
+                      const next = [...(value.socialProof.avatars ?? [])];
+                      next[idx] = v;
+                      upd({ socialProof: { ...value.socialProof, avatars: next } });
+                    }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = (value.socialProof.avatars ?? []).filter((_, i) => i !== idx);
+                    upd({ socialProof: { ...value.socialProof, avatars: next } });
+                  }}
+                  className="mt-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50"
+                >
+                  <Trash2 className="size-4" />
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => upd({ socialProof: { ...value.socialProof, avatars: [...(value.socialProof.avatars ?? []), ""] } })}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-indigo-400 hover:text-indigo-600"
+            >
+              <Plus className="size-3.5" /> Avatar যোগ করুন
+            </button>
+          </div>
+        </Field>
       </SectionCard>
 
       <SectionCard title="Featured course card">
