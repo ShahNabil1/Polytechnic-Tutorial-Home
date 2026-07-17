@@ -52,6 +52,10 @@ export function CrmBulkSendDialog({
   }, [channel]);
 
   function applyTemplate(id: string) {
+    if (!id) {
+      setTplId(null);
+      return;
+    }
     setTplId(id);
     const tpl = templates.find((t) => t.id === id);
     if (!tpl) return;
