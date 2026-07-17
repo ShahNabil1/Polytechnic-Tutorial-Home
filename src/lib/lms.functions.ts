@@ -100,6 +100,7 @@ export const upsertAcademicTaxonomy = createServerFn({ method: "POST" })
     if (data.id) {
       const { error } = await context.supabase.from(table).update(row as never).eq("id", data.id);
       if (error) throw new Error(error.message);
+      await invalidateLmsCaches();
       return { ok: true, id: data.id };
     }
     const { data: inserted, error } = await context.supabase
@@ -108,6 +109,7 @@ export const upsertAcademicTaxonomy = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
+    await invalidateLmsCaches();
     return { ok: true, id: (inserted as any).id as string };
   });
 
@@ -120,6 +122,7 @@ export const deleteAcademicTaxonomy = createServerFn({ method: "POST" })
     await ensureCanManage(context);
     const { error } = await context.supabase.from(tableForKind(data.kind)).delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    await invalidateLmsCaches();
     return { ok: true };
   });
 
@@ -297,6 +300,7 @@ export const upsertSubject = createServerFn({ method: "POST" })
       const { error } = await context.supabase.from("lms_subject_placements").insert(rows);
       if (error) throw new Error(error.message);
     }
+    await invalidateLmsCaches();
     return { ok: true, id: subjectId! };
   });
 
@@ -308,6 +312,7 @@ export const deleteSubject = createServerFn({ method: "POST" })
     await ensureCanManage(context);
     const { error } = await context.supabase.from("lms_subjects").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    await invalidateLmsCaches();
     return { ok: true };
   });
 
@@ -368,6 +373,7 @@ export const upsertModule = createServerFn({ method: "POST" })
         .update(data.patch as never)
         .eq("id", data.id);
       if (error) throw new Error(error.message);
+      await invalidateLmsCaches();
       return { ok: true, id: data.id };
     }
     const { data: row, error } = await context.supabase
@@ -376,6 +382,7 @@ export const upsertModule = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
+    await invalidateLmsCaches();
     return { ok: true, id: (row as any).id as string };
   });
 
@@ -386,6 +393,7 @@ export const deleteModule = createServerFn({ method: "POST" })
     await ensureCanManage(context);
     const { error } = await context.supabase.from("lms_modules").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    await invalidateLmsCaches();
     return { ok: true };
   });
 
@@ -417,6 +425,7 @@ export const upsertLesson = createServerFn({ method: "POST" })
     if (data.id) {
       const { error } = await context.supabase.from("lms_lessons").update(patch).eq("id", data.id);
       if (error) throw new Error(error.message);
+      await invalidateLmsCaches();
       return { ok: true, id: data.id };
     }
     const { data: row, error } = await context.supabase
@@ -425,6 +434,7 @@ export const upsertLesson = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
+    await invalidateLmsCaches();
     return { ok: true, id: (row as any).id as string };
   });
 
@@ -435,6 +445,7 @@ export const deleteLesson = createServerFn({ method: "POST" })
     await ensureCanManage(context);
     const { error } = await context.supabase.from("lms_lessons").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    await invalidateLmsCaches();
     return { ok: true };
   });
 
@@ -593,6 +604,7 @@ export const upsertCourse = createServerFn({ method: "POST" })
     if (data.id) {
       const { error } = await context.supabase.from("lms_courses").update(payload).eq("id", data.id);
       if (error) throw new Error(error.message);
+      await invalidateLmsCaches();
       return { ok: true, id: data.id };
     }
     payload.created_by = context.userId;
@@ -602,6 +614,7 @@ export const upsertCourse = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
+    await invalidateLmsCaches();
     return { ok: true, id: (row as any).id as string };
   });
 
@@ -617,6 +630,7 @@ export const setCourseFeatured = createServerFn({ method: "POST" })
       .update({ is_featured: data.is_featured })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+    await invalidateLmsCaches();
     return { ok: true };
   });
 
@@ -627,6 +641,7 @@ export const deleteCourse = createServerFn({ method: "POST" })
     await ensureCanManage(context);
     const { error } = await context.supabase.from("lms_courses").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    await invalidateLmsCaches();
     return { ok: true };
   });
 
@@ -666,6 +681,7 @@ export const generateMissingCourses = createServerFn({ method: "POST" })
     if (rows.length === 0) return { ok: true, created: 0 };
     const { error } = await context.supabase.from("lms_courses").insert(rows);
     if (error) throw new Error(error.message);
+    await invalidateLmsCaches();
     return { ok: true, created: rows.length };
   });
 
