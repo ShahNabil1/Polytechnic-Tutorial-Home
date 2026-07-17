@@ -71,7 +71,7 @@ function DashboardHome() {
             <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-500">
               {greeting} · শিক্ষার্থী পোর্টাল
             </div>
-            <h1 className="mt-3 font-display text-3xl md:text-4xl font-bold leading-[1.15] tracking-tight text-slate-900">
+            <h1 className="mt-3 text-3xl md:text-4xl font-bold leading-[1.15] tracking-tight text-slate-900">
               স্বাগতম,
               <br />
               <span className="text-brand">{firstName}</span>
@@ -107,7 +107,7 @@ function DashboardHome() {
                     আজকের সারাংশ
                   </div>
                   <div className="mt-2 flex items-baseline gap-1.5">
-                    <span className="font-display text-5xl font-bold text-slate-900 tabular-nums">
+                    <span className="text-5xl font-bold text-slate-900 tabular-nums">
                       {loading ? "—" : toBn(enrolled.length)}
                     </span>
                     <span className="text-sm text-slate-500">এনরোল্ড কোর্স</span>
@@ -123,7 +123,7 @@ function DashboardHome() {
                   <div className="text-[11px] uppercase tracking-wider text-slate-500">
                     ক্যাটালগ
                   </div>
-                  <div className="mt-0.5 font-display text-xl font-semibold text-slate-900 tabular-nums">
+                  <div className="mt-0.5 text-xl font-semibold text-slate-900 tabular-nums">
                     {loading ? "—" : toBn(courses.length)}
                   </div>
                 </div>
@@ -131,7 +131,7 @@ function DashboardHome() {
                   <div className="text-[11px] uppercase tracking-wider text-slate-500">
                     ফিচার্ড
                   </div>
-                  <div className="mt-0.5 font-display text-xl font-semibold text-slate-900 tabular-nums">
+                  <div className="mt-0.5 text-xl font-semibold text-slate-900 tabular-nums">
                     {loading ? "—" : toBn(featured.length)}
                   </div>
                 </div>
@@ -225,7 +225,7 @@ function SectionHeader({
       <div className="min-w-0">
         <div className="flex items-center gap-2.5">
           <span aria-hidden className="h-4 w-1 rounded-full bg-brand" />
-          <h2 className="font-display text-xl md:text-[22px] font-semibold tracking-tight text-slate-900">
+          <h2 className="text-xl md:text-[22px] font-semibold tracking-tight text-slate-900">
             {title}
           </h2>
         </div>
