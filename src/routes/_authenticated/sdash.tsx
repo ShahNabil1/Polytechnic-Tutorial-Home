@@ -194,7 +194,7 @@ function StudentDashboardLayout() {
               displayName={displayName}
               initials={initials}
               avatarUrl={avatarUrl}
-              email={user?.email ?? user?.phone ?? ""}
+              email={contactLine}
               pathname={pathname}
               onSignOut={handleSignOut}
               onCollapse={() => setCollapsed(true)}
@@ -224,7 +224,7 @@ function StudentDashboardLayout() {
                 displayName={displayName}
                 initials={initials}
                 avatarUrl={avatarUrl}
-                email={user?.email ?? user?.phone ?? ""}
+                email={contactLine}
                 pathname={pathname}
                 onSignOut={handleSignOut}
               />
