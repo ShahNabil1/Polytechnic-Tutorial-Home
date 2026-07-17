@@ -99,6 +99,19 @@ function StudentDashboardLayout() {
     return parts.map((p) => p[0]?.toUpperCase() ?? "").join("") || "S";
   }, [displayName]);
 
+  const avatarUrl = useMemo(() => {
+    const meta = (user?.user_metadata ?? {}) as {
+      avatar_url?: string;
+      picture?: string;
+    };
+    return (
+      (profile as unknown as { avatar_url?: string | null })?.avatar_url ||
+      meta.avatar_url ||
+      meta.picture ||
+      null
+    );
+  }, [profile, user]);
+
   const pageTitle = useMemo(() => {
     if (pathname === "/sdash") return "ড্যাশবোর্ড";
     if (pathname.startsWith("/sdash/courses")) return "কোর্স";
