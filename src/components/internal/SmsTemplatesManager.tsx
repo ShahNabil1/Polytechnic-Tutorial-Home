@@ -18,9 +18,10 @@ const SYSTEM_VARS: Record<string, string[]> = {
   order_confirm: ["name", "order_no", "amount", "receipt_url", "phone"],
   signup_otp: ["name", "otp"],
   reset_otp: ["name", "otp"],
+  internal_password_reset: ["name", "password", "login_url", "phone"],
 };
 
-const ALL_KNOWN_VARS = ["name", "order_no", "amount", "receipt_url", "phone", "otp"];
+const ALL_KNOWN_VARS = ["name", "order_no", "amount", "receipt_url", "phone", "otp", "password", "login_url"];
 
 // System keys that represent auto-sent messages (toggle-able)
 const AUTO_KEYS = new Set(["order_confirm"]);
