@@ -81,10 +81,11 @@ export function CrmListPage({ kind }: { kind: Kind }) {
   const [openOrderId, setOpenOrderId] = useState<string | null>(null);
 
 
+  const [reloadTick, setReloadTick] = useState(0);
   useEffect(() => {
     let cancel = false;
     setLoading(true);
-    setSelected(new Set());
+    if (reloadTick === 0) setSelected(new Set());
     (async () => {
       try {
         let data: any[] = [];
@@ -100,7 +101,8 @@ export function CrmListPage({ kind }: { kind: Kind }) {
       }
     })();
     return () => { cancel = true; };
-  }, [kind, search, listCustomers, listGuests, listIncomplete]);
+  }, [kind, search, reloadTick, listCustomers, listGuests, listIncomplete]);
+
 
   const meta = KIND_META[kind];
 
