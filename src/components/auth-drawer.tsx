@@ -872,7 +872,7 @@ export function AuthDrawer({
       : stage === "mfa-enroll"
       ? "Two-Factor Setup"
       : stage === "mfa"
-        ? "টু-ফ্যাক্টর কোড দিন"
+        ? "Enter two-factor code"
         : stage === "otp"
         ? "ফোন ভেরিফাই করুন"
         : forgotMode
