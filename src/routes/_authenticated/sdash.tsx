@@ -35,6 +35,16 @@ export const Route = createFileRoute("/_authenticated/sdash")({
       { name: "robots", content: "noindex" },
     ],
   }),
+  loader: ({ context }) => {
+    void context.queryClient.prefetchQuery({
+      queryKey: ["me", "profile"],
+      queryFn: async () => {
+        const { getMyProfile } = await import("@/lib/profile.functions");
+        return getMyProfile(undefined as never);
+      },
+      staleTime: 10 * 60_000,
+    });
+  },
   component: StudentDashboardLayout,
 });
 
