@@ -1,71 +1,117 @@
-## সমস্যাটা কী
+# Premium UI/UX Refactor — Main Website
 
-এখন Bulk SMS/Email পাঠানোর পরে UI শুধু একটা টোস্ট দেয়: `SMS: 42 sent · 8 failed`। কার কাছে গেল না, কেন গেল না (ফোন নেই / ইমেইল নেই / bulksmsbd ব্যালান্স শেষ / Resend rate-limit / invalid number) — কিছুই দেখা যায় না। ডেটাবেসে `crm_sms_deliveries` / `crm_email_deliveries` টেবিলে প্রতি সেন্ডের রেকর্ড থাকে (`kind = 'crm_bulk'`, `error_reason`, `provider_status`) কিন্তু ওগুলো এক জায়গায় গ্রুপ করা নেই, তাই "এই ব্যাচের ফেইলগুলা" দেখা বা রিট্রাই করা যায় না। এছাড়া "কনট্যাক্ট নাই" রিসিপিয়েন্টগুলো ক্লায়েন্টেই silently drop হয়ে যায় — কোথাও ট্রেস থাকে না।
+**Scope:** Only visual/UX layer of `/` (homepage), site header, site footer, and shared design tokens. All data fetching, routes, auth, cart, checkout, admin, and workspace logic remain **byte-for-byte identical**. No API/DB changes.
 
-## যেভাবে ঠিক করব
+---
 
-### 1. Campaign হিসেবে গ্রুপ করা (ডেটাবেস)
+## 1. Design System (foundation)
 
-নতুন টেবিল `crm_bulk_campaigns` — এক Bulk send = এক row:
+Update `src/styles.css` with a custom editorial palette blended from your picks:
 
-```text
-id, channel (sms|email), subject, body, template_id, sender_user_id,
-total, sent, failed, skipped_no_contact, created_at
-```
+**Colors (light mode, primary)**
+- Paper base: `#f5f3ee` (background), `#e8e4dd` (muted surface)
+- Ink: `#2d2d2d` (foreground)
+- Deep Emerald: `#064e3b` (primary), `#0d7a5f` (primary-glow)
+- Indigo accent: `#1e1e5a` / `#4f46e5` (secondary / links)
+- Gold: `#c9a84c` (accent), `#f0d78c` (accent-soft) — used sparingly for prestige highlights, dividers, numbers
 
-`crm_sms_deliveries` / `crm_email_deliveries` এ একটা `campaign_id` কলাম যোগ করা হবে (nullable — আগের manual send-এর জন্য NULL)। এছাড়া "skipped_no_contact" রিসিপিয়েন্টগুলার জন্য delivery টেবিলেই একটা special row লেখা হবে `status='skipped'`, `error_reason='no_phone'`/`'no_email'` দিয়ে — যাতে drill-down এ সবাই একসাথে দেখা যায়।
+**Dark mode**: ink `#0d0d0d` bg, `#f5f3ee` foreground, same emerald/indigo/gold accents shifted for contrast.
 
-### 2. Post-send Report Dialog
+**Tokens added**
+- `--gradient-editorial`: emerald → indigo diagonal
+- `--gradient-gold`: gold → gold-soft
+- `--shadow-editorial`: soft layered shadow with emerald tint
+- `--shadow-gold`: subtle gold glow for CTAs
+- Border radius scale kept, plus new `--radius-editorial: 2px` for sharp magazine blocks
 
-`sendCrmBulkSms` / `sendCrmBulkEmail` এখন `{ campaign_id, sent, failed, skipped, breakdown: [{ user_id, contact, status, error_reason }] }` ফেরত দেবে। Bulk send করার পর একটা report modal খুলবে যেখানে থাকবে:
+**Typography** (loaded via `<link>` in `__root.tsx` head)
+- Headings: **Syne** (700/800) — bold, distinctive display
+- Body: **Plus Jakarta Sans** (400/500/600)
+- Numeric/labels: Plus Jakarta with tight tracking, uppercase for eyebrow labels
 
-- সামারি চিপ: **Sent 42 · Failed 6 · Skipped 12**
-- ট্যাব: All / Sent / Failed / Skipped
-- প্রতিটা row: কাস্টমারের নাম + ফোন/ইমেইল + status chip + reason (`Insufficient balance`, `Invalid number`, `No phone on file`, `Bounced`, ইত্যাদি)
-- এক্সপোর্ট (CSV) বাটন
-- **Retry failed** বাটন — শুধু ফেইলগুলা নিয়ে একই বডি রিসেন্ড
-- **Retry skipped** — যাদের এখন কনট্যাক্ট আছে (admin CRM এ ফোন/ইমেইল add করার পরে) তাদের বাদ থেকে বের করে আনা
+---
 
-### 3. Campaigns Tab (CRM এ পার্মানেন্ট হিস্টরি)
+## 2. Site Header (`site-header.tsx`)
 
-`/workspace/crm` এ নতুন ট্যাব **Campaigns** — আগের সব bulk send-এর লিস্ট, প্রতিটাতে ক্লিক করলে ওই একই report drawer আবার খুলবে। মানে দুই সপ্তাহ পরেও ফেইলগুলা দেখে রিট্রাই করা যাবে।
+Keep every existing link, drawer, cart, auth trigger. Refactor visuals only:
+- Slimmer top strip with gold hairline divider
+- Wordmark in Syne, tight tracking, small gold dot separator
+- Nav links: uppercase micro-label + underline-on-hover reveal (emerald)
+- Cart / auth buttons: pill icon buttons with subtle border, gold indicator dot for cart count
+- Sticky header on scroll: shrinks, background frosted paper with border-bottom hairline
+- Mobile: full-height drawer, editorial serif-adjacent headings
 
-### 4. Gateway Health Panel
+---
 
-Bulk dialog-এর উপরে ছোট একটা স্ট্রিপ যেটা preflight করবে:
+## 3. Homepage (`routes/index.tsx`) — Magazine Layout
 
-- **SMS ব্যালান্স**: bulksmsbd-র `smsapi?api_key=...&type=credit` (বা যেটা তারা সাপোর্ট করে) থেকে ব্যালান্স + এই ব্যাচে estimated segments। ব্যালান্স < estimated হলে পাঠানোর বাটন লাল সতর্কতা দেখাবে।
-- **Email**: শেষ 24 ঘণ্টায় Resend-এ কতটা পাঠানো হয়েছে (`crm_email_deliveries` count) + daily plan cap-এর ওয়ার্নিং। Resend rate-limit error (`429`) alaada label হিসেবে রিপোর্টে দেখাবে।
+All existing data queries (featured courses, bundles, products, departments) reused as-is. Only presentation swapped.
 
-এই ব্যালান্স endpoint একটা নতুন server function `getGatewayHealth` যেটা settings-এও দেখানো যাবে।
+**Section order:**
 
-### 5. Retry Logic (সঠিক আচরণ)
+1. **Editorial Hero (featured block)**
+   - Split magazine cover: left = huge Syne headline + eyebrow label + emerald CTA + gold-underlined secondary link. Right = layered image / bento-mini with course thumbnail, floating stat cards (students count, courses count) with gold accents.
+   - Issue-number style tag: "VOL. 01 · POLYTECHNIC EDITORIAL"
 
-- **Failed with retryable reason** (network, rate-limit `429`, bulksmsbd temporary code): "Retry failed" বাটন directly পুনরায় পাঠাবে; নতুন delivery row লিখবে `attempt_no=2` এবং একই `campaign_id`-তে যোগ হবে।
-- **Failed with permanent reason** (invalid phone/email, bounced address): Retry এ include হবে না — reason চিপে "won't retry" ট্যাগ থাকবে; admin কে কাস্টমার প্রোফাইলে গিয়ে ঠিক করতে হবে।
-- **Gateway/balance exhausted** (bulksmsbd code 1007 বা Resend 402/429): report-এ বড় ব্যানার — "SMS gateway balance low — recharge then retry"; admin ব্যালান্স রিচার্জ করে report drawer থেকেই "Retry failed" চাপবে।
-- **Skipped (no contact)**: retry বাটন disabled; পাশে "Open customer" লিংক — admin গিয়ে contact save করবে, তারপর "Retry skipped" চাপলে যাদের এখন কনট্যাক্ট আছে শুধু তাদেরই পাঠাবে।
+2. **Featured Grid (magazine)**
+   - Asymmetric 3-column: one large feature card (7 cols) + two stacked small cards (5 cols).
+   - Cards: paper background, thin ink border, category eyebrow, Syne title, meta row with gold divider.
 
-### 6. প্রতি রিসিপিয়েন্টের কাছে Delivery History তে ট্রেসেবল
+3. **Departments strip**
+   - Horizontal scroll / grid of department chips as editorial index entries: numbered `01 — Computer`, hover reveals emerald underline.
 
-কাস্টমার ডিটেইল পেজের Delivery history section (যেটা আগেই আছে) এ `crm_bulk` kind হলে "Bulk campaign · {name/date}" ব্যাজ দেখাবে — ওই ব্যাজে ক্লিক করলে campaign drawer খুলবে।
+4. **Courses showcase**
+   - 3-up card grid using existing `PublicCourseCard`, restyled: sharper corners, gold rating stars, price in Syne, "Enroll" button emerald with gold hover.
 
-## Technical section (ডেভ ডিটেইলস)
+5. **Bundles block**
+   - Full-width dark emerald band with gold headline, bundle cards in inverted palette (paper on emerald).
 
-- **Migration**: `crm_bulk_campaigns` টেবিল (grants: authenticated select/insert/update, service_role all), RLS: শুধু staff (has_permission `manage_users`) দেখতে/লিখতে পারবে। `crm_sms_deliveries` / `crm_email_deliveries` এ `campaign_id uuid null` + index (`campaign_id`)। Realtime enable করার দরকার নেই — one-shot ফেচ।
-- **Skipped rows**: `crm_*_deliveries` এ `status` চেক কনস্ট্রেন্ট থাকলে `'skipped'` value allow করতে হবে; না থাকলে ঠিক আছে। `to_phone`/`to_email` NULL allow করার দরকার হলে migration-এ শিথিল করা হবে।
-- **Server functions** (`src/lib/crm-bulk.functions.ts`):
-  - `sendCrmBulkSms` / `sendCrmBulkEmail`: শুরুতে `crm_bulk_campaigns` insert → `campaign_id` পাওয়া গেলে every delivery row-এ ওইটা স্ট্যাম্প। skipped রিসিপিয়েন্টের জন্যও একটা row লিখবে। শেষে campaign row-এ counts আপডেট। রিটার্ন-এ `campaign_id` যোগ।
-  - নতুন `getCrmCampaigns` (list), `getCrmCampaign` (detail with breakdown grouped by status), `retryCrmCampaignFailed` (retryable-only), `retryCrmCampaignSkipped` (যাদের এখন contact আছে)।
-  - নতুন `getGatewayHealth` — bulksmsbd balance + Resend 24h usage। Result 30s cache।
-- **Client**:
-  - `CrmBulkSendDialog`: এখন `eligible` filter করার বদলে সব রিসিপিয়েন্ট পাঠাবে (skipped সার্ভারেই রেকর্ড হবে)। উপরে gateway health strip।
-  - নতুন `CrmBulkReportDrawer.tsx` — send-এর পর অটো ওপেন এবং Campaigns tab থেকেও ওপেন।
-  - নতুন `CrmCampaignsPanel.tsx` — CRM tab, listing।
-- **Failure taxonomy**: bulksmsbd error codes ম্যাপ (`1007` insufficient balance, `1005` invalid number ইত্যাদি) → `retryable` boolean। Resend errors: `422 invalid` = permanent, `429`/`500` = retryable।
+6. **Shop / Products preview**
+   - Same product card component, restyled with editorial number labels and gold price tag.
 
-## যা করব না (এই স্কোপে)
+7. **Trust / Stats band**
+   - Big Syne numbers (students, courses, departments) with gold underline ticks and thin ink dividers.
 
-- অটো-রিট্রাই ব্যাকগ্রাউন্ড ওয়ার্কার — admin-triggered রিট্রাই এখনকার জন্য যথেষ্ট; auto-retry হলে duplicate send-এর ঝুঁকি।
-- Scheduled campaigns / segments UI — এইটা আলাদা ফিচার, ভবিষ্যতে।
-- SMS ব্যালান্স রিচার্জ ইন্টিগ্রেশন — শুধু ব্যালান্স দেখাব, রিচার্জ bulksmsbd portal থেকে।
+8. **Editorial CTA footer band**
+   - Full-width gradient (emerald → indigo), gold Syne headline, single primary CTA.
+
+All sections wrapped in a consistent max-width container with generous whitespace, thin hairline dividers between sections, subtle grain texture overlay for print feel.
+
+---
+
+## 4. Site Footer (`site-footer.tsx`)
+
+- Paper background with top gold hairline
+- 4-column editorial grid: brand block (Syne wordmark + tagline), quick links, legal, contact
+- Bottom bar: copyright + small gold dot separators, social icons as thin outlined circles
+- Keeps every existing link
+
+---
+
+## 5. Motion (framer-motion, already available)
+
+Restrained, premium:
+- Hero headline: staggered word reveal on mount
+- Section headings: fade-up on scroll (once)
+- Cards: subtle lift + gold border glow on hover
+- No parallax, no confetti, no rainbow gradients
+
+---
+
+## Technical notes
+
+- Files touched:
+  - `src/styles.css` (tokens + fonts reference)
+  - `src/routes/__root.tsx` (font `<link>` tags only, keep everything else)
+  - `src/routes/index.tsx` (JSX/markup refactor, same data hooks)
+  - `src/components/site-header.tsx`
+  - `src/components/site-footer.tsx`
+  - `src/components/public-course-card.tsx` (visual only)
+  - `src/components/product-card.tsx` (visual only)
+- No changes to: routes list, loaders, server functions, auth, cart, checkout, admin, workspace, DB, migrations, edge functions.
+- No new dependencies (framer-motion already in project).
+- Both light + dark modes fully themed.
+
+---
+
+Approve to build.

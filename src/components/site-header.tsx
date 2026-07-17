@@ -80,7 +80,7 @@ function AuthButton() {
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-md bg-brand px-2.5 py-1.5 text-xs font-medium text-brand-foreground transition-colors hover:bg-brand/90 sm:px-3 sm:text-sm"
+          className="group inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand px-3 py-1.5 text-xs font-semibold text-brand-foreground shadow-[0_6px_18px_-8px_rgba(6,78,59,0.55)] transition-all hover:-translate-y-px hover:shadow-[0_10px_24px_-10px_rgba(6,78,59,0.7)] sm:px-4 sm:text-sm"
         >
           <UserIcon className="size-4" />
           সাইন ইন
@@ -96,7 +96,7 @@ function AuthButton() {
         {dashboardTo && !roleLoading ? (
           <Link
             to={dashboardTo}
-            className="inline-flex items-center gap-1.5 rounded-md bg-brand px-2.5 py-1.5 text-xs font-medium text-brand-foreground transition-colors hover:bg-brand/90 sm:px-3 sm:text-sm"
+            className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand px-3 py-1.5 text-xs font-semibold text-brand-foreground shadow-[0_6px_18px_-8px_rgba(6,78,59,0.55)] transition-all hover:-translate-y-px sm:px-4 sm:text-sm"
           >
             <UserIcon className="size-4" />
             <span className="hidden xs:inline sm:inline">ড্যাশবোর্ড</span>
@@ -105,7 +105,7 @@ function AuthButton() {
           <button
             type="button"
             disabled
-            className="inline-flex items-center gap-1.5 rounded-md bg-brand/70 px-2.5 py-1.5 text-xs font-medium text-brand-foreground sm:px-3 sm:text-sm"
+            className="inline-flex items-center gap-1.5 rounded-full bg-brand/60 px-3 py-1.5 text-xs font-semibold text-brand-foreground sm:px-4 sm:text-sm"
           >
             <UserIcon className="size-4" />
             <span className="hidden xs:inline sm:inline">ড্যাশবোর্ড</span>
@@ -120,7 +120,7 @@ function AuthButton() {
             toast.success("সাইন আউট হয়েছে");
             navigate({ to: "/", replace: true });
           }}
-          className="hidden items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-secondary sm:inline-flex"
+          className="hidden items-center gap-1.5 rounded-full border border-border bg-background/60 px-3 py-1.5 text-sm transition-colors hover:bg-secondary sm:inline-flex"
           title={visibleEmail(user.email) ?? user.phone ?? ""}
         >
           <LogOut className="size-4" />
@@ -147,25 +147,29 @@ export function SiteHeader() {
 
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/60 bg-background/85 backdrop-blur-md">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-4 py-3 md:px-6 md:py-4">
-        <Link to="/" className="flex items-center gap-2.5">
-          <img
-            src={logoAsset.url}
-            alt="Polytechnic Tutorial Home"
-            className="size-10 rounded-full ring-1 ring-border"
-          />
+    <header className="sticky top-0 z-50 border-b border-border/70 bg-[color-mix(in_oklab,var(--background)_88%,transparent)] backdrop-blur-xl">
+      <div className="h-[2px] w-full bg-[var(--gradient-gold)] opacity-80" />
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 md:px-6 md:py-4">
+        <Link to="/" className="group flex items-center gap-3">
+          <div className="relative">
+            <img
+              src={logoAsset.url}
+              alt="Polytechnic Tutorial Home"
+              className="size-10 rounded-full ring-1 ring-border transition-transform group-hover:-rotate-6"
+            />
+            <span className="absolute -right-0.5 -bottom-0.5 size-2 rounded-full bg-gold ring-2 ring-background" />
+          </div>
           <div className="flex flex-col leading-tight">
-            <span className="text-[15px] font-semibold tracking-tight md:text-base">
+            <span className="font-display text-[15px] font-bold tracking-tight md:text-base">
               Polytechnic Tutorial Home
             </span>
-            <span className="hidden text-[11px] text-muted-foreground md:block">
-              Knowledge · Wisdom · Humanity — Bogura
+            <span className="eyebrow hidden md:block">
+              <span className="text-gold">◆</span> Knowledge · Wisdom · Humanity
             </span>
           </div>
         </Link>
 
-        <nav className="hidden gap-6 text-sm md:flex">
+        <nav className="hidden gap-1 md:flex">
           {NAV.map((item) => {
             const active = item.to === "/" ? pathname === "/" : pathname === item.to;
             return (
@@ -173,7 +177,7 @@ export function SiteHeader() {
                 key={item.to}
                 item={item}
                 active={active}
-                className="text-muted-foreground transition-colors hover:text-foreground"
+                className="group relative rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               />
             );
           })}
@@ -184,16 +188,19 @@ export function SiteHeader() {
           <button
             type="button"
             onClick={openCart}
-            className="relative flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-sm font-bold transition-colors hover:bg-secondary"
+            className="relative flex items-center gap-2 rounded-full border border-border bg-background/60 px-3 py-1.5 text-sm font-semibold transition-all hover:-translate-y-px hover:border-brand/40 hover:bg-secondary"
             aria-label="কার্ট দেখুন"
           >
             <ShoppingCart className="size-4" />
             <span className="font-inter tabular-nums text-xs">
               {toBanglaNumber(count)}
             </span>
+            {count > 0 && (
+              <span className="absolute -top-1 -right-1 size-2.5 rounded-full bg-gold ring-2 ring-background" />
+            )}
           </button>
           <button
-            className="grid size-9 place-items-center rounded-md hover:bg-secondary md:hidden"
+            className="grid size-9 place-items-center rounded-full border border-border hover:bg-secondary md:hidden"
             onClick={() => setOpen((o) => !o)}
             aria-label="Toggle menu"
           >
