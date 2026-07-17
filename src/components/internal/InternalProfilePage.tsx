@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getMyProfile, updateMyProfile } from "@/lib/profile.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -65,6 +66,26 @@ export function InternalProfilePage({ role }: { role: AppRole }) {
   });
   const loading = profileQuery.isLoading;
   const loadError = profileQuery.error ? (profileQuery.error as Error).message : null;
+
+  // Realtime: refresh when this user's profile row changes (e.g. admin edits from another session)
+  useEffect(() => {
+    if (!user?.id) return;
+    const channel = supabase
+      .channel(`iprofile-me-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "profiles", filter: `id=eq.${user.id}` },
+        () => { qc.invalidateQueries({ queryKey: ["me", "profile"] }); },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "internal_profiles", filter: `user_id=eq.${user.id}` },
+        () => { qc.invalidateQueries({ queryKey: ["me", "profile"] }); },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id, qc]);
+
 
   useEffect(() => {
     const data = profileQuery.data;
