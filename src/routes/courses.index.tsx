@@ -17,26 +17,29 @@ const searchSchema = z.object({
   pageSize: z.number().int().optional(),
 });
 
+import { getPageSeo } from "@/lib/cms.functions";
+
 export const Route = createFileRoute("/courses/")({
-  head: () => ({
-    meta: [
-      { title: "সকল কোর্স — Polytechnic Tutorial Home" },
-      {
-        name: "description",
-        content:
-          "ডিপার্টমেন্ট ও সেমিস্টার অনুযায়ী পলিটেকনিকের সম্পূর্ণ কোর্স বান্ডেল — ভিডিও লেকচার, লাইভ ক্লাস ও সাজেশনসহ।",
-      },
-      { property: "og:title", content: "সকল কোর্স — Polytechnic Tutorial Home" },
-      {
-        property: "og:description",
-        content:
-          "ডিপার্টমেন্ট ও সেমিস্টার অনুযায়ী পলিটেকনিকের সম্পূর্ণ কোর্স বান্ডেল।",
-      },
+  loader: () => getPageSeo({ data: { path: "/courses" } }),
+  head: ({ loaderData }) => {
+    const title = loaderData?.meta_title || "সকল কোর্স — Polytechnic Tutorial Home";
+    const desc =
+      loaderData?.meta_description ||
+      "ডিপার্টমেন্ট ও সেমিস্টার অনুযায়ী পলিটেকনিকের সম্পূর্ণ কোর্স বান্ডেল — ভিডিও লেকচার, লাইভ ক্লাস ও সাজেশনসহ।";
+    const meta: Array<Record<string, string>> = [
+      { title },
+      { name: "description", content: desc },
+      { property: "og:title", content: title },
+      { property: "og:description", content: desc },
       { property: "og:url", content: `${SITE_URL}/courses` },
       { property: "og:type", content: "website" },
-    ],
-    links: [{ rel: "canonical", href: `${SITE_URL}/courses` }],
-  }),
+    ];
+    if (loaderData?.og_image_url) {
+      meta.push({ property: "og:image", content: loaderData.og_image_url });
+      meta.push({ name: "twitter:image", content: loaderData.og_image_url });
+    }
+    return { meta, links: [{ rel: "canonical", href: `${SITE_URL}/courses` }] };
+  },
   validateSearch: (search) => searchSchema.parse(search),
   component: CoursesPage,
 });

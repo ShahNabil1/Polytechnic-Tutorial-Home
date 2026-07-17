@@ -15,6 +15,10 @@ import {
   Mail,
   UserPlus,
   AlertCircle,
+  LayoutTemplate,
+  FileText,
+  Search,
+  Globe,
 } from "lucide-react";
 import { useRole } from "@/hooks/use-role";
 import { InternalShell, type NavGroup } from "@/components/internal/InternalShell";
@@ -73,6 +77,19 @@ function WorkspaceLayout() {
             { to: "/workspace/crm/signed", label: "Signed · No purchase", icon: UserPlus },
             { to: "/workspace/crm/guests", label: "Guest purchases", icon: ShoppingBag },
             { to: "/workspace/crm/incomplete", label: "Incomplete leads", icon: AlertCircle },
+          ]
+        : [],
+    },
+    {
+      id: "cms",
+      label: "Site content",
+      icon: LayoutTemplate,
+      items: canManageUsers
+        ? [
+            { to: "/workspace/settings/site", label: "Site settings", icon: Globe },
+            { to: "/workspace/settings/homepage", label: "Homepage", icon: LayoutTemplate },
+            { to: "/workspace/settings/pages", label: "Static pages", icon: FileText },
+            { to: "/workspace/settings/seo", label: "SEO manager", icon: Search },
           ]
         : [],
     },

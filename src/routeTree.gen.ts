@@ -48,6 +48,10 @@ import { Route as ApiPublicWebhooksSteadfastSecretRouteImport } from './routes/a
 import { Route as ApiPublicWebhooksBulksmsbdSecretRouteImport } from './routes/api/public/webhooks/bulksmsbd.$secret'
 import { Route as AuthenticatedSdashCoursesDeptSlugSemSlugRouteImport } from './routes/_authenticated/sdash.courses.$deptSlug.$semSlug'
 import { Route as AuthenticatedInternalWorkspaceSettingsSmsTemplatesRouteImport } from './routes/_authenticated/_internal.workspace.settings.sms-templates'
+import { Route as AuthenticatedInternalWorkspaceSettingsSiteRouteImport } from './routes/_authenticated/_internal.workspace.settings.site'
+import { Route as AuthenticatedInternalWorkspaceSettingsSeoRouteImport } from './routes/_authenticated/_internal.workspace.settings.seo'
+import { Route as AuthenticatedInternalWorkspaceSettingsPagesRouteImport } from './routes/_authenticated/_internal.workspace.settings.pages'
+import { Route as AuthenticatedInternalWorkspaceSettingsHomepageRouteImport } from './routes/_authenticated/_internal.workspace.settings.homepage'
 import { Route as AuthenticatedInternalWorkspaceSettingsEmailTemplatesRouteImport } from './routes/_authenticated/_internal.workspace.settings.email-templates'
 import { Route as AuthenticatedInternalWorkspaceLmsAndCoursesSubjectsRouteImport } from './routes/_authenticated/_internal.workspace.lms-and-courses.subjects'
 import { Route as AuthenticatedInternalWorkspaceLmsAndCoursesStructureRouteImport } from './routes/_authenticated/_internal.workspace.lms-and-courses.structure'
@@ -279,6 +283,30 @@ const AuthenticatedInternalWorkspaceSettingsSmsTemplatesRoute =
     path: '/settings/sms-templates',
     getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
   } as any)
+const AuthenticatedInternalWorkspaceSettingsSiteRoute =
+  AuthenticatedInternalWorkspaceSettingsSiteRouteImport.update({
+    id: '/settings/site',
+    path: '/settings/site',
+    getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
+  } as any)
+const AuthenticatedInternalWorkspaceSettingsSeoRoute =
+  AuthenticatedInternalWorkspaceSettingsSeoRouteImport.update({
+    id: '/settings/seo',
+    path: '/settings/seo',
+    getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
+  } as any)
+const AuthenticatedInternalWorkspaceSettingsPagesRoute =
+  AuthenticatedInternalWorkspaceSettingsPagesRouteImport.update({
+    id: '/settings/pages',
+    path: '/settings/pages',
+    getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
+  } as any)
+const AuthenticatedInternalWorkspaceSettingsHomepageRoute =
+  AuthenticatedInternalWorkspaceSettingsHomepageRouteImport.update({
+    id: '/settings/homepage',
+    path: '/settings/homepage',
+    getParentRoute: () => AuthenticatedInternalWorkspaceRoute,
+  } as any)
 const AuthenticatedInternalWorkspaceSettingsEmailTemplatesRoute =
   AuthenticatedInternalWorkspaceSettingsEmailTemplatesRouteImport.update({
     id: '/settings/email-templates',
@@ -439,6 +467,10 @@ export interface FileRoutesByFullPath {
   '/workspace/lms-and-courses/structure': typeof AuthenticatedInternalWorkspaceLmsAndCoursesStructureRoute
   '/workspace/lms-and-courses/subjects': typeof AuthenticatedInternalWorkspaceLmsAndCoursesSubjectsRoute
   '/workspace/settings/email-templates': typeof AuthenticatedInternalWorkspaceSettingsEmailTemplatesRoute
+  '/workspace/settings/homepage': typeof AuthenticatedInternalWorkspaceSettingsHomepageRoute
+  '/workspace/settings/pages': typeof AuthenticatedInternalWorkspaceSettingsPagesRoute
+  '/workspace/settings/seo': typeof AuthenticatedInternalWorkspaceSettingsSeoRoute
+  '/workspace/settings/site': typeof AuthenticatedInternalWorkspaceSettingsSiteRoute
   '/workspace/settings/sms-templates': typeof AuthenticatedInternalWorkspaceSettingsSmsTemplatesRoute
   '/sdash/courses/$deptSlug/$semSlug': typeof AuthenticatedSdashCoursesDeptSlugSemSlugRoute
   '/api/public/webhooks/bulksmsbd/$secret': typeof ApiPublicWebhooksBulksmsbdSecretRoute
@@ -492,6 +524,10 @@ export interface FileRoutesByTo {
   '/workspace/lms-and-courses/structure': typeof AuthenticatedInternalWorkspaceLmsAndCoursesStructureRoute
   '/workspace/lms-and-courses/subjects': typeof AuthenticatedInternalWorkspaceLmsAndCoursesSubjectsRoute
   '/workspace/settings/email-templates': typeof AuthenticatedInternalWorkspaceSettingsEmailTemplatesRoute
+  '/workspace/settings/homepage': typeof AuthenticatedInternalWorkspaceSettingsHomepageRoute
+  '/workspace/settings/pages': typeof AuthenticatedInternalWorkspaceSettingsPagesRoute
+  '/workspace/settings/seo': typeof AuthenticatedInternalWorkspaceSettingsSeoRoute
+  '/workspace/settings/site': typeof AuthenticatedInternalWorkspaceSettingsSiteRoute
   '/workspace/settings/sms-templates': typeof AuthenticatedInternalWorkspaceSettingsSmsTemplatesRoute
   '/sdash/courses/$deptSlug/$semSlug': typeof AuthenticatedSdashCoursesDeptSlugSemSlugRoute
   '/api/public/webhooks/bulksmsbd/$secret': typeof ApiPublicWebhooksBulksmsbdSecretRoute
@@ -552,6 +588,10 @@ export interface FileRoutesById {
   '/_authenticated/_internal/workspace/lms-and-courses/structure': typeof AuthenticatedInternalWorkspaceLmsAndCoursesStructureRoute
   '/_authenticated/_internal/workspace/lms-and-courses/subjects': typeof AuthenticatedInternalWorkspaceLmsAndCoursesSubjectsRoute
   '/_authenticated/_internal/workspace/settings/email-templates': typeof AuthenticatedInternalWorkspaceSettingsEmailTemplatesRoute
+  '/_authenticated/_internal/workspace/settings/homepage': typeof AuthenticatedInternalWorkspaceSettingsHomepageRoute
+  '/_authenticated/_internal/workspace/settings/pages': typeof AuthenticatedInternalWorkspaceSettingsPagesRoute
+  '/_authenticated/_internal/workspace/settings/seo': typeof AuthenticatedInternalWorkspaceSettingsSeoRoute
+  '/_authenticated/_internal/workspace/settings/site': typeof AuthenticatedInternalWorkspaceSettingsSiteRoute
   '/_authenticated/_internal/workspace/settings/sms-templates': typeof AuthenticatedInternalWorkspaceSettingsSmsTemplatesRoute
   '/_authenticated/sdash/courses/$deptSlug/$semSlug': typeof AuthenticatedSdashCoursesDeptSlugSemSlugRoute
   '/api/public/webhooks/bulksmsbd/$secret': typeof ApiPublicWebhooksBulksmsbdSecretRoute
@@ -611,6 +651,10 @@ export interface FileRouteTypes {
     | '/workspace/lms-and-courses/structure'
     | '/workspace/lms-and-courses/subjects'
     | '/workspace/settings/email-templates'
+    | '/workspace/settings/homepage'
+    | '/workspace/settings/pages'
+    | '/workspace/settings/seo'
+    | '/workspace/settings/site'
     | '/workspace/settings/sms-templates'
     | '/sdash/courses/$deptSlug/$semSlug'
     | '/api/public/webhooks/bulksmsbd/$secret'
@@ -664,6 +708,10 @@ export interface FileRouteTypes {
     | '/workspace/lms-and-courses/structure'
     | '/workspace/lms-and-courses/subjects'
     | '/workspace/settings/email-templates'
+    | '/workspace/settings/homepage'
+    | '/workspace/settings/pages'
+    | '/workspace/settings/seo'
+    | '/workspace/settings/site'
     | '/workspace/settings/sms-templates'
     | '/sdash/courses/$deptSlug/$semSlug'
     | '/api/public/webhooks/bulksmsbd/$secret'
@@ -723,6 +771,10 @@ export interface FileRouteTypes {
     | '/_authenticated/_internal/workspace/lms-and-courses/structure'
     | '/_authenticated/_internal/workspace/lms-and-courses/subjects'
     | '/_authenticated/_internal/workspace/settings/email-templates'
+    | '/_authenticated/_internal/workspace/settings/homepage'
+    | '/_authenticated/_internal/workspace/settings/pages'
+    | '/_authenticated/_internal/workspace/settings/seo'
+    | '/_authenticated/_internal/workspace/settings/site'
     | '/_authenticated/_internal/workspace/settings/sms-templates'
     | '/_authenticated/sdash/courses/$deptSlug/$semSlug'
     | '/api/public/webhooks/bulksmsbd/$secret'
@@ -1032,6 +1084,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInternalWorkspaceSettingsSmsTemplatesRouteImport
       parentRoute: typeof AuthenticatedInternalWorkspaceRoute
     }
+    '/_authenticated/_internal/workspace/settings/site': {
+      id: '/_authenticated/_internal/workspace/settings/site'
+      path: '/settings/site'
+      fullPath: '/workspace/settings/site'
+      preLoaderRoute: typeof AuthenticatedInternalWorkspaceSettingsSiteRouteImport
+      parentRoute: typeof AuthenticatedInternalWorkspaceRoute
+    }
+    '/_authenticated/_internal/workspace/settings/seo': {
+      id: '/_authenticated/_internal/workspace/settings/seo'
+      path: '/settings/seo'
+      fullPath: '/workspace/settings/seo'
+      preLoaderRoute: typeof AuthenticatedInternalWorkspaceSettingsSeoRouteImport
+      parentRoute: typeof AuthenticatedInternalWorkspaceRoute
+    }
+    '/_authenticated/_internal/workspace/settings/pages': {
+      id: '/_authenticated/_internal/workspace/settings/pages'
+      path: '/settings/pages'
+      fullPath: '/workspace/settings/pages'
+      preLoaderRoute: typeof AuthenticatedInternalWorkspaceSettingsPagesRouteImport
+      parentRoute: typeof AuthenticatedInternalWorkspaceRoute
+    }
+    '/_authenticated/_internal/workspace/settings/homepage': {
+      id: '/_authenticated/_internal/workspace/settings/homepage'
+      path: '/settings/homepage'
+      fullPath: '/workspace/settings/homepage'
+      preLoaderRoute: typeof AuthenticatedInternalWorkspaceSettingsHomepageRouteImport
+      parentRoute: typeof AuthenticatedInternalWorkspaceRoute
+    }
     '/_authenticated/_internal/workspace/settings/email-templates': {
       id: '/_authenticated/_internal/workspace/settings/email-templates'
       path: '/settings/email-templates'
@@ -1263,6 +1343,10 @@ interface AuthenticatedInternalWorkspaceRouteChildren {
   AuthenticatedInternalWorkspaceEmployeesUserIdRoute: typeof AuthenticatedInternalWorkspaceEmployeesUserIdRoute
   AuthenticatedInternalWorkspaceInstructorsUserIdRoute: typeof AuthenticatedInternalWorkspaceInstructorsUserIdRoute
   AuthenticatedInternalWorkspaceSettingsEmailTemplatesRoute: typeof AuthenticatedInternalWorkspaceSettingsEmailTemplatesRoute
+  AuthenticatedInternalWorkspaceSettingsHomepageRoute: typeof AuthenticatedInternalWorkspaceSettingsHomepageRoute
+  AuthenticatedInternalWorkspaceSettingsPagesRoute: typeof AuthenticatedInternalWorkspaceSettingsPagesRoute
+  AuthenticatedInternalWorkspaceSettingsSeoRoute: typeof AuthenticatedInternalWorkspaceSettingsSeoRoute
+  AuthenticatedInternalWorkspaceSettingsSiteRoute: typeof AuthenticatedInternalWorkspaceSettingsSiteRoute
   AuthenticatedInternalWorkspaceSettingsSmsTemplatesRoute: typeof AuthenticatedInternalWorkspaceSettingsSmsTemplatesRoute
   AuthenticatedInternalWorkspaceEcommerceIndexRoute: typeof AuthenticatedInternalWorkspaceEcommerceIndexRoute
   AuthenticatedInternalWorkspaceEmployeesIndexRoute: typeof AuthenticatedInternalWorkspaceEmployeesIndexRoute
@@ -1293,6 +1377,14 @@ const AuthenticatedInternalWorkspaceRouteChildren: AuthenticatedInternalWorkspac
       AuthenticatedInternalWorkspaceInstructorsUserIdRoute,
     AuthenticatedInternalWorkspaceSettingsEmailTemplatesRoute:
       AuthenticatedInternalWorkspaceSettingsEmailTemplatesRoute,
+    AuthenticatedInternalWorkspaceSettingsHomepageRoute:
+      AuthenticatedInternalWorkspaceSettingsHomepageRoute,
+    AuthenticatedInternalWorkspaceSettingsPagesRoute:
+      AuthenticatedInternalWorkspaceSettingsPagesRoute,
+    AuthenticatedInternalWorkspaceSettingsSeoRoute:
+      AuthenticatedInternalWorkspaceSettingsSeoRoute,
+    AuthenticatedInternalWorkspaceSettingsSiteRoute:
+      AuthenticatedInternalWorkspaceSettingsSiteRoute,
     AuthenticatedInternalWorkspaceSettingsSmsTemplatesRoute:
       AuthenticatedInternalWorkspaceSettingsSmsTemplatesRoute,
     AuthenticatedInternalWorkspaceEcommerceIndexRoute:
