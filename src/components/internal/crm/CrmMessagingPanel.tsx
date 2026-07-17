@@ -128,6 +128,12 @@ export function CrmMessagingPanel({ vars, userId, phone, email }: Props) {
   const [sending, setSending] = useState<"sms" | "email" | null>(null);
   const [history, setHistory] = useState<{ sms: CrmSmsDelivery[]; emails: CrmEmailDelivery[] }>({ sms: [], emails: [] });
   const [historyLoading, setHistoryLoading] = useState(true);
+  const smsRef = useRef<HTMLTextAreaElement | null>(null);
+  const emailSubjectRef = useRef<HTMLInputElement | null>(null);
+  const emailBodyRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const SMS_VARS = ["name", "phone", "email", "student_id", "last_order_no", "ltv"];
+  const EMAIL_VARS = ["name", "email", "phone", "student_id", "last_order_no", "ltv"];
 
   useEffect(() => {
     const isManual = (t: any) => {
