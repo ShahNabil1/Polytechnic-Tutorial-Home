@@ -98,6 +98,7 @@ export function AdminIncompleteCheckouts({ search }: { search: string }) {
     queryKey: ["admin-incomplete", search, page, pageSize],
     queryFn: () =>
       fetchList({ data: { search: search || undefined, limit: pageSize, offset } }),
+    staleTime: 30_000,
   });
 
 
