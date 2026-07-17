@@ -922,7 +922,7 @@ export function InternalUserDetailPage({ userId, role }: Props) {
               >
                 <Mail className="size-4 text-indigo-600" />
                 <span className="flex-1 text-left">Email</span>
-                <span className="truncate text-xs font-normal text-slate-500">{detail.email}</span>
+                <span className="truncate text-xs font-normal text-slate-500">{visibleEmail(detail.email)}</span>
               </button>
               <button
                 type="button"
