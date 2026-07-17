@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { BookOpen, Loader2, GraduationCap, CheckCircle2, Lock, Search, PlayCircle } from "lucide-react";
+import { BookOpen, Loader2, GraduationCap, CheckCircle2, Lock, Search, PlayCircle, X, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { listCourseCatalog } from "@/lib/lms.functions";
 import { cn } from "@/lib/utils";
