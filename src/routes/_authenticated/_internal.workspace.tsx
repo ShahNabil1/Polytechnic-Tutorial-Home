@@ -81,6 +81,19 @@ function WorkspaceLayout() {
         : [],
     },
     {
+      id: "cms",
+      label: "Site content",
+      icon: LayoutTemplate,
+      items: canManageUsers
+        ? [
+            { to: "/workspace/settings/site", label: "Site settings", icon: Globe },
+            { to: "/workspace/settings/homepage", label: "Homepage", icon: LayoutTemplate },
+            { to: "/workspace/settings/pages", label: "Static pages", icon: FileText },
+            { to: "/workspace/settings/seo", label: "SEO manager", icon: Search },
+          ]
+        : [],
+    },
+    {
       id: "settings",
       label: "Settings",
       icon: Settings,
