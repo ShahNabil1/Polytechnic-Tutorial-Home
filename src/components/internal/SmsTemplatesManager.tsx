@@ -36,6 +36,7 @@ export function SmsTemplatesManager() {
   const { data, isLoading } = useQuery({
     queryKey: ["sms-templates"],
     queryFn: () => fetchList(undefined as never),
+    staleTime: 10 * 60_000,
   });
   const templates = data?.templates ?? [];
 

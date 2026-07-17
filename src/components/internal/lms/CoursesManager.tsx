@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useNavigate } from "@tanstack/react-router";
 import { Loader2, Plus, Search, Pencil, Trash2, GraduationCap, Sparkles, BookOpen, Star } from "lucide-react";
@@ -33,10 +34,23 @@ export function CoursesManager() {
   const generateFn = useServerFn(generateMissingCourses);
   const featuredFn = useServerFn(setCourseFeatured);
   const navigate = useNavigate();
+  const qc = useQueryClient();
 
-  const [courses, setCourses] = useState<LmsCourse[]>([]);
-  const [taxonomy, setTaxonomy] = useState<AcademicCategory[]>([]);
-  const [loading, setLoading] = useState(true);
+  const coursesQ = useQuery({
+    queryKey: ["admin", "lms", "courses"],
+    queryFn: () => listFn(undefined as never) as Promise<LmsCourse[]>,
+    staleTime: 5 * 60_000,
+  });
+  const taxonomyQ = useQuery({
+    queryKey: ["admin", "lms", "structure"],
+    queryFn: () => listTax(undefined as never) as Promise<AcademicCategory[]>,
+    staleTime: 10 * 60_000,
+  });
+
+  const courses = coursesQ.data ?? [];
+  const taxonomy = taxonomyQ.data ?? [];
+  const loading = coursesQ.isLoading || taxonomyQ.isLoading;
+
   const [q, setQ] = useState("");
   const [deptFilter, setDeptFilter] = useState("");
   const [semFilter, setSemFilter] = useState("");
@@ -46,25 +60,12 @@ export function CoursesManager() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  async function refetch() {
-    setLoading(true);
-    try {
-      const [c, t] = await Promise.all([
-        listFn(undefined as never) as Promise<LmsCourse[]>,
-        listTax(undefined as never) as Promise<AcademicCategory[]>,
-      ]);
-      setCourses(c);
-      setTaxonomy(t);
-    } catch (e: any) {
-      toast.error(e?.message ?? "Failed to load");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const refetch = () => {
+    qc.invalidateQueries({ queryKey: ["admin", "lms"] });
+    qc.invalidateQueries({ queryKey: ["lms"] });
+    qc.invalidateQueries({ queryKey: ["courses"] });
+  };
 
-  useEffect(() => {
-    refetch();
-  }, []);
 
   const byId = useMemo(() => new Map(taxonomy.map((t) => [t.id, t])), [taxonomy]);
   const departments = useMemo(
@@ -131,15 +132,21 @@ export function CoursesManager() {
 
   async function handleToggleFeatured(c: LmsCourse, next: boolean) {
     // optimistic
-    setCourses((prev) => prev.map((x) => (x.id === c.id ? { ...x, is_featured: next } : x)));
+    qc.setQueryData<LmsCourse[]>(["admin", "lms", "courses"], (prev) =>
+      (prev ?? []).map((x) => (x.id === c.id ? { ...x, is_featured: next } : x)),
+    );
     try {
       await featuredFn({ data: { id: c.id, is_featured: next } } as never);
       toast.success(next ? "Marked as featured" : "Removed from featured");
+      refetch();
     } catch (e: any) {
-      setCourses((prev) => prev.map((x) => (x.id === c.id ? { ...x, is_featured: !next } : x)));
+      qc.setQueryData<LmsCourse[]>(["admin", "lms", "courses"], (prev) =>
+        (prev ?? []).map((x) => (x.id === c.id ? { ...x, is_featured: !next } : x)),
+      );
       toast.error(e?.message ?? "Failed to update");
     }
   }
+
 
   return (
     <div className="space-y-6">

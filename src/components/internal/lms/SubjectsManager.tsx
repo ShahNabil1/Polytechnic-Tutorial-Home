@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useNavigate } from "@tanstack/react-router";
 import { Loader2, Plus, Search, Pencil, Trash2, BookOpen, PlayCircle, X } from "lucide-react";
@@ -33,35 +34,34 @@ export function SubjectsManager({ deptFilter = "", semFilter = "" }: Props) {
   const listTax = useServerFn(listAcademicTaxonomy);
   const deleteFn = useServerFn(deleteSubject);
   const navigate = useNavigate();
+  const qc = useQueryClient();
 
-  const [subjects, setSubjects] = useState<LmsSubject[]>([]);
-  const [taxonomy, setTaxonomy] = useState<AcademicCategory[]>([]);
-  const [loading, setLoading] = useState(true);
+  const subjectsQ = useQuery({
+    queryKey: ["admin", "lms", "subjects"],
+    queryFn: () => listFn(undefined as never) as Promise<LmsSubject[]>,
+    staleTime: 10 * 60_000,
+  });
+  const taxonomyQ = useQuery({
+    queryKey: ["admin", "lms", "structure"],
+    queryFn: () => listTax(undefined as never) as Promise<AcademicCategory[]>,
+    staleTime: 10 * 60_000,
+  });
+
+  const subjects = subjectsQ.data ?? [];
+  const taxonomy = taxonomyQ.data ?? [];
+  const loading = subjectsQ.isLoading || taxonomyQ.isLoading;
+
   const [q, setQ] = useState("");
   const [editSubject, setEditSubject] = useState<LmsSubject | null>(null);
   const [creating, setCreating] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  async function refetch() {
-    setLoading(true);
-    try {
-      const [s, t] = await Promise.all([
-        listFn(undefined as never) as Promise<LmsSubject[]>,
-        listTax(undefined as never) as Promise<AcademicCategory[]>,
-      ]);
-      setSubjects(s);
-      setTaxonomy(t);
-    } catch (e: any) {
-      toast.error(e?.message ?? "Failed to load");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const refetch = () => {
+    qc.invalidateQueries({ queryKey: ["admin", "lms"] });
+    qc.invalidateQueries({ queryKey: ["lms"] });
+  };
 
-  useEffect(() => {
-    refetch();
-  }, []);
 
   const taxonomyById = useMemo(() => new Map(taxonomy.map((t) => [t.id, t])), [taxonomy]);
   const departments = useMemo(

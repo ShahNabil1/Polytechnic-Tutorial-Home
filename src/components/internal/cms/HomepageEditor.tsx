@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
@@ -24,25 +25,33 @@ type TabId = (typeof TABS)[number]["id"];
 export function HomepageEditor() {
   const load = useServerFn(getHomepageContent);
   const save = useServerFn(saveHomepageContent);
+  const qc = useQueryClient();
+
+  const { data } = useQuery({
+    queryKey: ["admin", "cms", "homepage"],
+    queryFn: () => load(undefined as never),
+    staleTime: 10 * 60_000,
+  });
+
   const [c, setC] = useState<HomepageContent>(DEFAULT_HOMEPAGE_CONTENT);
   const [tab, setTab] = useState<TabId>("hero");
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    load(undefined as never).then((res) => res && setC(res as HomepageContent)).catch(() => {});
-  }, [load]);
+    if (data) setC(data as HomepageContent);
+  }, [data]);
 
-  async function onSave() {
-    setSaving(true);
-    try {
-      await save({ data: c });
+  const mutation = useMutation({
+    mutationFn: (payload: HomepageContent) => save({ data: payload }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "cms", "homepage"] });
+      qc.invalidateQueries({ queryKey: ["homepage-content"] });
       toast.success("হোমপেইজ সেভ হয়েছে");
-    } catch (e: any) {
-      toast.error(e?.message || "সেভ করা যায়নি");
-    } finally {
-      setSaving(false);
-    }
-  }
+    },
+    onError: (e: any) => toast.error(e?.message || "সেভ করা যায়নি"),
+  });
+
+  const onSave = () => mutation.mutate(c);
+  const saving = mutation.isPending;
 
   const setSection = <K extends keyof HomepageContent>(k: K, v: HomepageContent[K]) => setC((p) => ({ ...p, [k]: v }));
 

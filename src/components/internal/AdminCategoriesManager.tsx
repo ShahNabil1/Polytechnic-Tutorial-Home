@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { confirm as confirmDialog } from "@/components/ui/confirm-dialog";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -28,29 +29,28 @@ export function AdminCategoriesManager() {
   const create = useServerFn(createCategory);
   const update = useServerFn(updateCategory);
   const remove = useServerFn(deleteCategory);
+  const qc = useQueryClient();
 
-  const [rows, setRows] = useState<CategoryRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const query = useQuery({
+    queryKey: ["admin", "categories"],
+    queryFn: () => list({ data: undefined as never }) as Promise<CategoryRow[]>,
+    staleTime: 10 * 60_000,
+  });
+  const rows = query.data ?? [];
+  const loading = query.isLoading;
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<{ name: string; slug: string }>({ name: "", slug: "" });
   const [adding, setAdding] = useState<CategoryRow["kind"] | null>(null);
   const [addDraft, setAddDraft] = useState<{ name: string; slug: string }>({ name: "", slug: "" });
   const [busy, setBusy] = useState(false);
 
-  async function refresh() {
-    setLoading(true);
-    try {
-      const data = await list({ data: undefined as never });
-      setRows(data ?? []);
-    } catch (e) {
-      toast.error("Failed to load: " + (e instanceof Error ? e.message : String(e)));
-    } finally {
-      setLoading(false);
-    }
-  }
-  useEffect(() => {
-    refresh();
-  }, []);
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["admin", "categories"] });
+    qc.invalidateQueries({ queryKey: ["admin", "products"] });
+    qc.invalidateQueries({ queryKey: ["categories"] });
+  };
+
 
   async function submitAdd(kind: CategoryRow["kind"]) {
     if (!addDraft.name.trim() || !addDraft.slug.trim()) {

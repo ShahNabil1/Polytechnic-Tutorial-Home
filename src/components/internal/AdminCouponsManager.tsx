@@ -71,8 +71,6 @@ const emptyDraft = (scope: CouponScope): Draft => ({
 
 export function AdminCouponsManager() {
   const [scope, setScope] = useState<CouponScope>("shop");
-  const [rows, setRows] = useState<CouponRow[]>([]);
-  const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "inactive" | "deleted">("all");
   const [editing, setEditing] = useState<Draft | null>(null);
@@ -81,22 +79,19 @@ export function AdminCouponsManager() {
   const toggleFn = useServerFn(toggleCoupon);
   const delFn = useServerFn(softDeleteCoupon);
   const reactivateFn = useServerFn(reactivateCoupon);
+  const qcMain = useQueryClient();
 
-  async function reload() {
-    setLoading(true);
-    try {
-      const r = await listFn({ data: { scope } });
-      setRows(r);
-    } catch (e: any) {
-      toast.error(e?.message || "Failed to load coupons");
-    } finally {
-      setLoading(false);
-    }
-  }
-  useEffect(() => {
-    reload();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scope]);
+  const query = useQuery({
+    queryKey: ["admin", "coupons", scope],
+    queryFn: () => listFn({ data: { scope } }) as Promise<CouponRow[]>,
+    staleTime: 5 * 60_000,
+  });
+  const rows = query.data ?? [];
+  const loading = query.isLoading;
+
+  const reload = () => {
+    qcMain.invalidateQueries({ queryKey: ["admin", "coupons"] });
+  };
 
   const filtered = useMemo(() => {
     const now = Date.now();

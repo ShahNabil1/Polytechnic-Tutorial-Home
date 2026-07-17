@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
 import {
@@ -34,36 +35,35 @@ export function CurriculumBuilder({ subjectSlug }: { subjectSlug: string }) {
   const upsertMod = useServerFn(upsertModule);
   const deleteMod = useServerFn(deleteModule);
   const deleteLes = useServerFn(deleteLesson);
+  const qc = useQueryClient();
 
-  const [subject, setSubject] = useState<LmsSubject | null>(null);
-  const [modules, setModules] = useState<LmsModuleWithLessons[]>([]);
-  const [loading, setLoading] = useState(true);
+  const subjectQ = useQuery({
+    queryKey: ["admin", "lms", "subject", subjectSlug],
+    queryFn: () => getSubject({ data: { slug: subjectSlug } } as never) as Promise<LmsSubject | null>,
+    staleTime: 10 * 60_000,
+  });
+  const subject = subjectQ.data ?? null;
+
+  const modulesQ = useQuery({
+    queryKey: ["admin", "lms", "curriculum", subject?.id ?? "__none"],
+    queryFn: () => listCurr({ data: { subject_id: subject!.id } } as never) as Promise<LmsModuleWithLessons[]>,
+    enabled: !!subject?.id,
+    staleTime: 5 * 60_000,
+  });
+  const modules = modulesQ.data ?? [];
+  const loading = subjectQ.isLoading || modulesQ.isLoading;
+
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [newModuleTitle, setNewModuleTitle] = useState("");
   const [editingModule, setEditingModule] = useState<{ id: string; title: string; description: string } | null>(null);
   const [creatingModule, setCreatingModule] = useState(false);
   const [lessonFormFor, setLessonFormFor] = useState<{ moduleId: string; lesson: LmsLesson | null } | null>(null);
 
-  async function refetch() {
-    setLoading(true);
-    try {
-      const s = (await getSubject({ data: { slug: subjectSlug } } as never)) as LmsSubject | null;
-      setSubject(s);
-      if (s) {
-        const mods = (await listCurr({ data: { subject_id: s.id } } as never)) as LmsModuleWithLessons[];
-        setModules(mods);
-        setExpanded(new Set(mods.map((m) => m.id)));
-      }
-    } catch (e: any) {
-      toast.error(e?.message ?? "Failed to load");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const refetch = () => {
+    qc.invalidateQueries({ queryKey: ["admin", "lms"] });
+    qc.invalidateQueries({ queryKey: ["lms"] });
+  };
 
-  useEffect(() => {
-    refetch();
-  }, [subjectSlug]);
 
   async function handleAddModule() {
     if (!subject || !newModuleTitle.trim()) return;

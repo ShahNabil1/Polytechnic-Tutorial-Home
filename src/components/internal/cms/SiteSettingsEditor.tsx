@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { getSiteSettings, saveSiteSettings } from "@/lib/cms.functions";
@@ -8,26 +9,32 @@ import { Field, PageHeader, SaveButton, SectionCard, TextArea, TextInput } from 
 export function SiteSettingsEditor() {
   const load = useServerFn(getSiteSettings);
   const save = useServerFn(saveSiteSettings);
+  const qc = useQueryClient();
+
+  const { data } = useQuery({
+    queryKey: ["admin", "cms", "site"],
+    queryFn: () => load(undefined as never),
+    staleTime: 10 * 60_000,
+  });
+
   const [s, setS] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
-  const [saving, setSaving] = useState(false);
-
   useEffect(() => {
-    load(undefined as never).then((res) => res && setS(res as SiteSettings)).catch(() => {});
-  }, [load]);
+    if (data) setS(data as SiteSettings);
+  }, [data]);
 
-  async function onSave() {
-    setSaving(true);
-    try {
-      await save({ data: s });
+  const mutation = useMutation({
+    mutationFn: (payload: SiteSettings) => save({ data: payload }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "cms", "site"] });
+      qc.invalidateQueries({ queryKey: ["site-settings"] });
       toast.success("সাইট সেটিংস সেভ হয়েছে");
-    } catch (e: any) {
-      toast.error(e?.message || "সেভ করা যায়নি");
-    } finally {
-      setSaving(false);
-    }
-  }
+    },
+    onError: (e: any) => toast.error(e?.message || "সেভ করা যায়নি"),
+  });
 
   const upd = <K extends keyof SiteSettings>(key: K, val: SiteSettings[K]) => setS((p) => ({ ...p, [key]: val }));
+  const onSave = () => mutation.mutate(s);
+  const saving = mutation.isPending;
 
   return (
     <div className="space-y-8">
