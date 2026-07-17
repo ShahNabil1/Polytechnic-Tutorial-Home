@@ -52,6 +52,10 @@ export function CrmBulkSendDialog({
   }, [channel]);
 
   function applyTemplate(id: string) {
+    if (!id) {
+      setTplId(null);
+      return;
+    }
     setTplId(id);
     const tpl = templates.find((t) => t.id === id);
     if (!tpl) return;
@@ -143,7 +147,7 @@ export function CrmBulkSendDialog({
               <label className="text-xs font-medium text-muted-foreground">Template</label>
               <select
                 value={tplId ?? ""}
-                onChange={(e) => e.target.value && applyTemplate(e.target.value)}
+                onChange={(e) => applyTemplate(e.target.value)}
                 className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
               >
                 <option value="">— Custom —</option>
