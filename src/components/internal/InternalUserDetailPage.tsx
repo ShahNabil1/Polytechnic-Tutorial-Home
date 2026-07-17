@@ -603,7 +603,7 @@ export function InternalUserDetailPage({ userId, role }: Props) {
       {/* Admin: change primary sign-in email + phone */}
       <AdminContactChangeCard
         userId={userId}
-        currentEmail={detail.email}
+        currentEmail={visibleEmail(detail.email)}
         currentPhone={detail.phone}
         onSaved={() => refresh()}
       />
@@ -612,7 +612,8 @@ export function InternalUserDetailPage({ userId, role }: Props) {
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="mb-4 font-display text-base font-bold tracking-tight">Account meta</h2>
         <dl className="grid gap-4 sm:grid-cols-2">
-          <Info label="Email (primary ID)" value={detail.email} />
+          <Info label="Email (primary ID)" value={visibleEmail(detail.email)} />
+
           <Info label="Phone" value={detail.phone} />
           <Info
             label={isCustomer ? "Student ID" : "Display ID"}
