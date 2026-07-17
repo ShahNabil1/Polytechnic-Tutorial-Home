@@ -1222,6 +1222,8 @@ export type PublicCourseCard = {
 
 export const listPublicCourses = createServerFn({ method: "GET" }).handler(
   async (): Promise<PublicCourseCard[]> => {
+    const { withCache } = await import("./cache.server");
+    return withCache<PublicCourseCard[]>("lms:public:courses:list", LMS_PUBLIC_TTL, async () => {
     const sb = serverPublic();
     const [coursesRes, depsRes, semsRes, placeRes] = await Promise.all([
       sb
