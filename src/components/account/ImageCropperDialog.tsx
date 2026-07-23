@@ -51,7 +51,6 @@ export function ImageCropperDialog({
     onCancel();
   }
 
-  return (
   if (typeof document === "undefined") return null;
   return createPortal(
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 p-4" style={{ pointerEvents: "auto" }}>
