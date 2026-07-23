@@ -126,7 +126,8 @@ export function ImageCropperDialog({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
