@@ -34,9 +34,8 @@ export const Route = createFileRoute("/_authenticated/_internal/workspace")({
 });
 
 function WorkspaceLayout() {
-  const { info, has } = useRole();
+  const { info } = useRole();
   const isSuperAdmin = info?.primaryRole === "super_admin";
-  const canManageUsers = has("manage_users");
 
   const groups: NavGroup[] = [
     {
@@ -71,44 +70,35 @@ function WorkspaceLayout() {
       id: "crm",
       label: "CRM",
       icon: UserCog,
-      items: canManageUsers
-        ? [
-            { to: "/workspace/crm/customers", label: "Customers", icon: Users },
-            { to: "/workspace/crm/signed", label: "Signed · No purchase", icon: UserPlus },
-            { to: "/workspace/crm/guests", label: "Guest purchases", icon: ShoppingBag },
-            { to: "/workspace/crm/incomplete", label: "Incomplete leads", icon: AlertCircle },
-          ]
-        : [],
+      items: [
+        { to: "/workspace/crm/customers", label: "Customers", icon: Users },
+        { to: "/workspace/crm/signed", label: "Signed · No purchase", icon: UserPlus },
+        { to: "/workspace/crm/guests", label: "Guest purchases", icon: ShoppingBag },
+        { to: "/workspace/crm/incomplete", label: "Incomplete leads", icon: AlertCircle },
+        { to: "/workspace/crm/campaigns", label: "Campaigns", icon: MessageSquareText },
+      ],
     },
     {
       id: "cms",
       label: "Site content",
       icon: LayoutTemplate,
-      items: canManageUsers
-        ? [
-            { to: "/workspace/settings/site", label: "Site settings", icon: Globe },
-            { to: "/workspace/settings/homepage", label: "Homepage", icon: LayoutTemplate },
-            { to: "/workspace/settings/pages", label: "Static pages", icon: FileText },
-            { to: "/workspace/settings/seo", label: "SEO manager", icon: Search },
-          ]
-        : [],
+      items: [
+        { to: "/workspace/settings/site", label: "Site settings", icon: Globe },
+        { to: "/workspace/settings/homepage", label: "Homepage", icon: LayoutTemplate },
+        { to: "/workspace/settings/pages", label: "Static pages", icon: FileText },
+        { to: "/workspace/settings/seo", label: "SEO manager", icon: Search },
+      ],
     },
     {
       id: "settings",
       label: "Settings",
       icon: Settings,
-      items: canManageUsers
-        ? [
-            { to: "/workspace/employees", label: "Employees", icon: Users },
-            { to: "/workspace/instructors", label: "Instructors", icon: GraduationCap },
-            { to: "/workspace/settings/sms-templates", label: "SMS Templates", icon: MessageSquareText },
-            { to: "/workspace/settings/email-templates", label: "Email Templates", icon: Mail },
-          ]
-        : [
-            { to: "/workspace/settings/sms-templates", label: "SMS Templates", icon: MessageSquareText },
-            { to: "/workspace/settings/email-templates", label: "Email Templates", icon: Mail },
-
-          ],
+      items: [
+        { to: "/workspace/employees", label: "Employees", icon: Users },
+        { to: "/workspace/instructors", label: "Instructors", icon: GraduationCap },
+        { to: "/workspace/settings/sms-templates", label: "SMS Templates", icon: MessageSquareText },
+        { to: "/workspace/settings/email-templates", label: "Email Templates", icon: Mail },
+      ],
     },
   ];
 
