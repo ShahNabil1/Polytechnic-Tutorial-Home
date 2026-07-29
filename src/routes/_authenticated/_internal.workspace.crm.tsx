@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, redirect, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useRole } from "@/hooks/use-role";
 import { Users, UserPlus, ShoppingBag, AlertCircle, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,14 +20,11 @@ const TABS = [
 ] as const;
 
 function CrmLayout() {
-  const { loading, has } = useRole();
+  const { loading } = useRole();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { sms } = useSmsGatewayHealth();
   const level = classifyBalance(sms);
   if (loading) return null;
-  if (!has("manage_users")) {
-    throw redirect({ to: "/workspace" });
-  }
 
   const isDetail = /\/workspace\/crm\/[0-9a-f-]{36}$/i.test(pathname);
 

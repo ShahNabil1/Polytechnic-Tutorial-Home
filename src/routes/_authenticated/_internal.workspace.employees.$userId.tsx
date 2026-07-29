@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { InternalUserDetailPage } from "@/components/internal/InternalUserDetailPage";
 import { useRole } from "@/hooks/use-role";
 
@@ -8,10 +8,7 @@ export const Route = createFileRoute("/_authenticated/_internal/workspace/employ
 
 function EmployeeDetail() {
   const { userId } = Route.useParams();
-  const { loading, has } = useRole();
+  const { loading } = useRole();
   if (loading) return null;
-  if (!has("manage_users")) {
-    throw redirect({ to: "/workspace" });
-  }
   return <InternalUserDetailPage userId={userId} role="employee" />;
 }
