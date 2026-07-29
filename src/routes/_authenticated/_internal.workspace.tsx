@@ -34,9 +34,8 @@ export const Route = createFileRoute("/_authenticated/_internal/workspace")({
 });
 
 function WorkspaceLayout() {
-  const { info, has } = useRole();
+  const { info } = useRole();
   const isSuperAdmin = info?.primaryRole === "super_admin";
-  const canManageUsers = has("manage_users");
 
   const groups: NavGroup[] = [
     {
