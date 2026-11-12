@@ -2,7 +2,114 @@
 
 <p align="center"><strong>Comprehensive Polytechnic Diploma LMS, Question Bank, and Academic Workspace for Bangladesh BTEB Students.</strong></p>
 
-<p align="center">বাংলাদেশের পলিটেকনিক ডিপ্লোমা ইঞ্জিনিয়ারিং শিক্ষার্থীদের জন্য সম্পূর্ণ এলএমএস, প্রশ্ন ব্যাংক, বুক শপ এবং একাডেমিক ওয়ার্কস্পেস।</p>
+<p align="center">বাংলাদেশের পলিটে<h1 align="center"><a href="https://github.com/ShahNabil1/Polytechnic-Tutorial-Home"><img src="./docs/readme/polytechnic-tutorial-home.svg" width="960" alt="Polytechnic Tutorial Home LMS and engineering case study by Shahriar Nabil"></a></h1>
+
+<p align="center"><strong>Comprehensive Polytechnic Diploma LMS, Question Bank, and Academic Workspace for Bangladesh BTEB Students.</strong></p>
+
+<p align="center">বাংলাদেশ কারিগরি শিক্ষা বোর্ড (বিটিইবি) ডিপ্লোমা ইন ইঞ্জিনিয়ারিং শিক্ষার্থীদের জন্য অনলাইন কোর্স, প্রশ্ন ব্যাংক এবং অ্যাকাডেমিক ওয়ার্কস্পেস।</p>
+
+<p align="center"><a href="https://polytechnictutorial.com">Live Site</a> · <a href="#overview">Overview</a> · <a href="#lms-book-shop-workspace-and-security">LMS & Book Shop</a> · <a href="#stack-and-versions">Stack & Versions</a> · <a href="#architecture">Architecture</a> · <a href="#local-development">Local development</a></p>
+
+## Overview
+
+Polytechnic Tutorial Home provides a unified digital ecosystem for BTEB polytechnic diploma engineering students across semesters and departments.
+
+| Area | What it covers |
+| --- | --- |
+| **Diploma LMS** | Department-wise and semester-wise technical and non-technical course modules, chapter notes, and video lessons |
+| **Question Bank** | BTEB board exam question papers, solution archives, and chapter-wise suggestion banks |
+| **Book Shop** | Polytechnic engineering textbooks, guidebooks, digital e-books, and physical order tracking |
+| **Student Workspace** | Personalized study progress tracking, bookmarked chapters, exam preparation schedules, and order history |
+
+## Stack and versions
+
+| Technology | Version | Purpose |
+| --- | --- | --- |
+| **React** | `19.2.0` | UI framework and component rendering |
+| **TanStack Start / Router** | `1.168.26` / `1.170.16` | Full-stack routing and server-side integration |
+| **TanStack Query** | `5.101.1` | Asynchronous state management and data fetching |
+| **Tailwind CSS** | `4.2.1` | Utility-first styling and theme design |
+| **Supabase** | `2.110.1` | Backend database, Auth, and Storage service |
+| **Upstash Redis** | `1.38.0` | Rate limiting and serverless session caching |
+| **SimpleWebAuthn** | `13.3.0` | Passkey and biometric WebAuthn security |
+| **TypeScript** | `5.8.3` | Type safety and static analysis |
+| **Vite** | `8.0.16` | Frontend build tooling and dev server |
+| **Zustand** | `5.0.14` | Lightweight client state management |
+
+## LMS, Book Shop, Workspace and Security
+
+| Feature / Module | Real File Path | Description |
+| --- | --- | --- |
+| **Courses Index** | `src/routes/courses.index.tsx` | Main course listing and curriculum index |
+| **Course Details** | `src/routes/courses.$deptSlug.$semSlug.tsx` | Department and semester-specific course hierarchy |
+| **Book Shop** | `src/routes/shop.tsx` | E-commerce store for engineering books and study guides |
+| **Product Detail** | `src/routes/product.$slug.tsx` | Product details and purchase page |
+| **Bundle Detail** | `src/routes/bundle.$slug.tsx` | Course bundle packages and special offerings |
+| **Checkout** | `src/routes/checkout.index.tsx` | Order checkout and payment flow |
+| **Student Dashboard** | `src/routes/_authenticated/sdash.tsx` | Authenticated student portal and study dashboard |
+| **Instructor Workspace** | `src/routes/_authenticated/_internal.instructor.tsx` | Instructor portal for course creation and student analytics |
+| **LMS Structure** | `src/routes/_authenticated/_internal.workspace.lms-and-courses.structure.tsx` | LMS course structure and curriculum setup |
+| **E-commerce Products** | `src/routes/_authenticated/_internal.workspace.ecommerce.products.tsx` | Store products catalog management workspace |
+| **CRM Customers** | `src/routes/_authenticated/_internal.workspace.crm.customers.tsx` | Customer relationship management and student profiles |
+| **MFA Settings Card** | `src/components/account/MfaCard.tsx` | Multi-Factor Authentication security management card |
+| **Passkeys Settings Card** | `src/components/account/PasskeysCard.tsx` | WebAuthn passkeys credential management card |
+| **Sessions Card** | `src/components/account/SessionsCard.tsx` | Active user sessions tracking and revocation card |
+| **Blocklist Gate** | `src/components/BlocklistGate.tsx` | Blocklist gatekeeper component for restricted access |
+| **Impersonation Alert** | `src/components/ImpersonationBanner.tsx` | Banner indicator for administrative user impersonation |
+| **SMS Edge Function** | `supabase/functions/send-sms-hook` | Supabase serverless edge function for SMS notifications |
+
+## Architecture
+
+```mermaid
+graph TD
+    Client[Client Web App - React 19 / TanStack Router]
+
+    subgraph Frontend Core
+        LMS[LMS Module]
+        QB[Question Bank]
+        Shop[Book Store]
+        WS[Student Workspace]
+    end
+
+    subgraph Backend & Infrastructure
+        SB[(Supabase DB & Auth)]
+        Redis[(Upstash Redis Cache)]
+        Passkey[WebAuthn Security / Passkeys]
+    end
+
+    Client --> LMS
+    Client --> QB
+    Client --> Shop
+    Client --> WS
+
+    LMS --> SB
+    QB --> SB
+    Shop --> SB
+    WS --> SB
+
+    WS --> Redis
+    Client --> Passkey
+```
+
+## Local development
+
+```bash
+# Install dependencies
+bun install
+
+# Start development server
+bun run dev
+
+# Run build
+bun run build
+```
+
+## Developer
+
+<a href="https://github.com/ShahNabil1"><img src="./docs/readme/shahriar-nabil.png" width="90" height="90" alt="Shahriar Nabil logo"></a>
+
+**Shahriar Nabil**  
+Lead Full Stack Engineer & Maintainerকনিক ডিপ্লোমা ইঞ্জিনিয়ারিং শিক্ষার্থীদের জন্য সম্পূর্ণ এলএমএস, প্রশ্ন ব্যাংক, বুক শপ এবং একাডেমিক ওয়ার্কস্পেস।</p>
 
 <p align="center"><a href="https://polytechnictutorial.com">Live Site</a> · <a href="#overview">Overview</a> · <a href="#lms-book-shop-workspace-and-security">LMS & Book Shop</a> · <a href="#stack-and-versions">Stack & Versions</a> · <a href="#architecture">Architecture</a> · <a href="#local-development">Local development</a></p>
 
