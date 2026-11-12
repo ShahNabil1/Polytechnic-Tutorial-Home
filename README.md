@@ -1,9 +1,131 @@
-# PolyLearn Hub
+<h1 align="center"><a href="https://github.com/ShahNabil1/Polytechnic-Tutorial-Home"><img src="./docs/readme/polytechnic-tutorial-home.svg" width="960" alt="Polytechnic Tutorial Home LMS and engineering case study by Shahriar Nabil"></a></h1>
 
-প্রজেক্ট ডকুমেন্টেশন: পলিটেকনিক ই-লার্নিং ও ই-কমার্স প্ল্যাটফর্ম
+<p align="center"><strong>Comprehensive Polytechnic Diploma LMS, Question Bank, and Academic Workspace for Bangladesh BTEB Students.</strong></p>
 
-১. কোর আর্কিটেকচার (Course & Content Structure)
+<p align="center">বাংলাদেশের পলিটেকনিক ডিপ্লোমা ইঞ্জিনিয়ারিং শিক্ষার্থীদের জন্য সম্পূর্ণ এলএমএস, প্রশ্ন ব্যাংক, বুক শপ এবং একাডেমিক ওয়ার্কস্পেস।</p>
 
+<p align="center"><a href="#overview">Overview</a> · <a href="#lms-book-shop-workspace-and-security">LMS & Book Shop</a> · <a href="#stack-and-versions">Stack & Versions</a> · <a href="#architecture">Architecture</a> · <a href="#local-development">Local development</a></p>
+
+## Overview
+
+Polytechnic Tutorial Home provides a unified digital ecosystem for BTEB polytechnic diploma engineering students across semesters and departments.
+
+| Area | What it covers |
+| --- | --- |
+| **Diploma LMS** | Department-wise and semester-wise technical and non-technical course modules, chapter notes, and video lessons |
+| **Question Bank** | BTEB board exam question papers, solution archives, and chapter-wise suggestion banks |
+| **Book Shop** | Polytechnic engineering textbooks, guidebooks, digital e-books, and physical order tracking |
+| **Student Workspace** | Personalized study progress tracking, bookmarked chapters, exam preparation schedules, and order history |
+
+## Stack and versions
+
+| Technology | Version | Purpose |
+| --- | --- | --- |
+| **React** | `^19.2.0` | UI framework and component rendering |
+| **TanStack Start / Router** | `^1.168.26` / `^1.170.16` | Full-stack routing and server-side integration |
+| **TanStack Query** | `^5.101.1` | Asynchronous state management and data fetching |
+| **Tailwind CSS** | `^4.2.1` | Utility-first styling and theme design |
+| **Supabase** | `^2.110.1` | Backend database, Auth, and Storage service |
+| **Upstash Redis** | `^1.38.0` | Rate limiting and serverless session caching |
+| **SimpleWebAuthn** | `^13.3.0` | Passkey and biometric WebAuthn security |
+| **TypeScript** | `^5.8.3` | Type safety and static analysis |
+| **Vite** | `^8.0.16` | Frontend build tooling and dev server |
+| **Zustand** | `^5.0.14` | Lightweight client state management |
+
+## LMS, Book Shop, Workspace and Security
+
+| Feature | Primary Path | Description |
+| --- | --- | --- |
+| **LMS Engine** | `src/routes/lms` | Course chapters, syllabus hierarchy, and video streaming interface |
+| **Question Bank** | `src/routes/question-bank` | BTEB semester board questions and solution archives |
+| **Book Shop** | `src/routes/shop` | E-commerce store for engineering books and study guides |
+| **Student Workspace** | `src/routes/workspace` | Personal dashboard, bookmark manager, and study progress telemetry |
+| **Security & Auth** | `src/lib/auth` | Supabase authentication, RBAC, and SimpleWebAuthn passkey security |
+
+## Architecture
+
+```mermaid
+graph TD
+    Client[Client Web App - React 19 / TanStack Router]
+    
+    subgraph Frontend Core
+        LMS[LMS Module]
+        QB[Question Bank]
+        Shop[Book Store]
+        WS[Student Workspace]
+    end
+
+    subgraph Security Layer
+        Auth[Supabase Auth & RBAC]
+        Passkey[WebAuthn Passkey Engine]
+        RL[Upstash Rate Limiter]
+    end
+
+    subgraph Backend Services
+        DB[(Supabase PostgreSQL)]
+        Storage[Supabase Storage - PDFs & Media]
+        Redis[(Upstash Redis Cache)]
+    end
+
+    Client --> LMS
+    Client --> QB
+    Client --> Shop
+    Client --> WS
+
+    LMS --> Auth
+    QB --> Auth
+    Shop --> Auth
+    WS --> Auth
+
+    Auth --> Passkey
+    Auth --> RL
+
+    Auth --> DB
+    LMS --> Storage
+    RL --> Redis
+```
+
+## Local development
+
+### 1. Prerequisites
+
+- Node.js (v18+ recommended)
+- Bun or npm
+
+### 2. Installation
+
+```bash
+git clone https://github.com/ShahNabil1/Polytechnic-Tutorial-Home
+cd Polytechnic-Tutorial-Home
+bun install
+```
+
+### 3. Environment setup
+
+Copy `.env.example` to `.env` and fill in your Supabase credentials:
+
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+### 4. Running dev server
+
+```bash
+bun run dev
+```
+
+## Developer
+
+<p>
+  <a href="https://github.com/ShahNabil1"><img src="./docs/readme/shahriar-nabil.png" width="90" height="90" alt="Shahriar Nabil logo"></a>
+</p>
+
+**Shahriar Nabil** · Developer contact
+
+[GitHub](https://github.com/ShahNabil1)
+
+Copyright © 2025 Polytechnic Tutorial Home. All rights reserved.
 হায়ারার্কি (Hierarchy): ডিপার্টমেন্ট (কম্পিউটার, সিভিল, ইত্যাদি) ➔ সেমিস্টার (১ম-৮ম) ➔ সাবজেক্ট (Tech/Non-Tech) ➔ চ্যাপ্টার/মডিউল ➔ লেসন (ভিডিও/পিডিএফ/টেক্সট)।
 
 স্মার্ট ম্যাপিং (Non-Tech Subjects): ফিজিক্স, কেমিস্ট্রি বা বাংলার মতো সাবজেক্টগুলো ডেটাবেসে একবারই স্টোর হবে। আপলোডের সময় অ্যাডমিন চেকবক্সের মাধ্যমে মাল্টিপল ডিপার্টমেন্ট ও সেমিস্টার সিলেক্ট করে দিলে, সব জায়গায় একই কন্টেন্ট শো করবে।
